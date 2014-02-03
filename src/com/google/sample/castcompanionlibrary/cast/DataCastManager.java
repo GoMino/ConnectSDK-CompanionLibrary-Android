@@ -547,6 +547,7 @@ public class DataCastManager extends BaseCastManager
      */
     public synchronized void removeDataCastConsumer(IDataCastConsumer listener) {
         if (null != listener) {
+            super.removeBaseCastConsumer(listener);
             mDataConsumers.remove(listener);
         }
     }
