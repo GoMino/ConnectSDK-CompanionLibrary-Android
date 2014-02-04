@@ -476,6 +476,9 @@ public class VideoCastControllerActivity extends ActionBarActivity {
         LOGD(TAG, "onResume() was called");
         try {
             mCastManager = VideoCastManager.getInstance(this);
+            if (!mCastManager.isConnected()) {
+                finish();
+            }
         } catch (CastException e) {
             // logged already
         }

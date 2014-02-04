@@ -1726,6 +1726,7 @@ public class VideoCastManager extends BaseCastManager
         super.onDisconnected();
         updateMiniControllersVisibility(false);
         stopNotificationService();
+        updateRemoteControl(false);
     }
 
     @Override
