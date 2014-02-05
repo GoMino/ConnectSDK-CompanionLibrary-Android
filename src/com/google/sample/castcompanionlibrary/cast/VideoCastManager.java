@@ -1523,7 +1523,7 @@ public class VideoCastManager extends BaseCastManager
                 } else if (images.size() == 1) {
                     imgUrl = new URL(images.get(0).getUrl().toString());
                 }
-            } else {
+            } else if (!images.isEmpty()){
                 imgUrl = new URL(images.get(0).getUrl().toString());
             }
         } catch (MalformedURLException e) {
