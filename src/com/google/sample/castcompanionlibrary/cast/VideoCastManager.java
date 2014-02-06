@@ -1523,7 +1523,7 @@ public class VideoCastManager extends BaseCastManager
                 } else if (images.size() == 1) {
                     imgUrl = new URL(images.get(0).getUrl().toString());
                 }
-            } else if (!images.isEmpty()){
+            } else if (!images.isEmpty()) {
                 imgUrl = new URL(images.get(0).getUrl().toString());
             }
         } catch (MalformedURLException e) {
@@ -1575,7 +1575,7 @@ public class VideoCastManager extends BaseCastManager
      * has two lines: Title , Album Artist - Album
      */
     private void updateLockScreenMetadata() {
-        if (null == mRemoteControlClientCompat) {
+        if (null == mRemoteControlClientCompat || !isFeatureEnabled(FEATURE_LOCKSCREEN)) {
             return;
         }
 
@@ -1602,6 +1602,20 @@ public class VideoCastManager extends BaseCastManager
             LOGE(TAG, "Failed to update RCC due to network issues", e);
         } catch (NoConnectionException e) {
             LOGE(TAG, "Failed to update RCC due to network issues", e);
+        }
+    }
+
+    /*
+     * Removes the remote control client
+     */
+    private void removeRemoteControlClient(){
+        if (isFeatureEnabled(FEATURE_LOCKSCREEN)) {
+            mAudioManager.abandonAudioFocus(null);
+            if (null != mRemoteControlClientCompat) {
+                RemoteControlHelper.unregisterRemoteControlClient(mAudioManager,
+                        mRemoteControlClientCompat);
+                mRemoteControlClientCompat = null;
+            }
         }
     }
 
@@ -1726,7 +1740,7 @@ public class VideoCastManager extends BaseCastManager
         super.onDisconnected();
         updateMiniControllersVisibility(false);
         stopNotificationService();
-        updateRemoteControl(false);
+        removeRemoteControlClient();
     }
 
     @Override
