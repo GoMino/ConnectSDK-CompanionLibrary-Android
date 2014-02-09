@@ -18,14 +18,14 @@ package com.google.sample.castcompanionlibrary.cast;
 
 import static com.google.sample.castcompanionlibrary.utils.LogUtils.LOGD;
 
+import android.content.Context;
+import android.support.v7.media.MediaRouter;
+import android.support.v7.media.MediaRouter.RouteInfo;
+
 import com.google.android.gms.cast.CastDevice;
 import com.google.sample.castcompanionlibrary.cast.BaseCastManager.ReconnectionStatus;
 import com.google.sample.castcompanionlibrary.utils.LogUtils;
 import com.google.sample.castcompanionlibrary.utils.Utils;
-
-import android.content.Context;
-import android.support.v7.media.MediaRouter;
-import android.support.v7.media.MediaRouter.RouteInfo;
 
 /**
  * Provides a handy implementation of {@link MediaRouter.Callback}. When a {@link RouteInfo} is
@@ -73,8 +73,7 @@ public class CastMediaRouterCallback extends MediaRouter.Callback {
         if (!router.getDefaultRoute().equals(route)) {
             selectDeviceInterface.onCastDeviceDetected(route);
         }
-        if (BaseCastManager.getCastManager().getReconnectionStatus() ==
-                ReconnectionStatus.STARTED) {
+        if (BaseCastManager.getCastManager().getReconnectionStatus() == ReconnectionStatus.STARTED) {
             String routeId = Utils.getStringFromPreference(mContext,
                     BaseCastManager.PREFS_KEY_ROUTE_ID);
             if (route.getId().equals(routeId)) {
@@ -84,9 +83,8 @@ public class CastMediaRouterCallback extends MediaRouter.Callback {
                         ReconnectionStatus.IN_PROGRESS);
 
                 CastDevice device = CastDevice.getFromBundle(route.getExtras());
-                LOGD(TAG,
-                        "onRouteAdded: Attempting to recover a session with device: "
-                                + device.getFriendlyName());
+                LOGD(TAG, "onRouteAdded: Attempting to recover a session with device: "
+                        + device.getFriendlyName());
                 selectDeviceInterface.onDeviceSelected(device);
             }
         }

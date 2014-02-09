@@ -19,6 +19,24 @@ package com.google.sample.castcompanionlibrary.cast;
 import static com.google.sample.castcompanionlibrary.utils.LogUtils.LOGD;
 import static com.google.sample.castcompanionlibrary.utils.LogUtils.LOGE;
 
+import android.app.Activity;
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.media.RemoteControlClient;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.support.v4.view.MenuItemCompat;
+import android.support.v7.app.MediaRouteActionProvider;
+import android.support.v7.app.MediaRouteDialogFactory;
+import android.support.v7.media.MediaRouteSelector;
+import android.support.v7.media.MediaRouter;
+import android.support.v7.media.MediaRouter.RouteInfo;
+import android.view.Menu;
+import android.view.MenuItem;
+
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
 import com.google.android.gms.cast.Cast.ApplicationConnectionResult;
@@ -39,24 +57,6 @@ import com.google.sample.castcompanionlibrary.cast.exceptions.OnFailedListener;
 import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
 import com.google.sample.castcompanionlibrary.utils.LogUtils;
 import com.google.sample.castcompanionlibrary.utils.Utils;
-
-import android.app.Activity;
-import android.app.ProgressDialog;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.media.RemoteControlClient;
-import android.os.AsyncTask;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.support.v4.view.MenuItemCompat;
-import android.support.v7.app.MediaRouteActionProvider;
-import android.support.v7.app.MediaRouteDialogFactory;
-import android.support.v7.media.MediaRouteSelector;
-import android.support.v7.media.MediaRouter;
-import android.support.v7.media.MediaRouter.RouteInfo;
-import android.view.Menu;
-import android.view.MenuItem;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -260,15 +260,16 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
                 }
                 mApiClient = null;
             }
-        } else {
-            LOGD(TAG, "acquiring a conenction to Google Play Services for " + mSelectedCastDevice);
-
+        } else if (null == mApiClient){
+            LOGD(TAG, "acquiring a conenction to Google Play services for " + mSelectedCastDevice);
             Cast.CastOptions.Builder apiOptionsBuilder = getCastOptionBuilder(mSelectedCastDevice);
             mApiClient = new GoogleApiClient.Builder(mContext)
                     .addApi(Cast.API, apiOptionsBuilder.build())
                     .addConnectionCallbacks(this)
                     .addOnConnectionFailedListener(this)
                     .build();
+            mApiClient.connect();
+        } else if (!mApiClient.isConnected()) {
             mApiClient.connect();
         }
     }
@@ -1000,8 +1001,9 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
      */
     public synchronized void addBaseCastConsumer(IBaseCastConsumer listener) {
         if (null != listener) {
-            LOGD(TAG, "Successfully added the new BaseCastConsumer listener " + listener);
-            mBaseCastConsumers.add(listener);
+            if (mBaseCastConsumers.add(listener)) {
+                LOGD(TAG, "Successfully added the new BaseCastConsumer listener " + listener);
+            }
         }
     }
 
@@ -1012,7 +1014,10 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
      */
     public synchronized void removeBaseCastConsumer(IBaseCastConsumer listener) {
         if (null != listener) {
-            mBaseCastConsumers.remove(listener);
+            if (mBaseCastConsumers.remove(listener)) {
+                LOGD(TAG, "Successfully removed the existing BaseCastConsumer listener " +
+                        listener);
+            }
         }
     }
 
