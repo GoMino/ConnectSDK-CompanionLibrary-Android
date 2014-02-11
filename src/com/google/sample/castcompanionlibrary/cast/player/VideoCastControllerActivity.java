@@ -19,17 +19,9 @@ package com.google.sample.castcompanionlibrary.cast.player;
 import static com.google.sample.castcompanionlibrary.utils.LogUtils.LOGD;
 import static com.google.sample.castcompanionlibrary.utils.LogUtils.LOGE;
 
-import com.google.android.gms.cast.MediaInfo;
-import com.google.android.gms.cast.MediaMetadata;
-import com.google.android.gms.cast.MediaStatus;
-import com.google.sample.castcompanionlibrary.R;
-import com.google.sample.castcompanionlibrary.cast.VideoCastManager;
-import com.google.sample.castcompanionlibrary.cast.callbacks.VideoCastConsumerImpl;
-import com.google.sample.castcompanionlibrary.cast.exceptions.CastException;
-import com.google.sample.castcompanionlibrary.cast.exceptions.NoConnectionException;
-import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
-import com.google.sample.castcompanionlibrary.utils.LogUtils;
-import com.google.sample.castcompanionlibrary.utils.Utils;
+import java.net.URL;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import android.app.Activity;
 import android.graphics.Bitmap;
@@ -50,9 +42,17 @@ import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
 
-import java.net.URL;
-import java.util.Timer;
-import java.util.TimerTask;
+import com.google.android.gms.cast.MediaInfo;
+import com.google.android.gms.cast.MediaMetadata;
+import com.google.android.gms.cast.MediaStatus;
+import com.google.sample.castcompanionlibrary.R;
+import com.google.sample.castcompanionlibrary.cast.VideoCastManager;
+import com.google.sample.castcompanionlibrary.cast.callbacks.VideoCastConsumerImpl;
+import com.google.sample.castcompanionlibrary.cast.exceptions.CastException;
+import com.google.sample.castcompanionlibrary.cast.exceptions.NoConnectionException;
+import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
+import com.google.sample.castcompanionlibrary.utils.LogUtils;
+import com.google.sample.castcompanionlibrary.utils.Utils;
 
 /**
  * This class provides an {@link Activity} that clients can easily add to their applications to
@@ -83,10 +83,12 @@ public class VideoCastControllerActivity extends ActionBarActivity {
     private AsyncTask<String, Void, Bitmap> mImageAsyncTask;
     private float mVolumeIncrement;
     private View mControllers;
+    private boolean mIsFresh = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mIsFresh = true;
         setContentView(R.layout.cast_activity);
         mVolumeIncrement = Utils.getFloatFromPreference(
                 this, VideoCastManager.PREFS_KEY_VOLUME_INCREMENT);
@@ -461,27 +463,27 @@ public class VideoCastControllerActivity extends ActionBarActivity {
 
     @Override
     protected void onDestroy() {
+        LOGD(TAG, "onDestroy is called");
         stopTrickplayTimer();
         super.onDestroy();
-    }
-
-    @Override
-    protected void onStart() {
-        LOGD(TAG, "onStart was called");
-        super.onStart();
     }
 
     @Override
     protected void onResume() {
         LOGD(TAG, "onResume() was called");
         try {
-            mCastManager = VideoCastManager.getInstance(this);
-            if (!mCastManager.isConnected()) {
+            mCastManager = VideoCastManager.getInstance(VideoCastControllerActivity.this);
+            boolean shouldFinish = !mCastManager.isConnected()
+                    || (mCastManager.getPlaybackStatus() == MediaStatus.PLAYER_STATE_IDLE
+                            && mCastManager.getIdleReason() == MediaStatus.IDLE_REASON_FINISHED
+                            && !mIsFresh);
+            if (shouldFinish) {
                 finish();
             }
         } catch (CastException e) {
             // logged already
         }
+
         mCastManager.addVideoCastConsumer(mCastConsumer);
         mCastManager.incrementUiCounter();
         super.onResume();
@@ -491,6 +493,7 @@ public class VideoCastControllerActivity extends ActionBarActivity {
     protected void onPause() {
         mCastManager.removeVideoCastConsumer(mCastConsumer);
         mCastManager.decrementUiCounter();
+        mIsFresh = false;
         super.onPause();
     }
 
