@@ -252,7 +252,7 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
             }
             onDisconnected();
             onDeviceUnselected();
-            if (null != mApiClient && mApiClient.isConnected()) {
+            if (null != mApiClient) {
                 LOGD(TAG, "Trying to disconnect");
                 mApiClient.disconnect();
                 if (null != mMediaRouter) {
@@ -260,7 +260,7 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
                 }
                 mApiClient = null;
             }
-        } else if (null == mApiClient){
+        } else if (null == mApiClient) {
             LOGD(TAG, "acquiring a conenction to Google Play services for " + mSelectedCastDevice);
             Cast.CastOptions.Builder apiOptionsBuilder = getCastOptionBuilder(mSelectedCastDevice);
             mApiClient = new GoogleApiClient.Builder(mContext)
