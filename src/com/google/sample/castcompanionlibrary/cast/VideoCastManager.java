@@ -1699,8 +1699,15 @@ public class VideoCastManager extends BaseCastManager
 
     @Override
     void onDeviceUnselected() {
-        detachMediaChannel();
-        stopNotificationService();
+        try {
+            detachMediaChannel();
+            removeDataChannel();
+            stopNotificationService();
+        } catch (TransientNetworkDisconnectionException e) {
+            LOGD(TAG, "Failed to clean up on onDeviceUnselected()", e);
+        } catch (NoConnectionException e) {
+            LOGD(TAG, "Failed to clean up on onDeviceUnselected()", e);
+        }
     }
 
     @Override
