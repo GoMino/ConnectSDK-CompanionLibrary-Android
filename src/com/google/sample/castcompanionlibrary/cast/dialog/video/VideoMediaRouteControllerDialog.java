@@ -18,17 +18,6 @@ package com.google.sample.castcompanionlibrary.cast.dialog.video;
 
 import static com.google.sample.castcompanionlibrary.utils.LogUtils.LOGE;
 
-import com.google.android.gms.cast.MediaInfo;
-import com.google.android.gms.cast.MediaMetadata;
-import com.google.android.gms.cast.MediaStatus;
-import com.google.sample.castcompanionlibrary.R;
-import com.google.sample.castcompanionlibrary.cast.VideoCastManager;
-import com.google.sample.castcompanionlibrary.cast.callbacks.VideoCastConsumerImpl;
-import com.google.sample.castcompanionlibrary.cast.exceptions.CastException;
-import com.google.sample.castcompanionlibrary.cast.exceptions.NoConnectionException;
-import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
-import com.google.sample.castcompanionlibrary.utils.LogUtils;
-
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -41,6 +30,17 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+
+import com.google.android.gms.cast.MediaInfo;
+import com.google.android.gms.cast.MediaMetadata;
+import com.google.android.gms.cast.MediaStatus;
+import com.google.sample.castcompanionlibrary.R;
+import com.google.sample.castcompanionlibrary.cast.VideoCastManager;
+import com.google.sample.castcompanionlibrary.cast.callbacks.VideoCastConsumerImpl;
+import com.google.sample.castcompanionlibrary.cast.exceptions.CastException;
+import com.google.sample.castcompanionlibrary.cast.exceptions.NoConnectionException;
+import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
+import com.google.sample.castcompanionlibrary.utils.LogUtils;
 
 import java.net.URL;
 
@@ -204,6 +204,10 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
                 case MediaStatus.PLAYER_STATE_IDLE:
                     mPausePlay.setVisibility(View.INVISIBLE);
                     setLoadingVisibility(false);
+                    if (mState == MediaStatus.PLAYER_STATE_IDLE
+                            && mCastManager.getIdleReason() == MediaStatus.IDLE_REASON_FINISHED) {
+                        hideControls(true, R.string.no_media_info);
+                    }
                     break;
                 case MediaStatus.PLAYER_STATE_BUFFERING:
                     mPausePlay.setVisibility(View.INVISIBLE);
@@ -240,8 +244,8 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
 
         loadViews(controls);
         mState = mCastManager.getPlaybackStatus();
-        updatePlayPauseState(mState);
         updateMetadata();
+        updatePlayPauseState(mState);
         setupCallbacks();
         return controls;
     }

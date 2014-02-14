@@ -1127,7 +1127,12 @@ public class VideoCastManager extends BaseCastManager
         if (isPlaying) {
             pause();
         } else {
-            play();
+            if (mState == MediaStatus.PLAYER_STATE_IDLE
+                    && mIdleReason == MediaStatus.IDLE_REASON_FINISHED) {
+                loadMedia(getRemoteMediaInformation(), true, 0);
+            } else {
+                play();
+            }
         }
     }
 
