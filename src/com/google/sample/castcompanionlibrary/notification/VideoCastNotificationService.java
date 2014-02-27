@@ -1,16 +1,16 @@
 /*
- * Copyright (C) 2013 Google Inc. All Rights Reserved. 
+ * Copyright (C) 2013 Google Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at 
+ * You may obtain a copy of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software 
+ * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and 
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
@@ -18,19 +18,6 @@ package com.google.sample.castcompanionlibrary.notification;
 
 import static com.google.sample.castcompanionlibrary.utils.LogUtils.LOGD;
 import static com.google.sample.castcompanionlibrary.utils.LogUtils.LOGE;
-
-import com.google.android.gms.cast.MediaInfo;
-import com.google.android.gms.cast.MediaMetadata;
-import com.google.android.gms.cast.MediaStatus;
-import com.google.sample.castcompanionlibrary.R;
-import com.google.sample.castcompanionlibrary.cast.VideoCastManager;
-import com.google.sample.castcompanionlibrary.cast.callbacks.VideoCastConsumerImpl;
-import com.google.sample.castcompanionlibrary.cast.exceptions.CastException;
-import com.google.sample.castcompanionlibrary.cast.exceptions.NoConnectionException;
-import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
-import com.google.sample.castcompanionlibrary.cast.player.VideoCastControllerActivity;
-import com.google.sample.castcompanionlibrary.utils.LogUtils;
-import com.google.sample.castcompanionlibrary.utils.Utils;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -48,6 +35,19 @@ import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
 import android.widget.RemoteViews;
+
+import com.google.android.gms.cast.MediaInfo;
+import com.google.android.gms.cast.MediaMetadata;
+import com.google.android.gms.cast.MediaStatus;
+import com.google.sample.castcompanionlibrary.R;
+import com.google.sample.castcompanionlibrary.cast.VideoCastManager;
+import com.google.sample.castcompanionlibrary.cast.callbacks.VideoCastConsumerImpl;
+import com.google.sample.castcompanionlibrary.cast.exceptions.CastException;
+import com.google.sample.castcompanionlibrary.cast.exceptions.NoConnectionException;
+import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
+import com.google.sample.castcompanionlibrary.cast.player.VideoCastControllerActivity;
+import com.google.sample.castcompanionlibrary.utils.LogUtils;
+import com.google.sample.castcompanionlibrary.utils.Utils;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -72,7 +72,7 @@ public class VideoCastNotificationService extends Service {
     private String mApplicationId;
     private Bitmap mVideoArtBitmap;
     private Uri mVideoArtUri;
-    private boolean isPlaying;
+    private boolean mIsPlaying;
     private Class<?> mTargetActivity;
     private int mStatus;
     private Notification mNotification;
@@ -154,13 +154,13 @@ public class VideoCastNotificationService extends Service {
                 uri = mm.getImages().get(0).getUrl();
             }
             if (null == uri) {
-                build(info, null, isPlaying, mTargetActivity);
+                build(info, null, mIsPlaying, mTargetActivity);
                 if (visible) {
                     startForeground(NOTIFICATION_ID, mNotification);
                 }
             } else if (null != mVideoArtBitmap && null != mVideoArtUri &&
                     mVideoArtUri.equals(uri)) {
-                build(info, mVideoArtBitmap, isPlaying, mTargetActivity);
+                build(info, mVideoArtBitmap, mIsPlaying, mTargetActivity);
                 if (visible) {
                     startForeground(NOTIFICATION_ID, mNotification);
                 }
@@ -175,7 +175,7 @@ public class VideoCastNotificationService extends Service {
                             mVideoArtUri = mm.getImages().get(0).getUrl();
                             imgUrl = new URL(mVideoArtUri.toString());
                             mVideoArtBitmap = BitmapFactory.decodeStream(imgUrl.openStream());
-                            build(info, mVideoArtBitmap, isPlaying, mTargetActivity);
+                            build(info, mVideoArtBitmap, mIsPlaying, mTargetActivity);
                             if (visible) {
                                 startForeground(NOTIFICATION_ID, mNotification);
                             }
@@ -218,23 +218,28 @@ public class VideoCastNotificationService extends Service {
         try {
             switch (mediaStatus) {
                 case MediaStatus.PLAYER_STATE_BUFFERING: // (== 4)
-                    isPlaying = false;
+                    mIsPlaying = false;
                     setupNotification(mCastManager.getRemoteMediaInformation(), mVisible);
                     break;
                 case MediaStatus.PLAYER_STATE_PLAYING: // (== 2)
-                    isPlaying = true;
+                    mIsPlaying = true;
                     setupNotification(mCastManager.getRemoteMediaInformation(), mVisible);
                     break;
                 case MediaStatus.PLAYER_STATE_PAUSED: // (== 3)
-                    isPlaying = false;
+                    mIsPlaying = false;
                     setupNotification(mCastManager.getRemoteMediaInformation(), mVisible);
                     break;
                 case MediaStatus.PLAYER_STATE_IDLE: // (== 1)
-                    isPlaying = false;
-                    stopForeground(true);
+                    mIsPlaying = false;
+                    if (!mCastManager.shouldRemoteUiBeVisible(mediaStatus,
+                            mCastManager.getIdleReason())) {
+                        stopForeground(true);
+                    } else {
+                        setupNotification(mCastManager.getRemoteMediaInformation(), mVisible);
+                    }
                     break;
                 case MediaStatus.PLAYER_STATE_UNKNOWN: // (== 0)
-                    isPlaying = false;
+                    mIsPlaying = false;
                     stopForeground(true);
                     break;
                 default:
@@ -295,7 +300,7 @@ public class VideoCastNotificationService extends Service {
 
         RemoteViews rv = new RemoteViews(getPackageName(), R.layout.custom_notification);
         if (mIsIcsOrAbove) {
-            addPendingIntents(rv, isPlaying);
+            addPendingIntents(rv, isPlaying, info);
         }
         if (null != bitmap) {
             rv.setImageViewBitmap(R.id.iconView, bitmap);
@@ -319,7 +324,7 @@ public class VideoCastNotificationService extends Service {
         return rv;
     }
 
-    private void addPendingIntents(RemoteViews rv, boolean isPlaying) {
+    private void addPendingIntents(RemoteViews rv, boolean isPlaying, MediaInfo info) {
         Intent playbackIntent = new Intent(ACTION_TOGGLE_PLAYBACK);
         playbackIntent.setPackage(getPackageName());
         PendingIntent playbackPendingIntent = PendingIntent
@@ -333,7 +338,12 @@ public class VideoCastNotificationService extends Service {
         rv.setOnClickPendingIntent(R.id.removeView, stopPendingIntent);
 
         if (isPlaying) {
-            rv.setImageViewResource(R.id.playPauseView, R.drawable.ic_av_pause_sm_dark);
+            if (info.getStreamType() == MediaInfo.STREAM_TYPE_LIVE) {
+                rv.setImageViewResource(R.id.playPauseView, R.drawable.ic_av_stop_sm_dark);
+            } else {
+                rv.setImageViewResource(R.id.playPauseView, R.drawable.ic_av_pause_sm_dark);
+            }
+
         } else {
             rv.setImageViewResource(R.id.playPauseView, R.drawable.ic_av_play_sm_dark);
         }

@@ -27,3 +27,12 @@ See LICENSE
 
 ## Google+
 Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl/TPLDxj)
+
+## Change List
+1.0 -> 1.1
+ * Added gradle build scripts (make sure you have Android Support Repository)
+ * For live media, the "pause" button at various places is replaced with a "stop" button
+ * Refactored the VideoCastControllerActivity to enable configuration changes without losing any running process
+ * Added new capabilities for clients to hook in an authorization process prior to casting a video
+ * A number of bug fixes, style fixes, etc
+ * Updated documentation

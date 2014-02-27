@@ -8,6 +8,7 @@
     <color name="orange_transparent">#AAFADCA7</color>
     <color name="orange">#FADCA7</color>
     <color name="casting_media_control_bg">#2c393d</color>
+    <color name="dark_grey">#2d3134</color>
 
     <!-- Custom Media Router Dialog -->
     <color name="mr_custom_line_1">#FFFFFF</color>

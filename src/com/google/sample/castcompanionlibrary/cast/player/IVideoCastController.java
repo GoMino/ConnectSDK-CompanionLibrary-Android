@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Google Inc. All Rights Reserved.
+ * Copyright (C) 2014 Google Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,41 +14,36 @@
  * limitations under the License.
  */
 
-package com.google.sample.castcompanionlibrary.widgets;
+package com.google.sample.castcompanionlibrary.cast.player;
 
-import android.net.Uri;
+import android.graphics.Bitmap;
 
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaStatus;
 import com.google.sample.castcompanionlibrary.widgets.MiniController.OnMiniControllerChangedListener;
 
-/**
- * An interface to abstract {@link MiniController} so that other components can also control the
- * MiniControllers. Clients should code against this interface when they want to control the
- * provided {@link MiniController} or other custom implementations.
- */
-public interface IMiniController {
+public interface IVideoCastController {
 
     /**
      * Sets the uri for the album art
      *
-     * @param uri
+     * @param bitmap
      */
-    public void setIcon(Uri uri);
+    public void setImage(Bitmap bitmap);
 
     /**
      * Sets the title
      *
-     * @param title
+     * @param text
      */
-    public void setTitle(String title);
+    public void setLine1(String text);
 
     /**
      * Sets the subtitle
      *
-     * @param subTitle
+     * @param text
      */
-    public void setSubTitle(String subTitle);
+    public void setLine2(String text);
 
     /**
      * Sets the playback state, and the idleReason (this is only reliable when the state is idle).
@@ -57,21 +52,7 @@ public interface IMiniController {
      * @param state
      * @param idelReason
      */
-    public void setPlaybackStatus(int state, int idleReason);
-
-    /**
-     * Sets whether this component should be visible or hidden.
-     *
-     * @param visibility
-     */
-    public void setVisibility(int visibility);
-
-    /**
-     * Returns the visibility state of this widget
-     *
-     * @return
-     */
-    public boolean isVisible();
+    public void setPlaybackStatus(int state);
 
     /**
      * Assigns a {@link OnMiniControllerChangedListener} listener to be notified of the changes in
@@ -79,7 +60,7 @@ public interface IMiniController {
      *
      * @param listener
      */
-    public void setOnMiniControllerChangedListener(OnMiniControllerChangedListener listener);
+    public void setOnVideoCastControllerChangedListener(OnVideoCastControllerListener listener);
 
     /**
      * Sets the type of stream. <code>streamType</code> can be {@link MediaInfo.STREAM_TYPE_LIVE} or
@@ -89,4 +70,13 @@ public interface IMiniController {
      */
     public void setStreamType(int streamType);
 
+    public void updateSeekbar(int position, int duration);
+
+    public void updateControllersStatus(boolean enabled);
+
+    public void showLoading(boolean visible);
+
+    public void closeActivity();
+
+    public void adjustControllersForLiveStream(boolean isLive);
 }

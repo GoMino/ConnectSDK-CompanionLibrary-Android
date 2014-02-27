@@ -27,6 +27,7 @@
 
     <!-- Error messages for the play.pause in mini player -->
     <string name="failed_to_play">Failed to start the playback of media</string>
+    <string name="failed_to_stop">Failed to stop the playback of media</string>
     <string name="failed_to_pause">Failed to pause the playback of media</string>
     <string name="failed_unknown">An unknown error was encountered</string>
 
@@ -41,5 +42,6 @@
     <string name="failed_load">Failed to load media on the cast device</string>
     <string name="failed_seek">Failed to seek to the new position on the cast device</string>
     <string name="failed_receiver_player_error">Receiver player has encountered a sever error</string>
+    <string name="failed_authorization_timeout">Authorization timed out</string>
 
 </resources>

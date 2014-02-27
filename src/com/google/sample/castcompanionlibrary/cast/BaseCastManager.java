@@ -989,7 +989,7 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
     }
 
     /*************************************************************/
-    /***** Registering IBaseCastConsumer listeners **************/
+    /***** Registering IBaseCastConsumer listeners ***************/
     /*************************************************************/
     /**
      * Registers an {@link IBaseCastConsumer} interface with this class. Registered listeners will

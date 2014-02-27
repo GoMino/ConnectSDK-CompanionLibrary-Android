@@ -65,9 +65,12 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
     private VideoCastConsumerImpl castConsumerImpl;
     private Drawable mPauseDrawable;
     private Drawable mPlayDrawable;
+    private Drawable mStopDrawable;
     private Context mContext;
     private boolean mClosed;
     private View mIconContainer;
+
+    private int mStreamType;
 
     public VideoMediaRouteControllerDialog(Context context, int theme) {
         super(context, theme);
@@ -112,6 +115,7 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
             mCastManager.addVideoCastConsumer(castConsumerImpl);
             mPauseDrawable = context.getResources().getDrawable(R.drawable.ic_av_pause_sm_dark);
             mPlayDrawable = context.getResources().getDrawable(R.drawable.ic_av_play_sm_dark);
+            mStopDrawable = context.getResources().getDrawable(R.drawable.ic_av_stop_sm_dark);
         } catch (CastException e) {
             LOGE(TAG, "Failed to update the content of dialog", e);
         } catch (IllegalStateException e) {
@@ -147,6 +151,7 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
             hideControls(true, R.string.no_media_info);
             return;
         }
+        mStreamType = info.getStreamType();
         hideControls(false, 0);
         MediaMetadata mm = info.getMetadata();
         mTitle.setText(mm.getString(MediaMetadata.KEY_TITLE));
@@ -193,7 +198,7 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
             switch (state) {
                 case MediaStatus.PLAYER_STATE_PLAYING:
                     mPausePlay.setVisibility(View.VISIBLE);
-                    mPausePlay.setImageDrawable(mPauseDrawable);
+                    mPausePlay.setImageDrawable(getPauseStopButton());
                     setLoadingVisibility(false);
                     break;
                 case MediaStatus.PLAYER_STATE_PAUSED:
@@ -204,9 +209,28 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
                 case MediaStatus.PLAYER_STATE_IDLE:
                     mPausePlay.setVisibility(View.INVISIBLE);
                     setLoadingVisibility(false);
+
                     if (mState == MediaStatus.PLAYER_STATE_IDLE
                             && mCastManager.getIdleReason() == MediaStatus.IDLE_REASON_FINISHED) {
                         hideControls(true, R.string.no_media_info);
+                    } else {
+                        switch (mStreamType) {
+                            case MediaInfo.STREAM_TYPE_BUFFERED:
+                                mPausePlay.setVisibility(View.INVISIBLE);
+                                setLoadingVisibility(false);
+                                break;
+                            case MediaInfo.STREAM_TYPE_LIVE:
+                                int idleReason = mCastManager.getIdleReason();
+                                if (idleReason == MediaStatus.IDLE_REASON_CANCELED) {
+                                    mPausePlay.setVisibility(View.VISIBLE);
+                                    mPausePlay.setImageDrawable(mPlayDrawable);
+                                    setLoadingVisibility(false);
+                                } else {
+                                    mPausePlay.setVisibility(View.INVISIBLE);
+                                    setLoadingVisibility(false);
+                                }
+                                break;
+                        }
                     }
                     break;
                 case MediaStatus.PLAYER_STATE_BUFFERING:
@@ -217,6 +241,17 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
                     mPausePlay.setVisibility(View.INVISIBLE);
                     setLoadingVisibility(false);
             }
+        }
+    }
+
+    private Drawable getPauseStopButton() {
+        switch (mStreamType) {
+            case MediaInfo.STREAM_TYPE_BUFFERED:
+                return mPauseDrawable;
+            case MediaInfo.STREAM_TYPE_LIVE:
+                return mStopDrawable;
+            default:
+                return mPauseDrawable;
         }
     }
 
