@@ -55,7 +55,7 @@ public interface IMiniController {
      * Values that can be passed to this method are from {@link MediaStatus}
      *
      * @param state
-     * @param idelReason
+     * @param idleReason
      */
     public void setPlaybackStatus(int state, int idleReason);
 
