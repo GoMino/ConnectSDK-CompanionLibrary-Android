@@ -119,6 +119,7 @@ public class VideoCastManager extends BaseCastManager
     public static final String EXTRA_MEDIA = "media";
     public static final String EXTRA_START_POINT = "startPoint";
     public static final String EXTRA_SHOULD_START = "shouldStart";
+    public static final String EXTRA_CUSTOM_DATA = "customData";
 
     /**
      * Volume can be controlled at two different layers, one is at the "stream" level and one at the
@@ -338,6 +339,7 @@ public class VideoCastManager extends BaseCastManager
      * @param mediaWrapper a bundle wrapper for the media that is or will be casted
      * @param position (in milliseconds) is the starting point of the media playback
      * @param shouldStart indicates if the remote playback should start after launching the new page
+     * @param customData Optional {@link JSONObject}
      */
     public void startCastControllerActivity(Context context, Bundle mediaWrapper, int position,
             boolean shouldStart, JSONObject customData) {
@@ -346,7 +348,7 @@ public class VideoCastManager extends BaseCastManager
         intent.putExtra(EXTRA_START_POINT, position);
         intent.putExtra(EXTRA_SHOULD_START, shouldStart);
         if (null != customData) {
-            intent.putExtra("customData", customData.toString());
+            intent.putExtra(EXTRA_CUSTOM_DATA, customData.toString());
         }
         context.startActivity(intent);
     }
@@ -1017,7 +1019,7 @@ public class VideoCastManager extends BaseCastManager
      * @param autoPlay If <code>true</code>, playback starts after load
      * @param position Where to start the playback (only used if autoPlay is <code>true</code>.
      *            Units is milliseconds.
-     * @param customData Optional JSONObject data to be passed to the cast device
+     * @param customData Optional {@link JSONObject} data to be passed to the cast device
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
      */
@@ -1067,7 +1069,7 @@ public class VideoCastManager extends BaseCastManager
     /**
      * Resumes the playback from where it was left (can be the beginning).
      *
-     * @param customData Optional JSONObject data to be passed to the cast device
+     * @param customData Optional {@link JSONObject} data to be passed to the cast device
      * @throws CastException
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
@@ -1103,7 +1105,7 @@ public class VideoCastManager extends BaseCastManager
     /**
      * Stops the playback of media/stream
      *
-     * @param customData
+     * @param customData Optional {@link JSONObject}
      * @throws CastException
      * @throws TransientNetworkDisconnectionException
      * @throws NoConnectionException
@@ -1151,7 +1153,7 @@ public class VideoCastManager extends BaseCastManager
     /**
      * Pauses the playback.
      *
-     * @param customData Optional JSONObject data to be passed to the cast device
+     * @param customData Optional {@link JSONObject} data to be passed to the cast device
      * @throws CastException
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException

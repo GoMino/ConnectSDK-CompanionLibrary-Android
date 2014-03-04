@@ -67,6 +67,7 @@ public class VideoCastControllerActivity extends ActionBarActivity implements IV
     private VideoCastManager mCastManager;
     private View mPageView;
     private ImageView mPlayPause;
+    private TextView mLiveText;
     private TextView mStart;
     private TextView mEnd;
     private SeekBar mSeekbar;
@@ -180,6 +181,7 @@ public class VideoCastControllerActivity extends ActionBarActivity implements IV
         mStopDrawable = getResources().getDrawable(R.drawable.ic_av_stop_dark);
         mPageView = findViewById(R.id.pageView);
         mPlayPause = (ImageView) findViewById(R.id.imageView1);
+        mLiveText = (TextView) findViewById(R.id.liveText);
         mStart = (TextView) findViewById(R.id.startText);
         mEnd = (TextView) findViewById(R.id.endText);
         mSeekbar = (SeekBar) findViewById(R.id.seekBar1);
@@ -270,6 +272,8 @@ public class VideoCastControllerActivity extends ActionBarActivity implements IV
     @Override
     public void adjustControllersForLiveStream(boolean isLive) {
         int visibility = isLive ? View.INVISIBLE : View.VISIBLE;
+        mLiveText.setVisibility(isLive ? View.VISIBLE : View.INVISIBLE);
+        mStart.setVisibility(visibility);
         mEnd.setVisibility(visibility);
         mSeekbar.setVisibility(visibility);
     }
