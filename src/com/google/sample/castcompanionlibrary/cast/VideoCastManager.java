@@ -1671,8 +1671,12 @@ public class VideoCastManager extends BaseCastManager
         if (!isFeatureEnabled(FEATURE_LOCKSCREEN)) {
             return;
         }
+        if (!isConnected()) {
+            removeRemoteControlClient();
+            return;
+        }
         try {
-            if (null == mRemoteControlClientCompat) {
+            if (null == mRemoteControlClientCompat && playing) {
                 setUpRemoteControl(getRemoteMediaInformation());
             }
             if (mRemoteControlClientCompat != null) {
