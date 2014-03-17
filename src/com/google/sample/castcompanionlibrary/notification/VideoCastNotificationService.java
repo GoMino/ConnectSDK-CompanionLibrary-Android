@@ -139,7 +139,7 @@ public class VideoCastNotificationService extends Service {
             LOGD(TAG, "onStartCommand(): Intent was null");
         }
 
-        return Service.START_FLAG_REDELIVERY;
+        return Service.START_REDELIVER_INTENT;
     }
 
     private void setupNotification(final MediaInfo info, final boolean visible)

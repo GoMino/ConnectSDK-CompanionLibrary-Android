@@ -876,7 +876,8 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
     public void onConnectionFailed(ConnectionResult result) {
         LOGD(TAG, "onConnectionFailed() reached, error code: " + result.getErrorCode()
                 + ", reason: " + result.toString());
-        mSelectedCastDevice = null;
+        mConnectionSuspened = false;
+        setDevice(null, mDestroyOnDisconnect);
         if (null != mMediaRouter) {
             mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
         }
