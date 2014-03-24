@@ -650,7 +650,7 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
     // ------- Implementation of IMediaAuthListener interface --------------------------- //
     @Override
     public void onResult(MediaAuthStatus status, final MediaInfo info, final String message,
-            final JSONObject customData) {
+            final int startPoint, final JSONObject customData) {
         if (status == MediaAuthStatus.RESULT_AUTHORIZED && mAuthSuccess) {
             // successful authorization
             mMediaAuthService = null;
@@ -663,7 +663,7 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
                 @Override
                 public void run() {
                     mOverallState = OverallState.PLAYBACK;
-                    onReady(info, true, 0, customData);
+                    onReady(info, true, startPoint, customData);
                 }
             });
         } else {

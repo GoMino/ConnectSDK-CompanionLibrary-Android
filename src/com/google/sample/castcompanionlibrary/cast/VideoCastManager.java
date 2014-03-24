@@ -78,6 +78,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -144,7 +145,7 @@ public class VideoCastManager extends BaseCastManager
     private final ComponentName mMediaButtonReceiverComponent;
     private final String mDataNamespace;
     private Cast.MessageReceivedCallback mDataChannel;
-    protected Set<IVideoCastConsumer> mVideoConsumers;
+    private Set<IVideoCastConsumer> mVideoConsumers;
     private IMediaAuthService mAuthService;
 
     /**
@@ -222,7 +223,7 @@ public class VideoCastManager extends BaseCastManager
             String dataNamespace) {
         super(context, applicationId);
         LOGD(TAG, "VideoCastManager is instantiated");
-        mVideoConsumers = new HashSet<IVideoCastConsumer>();
+        mVideoConsumers = Collections.synchronizedSet(new HashSet<IVideoCastConsumer>());
         mDataNamespace = dataNamespace;
         if (null == targetActivity) {
             targetActivity = VideoCastControllerActivity.class;
@@ -231,7 +232,7 @@ public class VideoCastManager extends BaseCastManager
         Utils.saveStringToPreference(mContext, PREFS_KEY_CAST_ACTIVITY_NAME,
                 mTargetActivity.getName());
 
-        mMiniControllers = new HashSet<IMiniController>();
+        mMiniControllers = Collections.synchronizedSet(new HashSet<IMiniController>());
 
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         mMediaButtonReceiverComponent = new ComponentName(context, VideoIntentReceiver.class);
@@ -268,10 +269,12 @@ public class VideoCastManager extends BaseCastManager
      */
     private void updateMiniControllers() {
         if (null != mMiniControllers && !mMiniControllers.isEmpty()) {
-            for (final IMiniController controller : mMiniControllers) {
-                try {
-                    updateMiniController(controller);
-                } catch (Exception e) {/* silent failure */
+            synchronized (mMiniControllers) {
+                for (final IMiniController controller : mMiniControllers) {
+                    try {
+                        updateMiniController(controller);
+                    } catch (Exception e) {/* silent failure */
+                    }
                 }
             }
         }
@@ -322,8 +325,10 @@ public class VideoCastManager extends BaseCastManager
     public void updateMiniControllersVisibility(boolean visible) {
         LOGD(TAG, "updateMiniControllersVisibility() reached with visibility: " + visible);
         if (null != mMiniControllers) {
-            for (IMiniController controller : mMiniControllers) {
-                controller.setVisibility(visible ? View.VISIBLE : View.GONE);
+            synchronized (mMiniControllers) {
+                for (IMiniController controller : mMiniControllers) {
+                    controller.setVisibility(visible ? View.VISIBLE : View.GONE);
+                }
             }
         }
     }
@@ -761,13 +766,13 @@ public class VideoCastManager extends BaseCastManager
      */
     @Override
     protected void onUiVisibilityChanged(boolean visible) {
-        super.onUiVisibilityChanged(visible);
         if (isFeatureEnabled(FEATURE_NOTIFICATION)) {
             Intent intent = new Intent(VideoCastNotificationService.ACTION_VISIBILITY);
             intent.setPackage(mContext.getPackageName());
             intent.putExtra("visible", !visible);
             mContext.startService(intent);
         }
+        super.onUiVisibilityChanged(visible);
     }
 
     /************************************************************/
@@ -794,7 +799,9 @@ public class VideoCastManager extends BaseCastManager
         if (!isFeatureEnabled(FEATURE_NOTIFICATION)) {
             return;
         }
-        mContext.stopService(new Intent(mContext, VideoCastNotificationService.class));
+        if (null != mContext) {
+            mContext.stopService(new Intent(mContext, VideoCastNotificationService.class));
+        }
     }
 
     /************************************************************/
@@ -807,11 +814,13 @@ public class VideoCastManager extends BaseCastManager
         if (null != mRemoteControlClientCompat && isFeatureEnabled(FEATURE_LOCKSCREEN)) {
             mRemoteControlClientCompat.removeFromMediaRouter(mMediaRouter);
         }
-        for (IVideoCastConsumer consumer : mVideoConsumers) {
-            try {
-                consumer.onApplicationDisconnected(errorCode);
-            } catch (Exception e) {
-                LOGE(TAG, "onApplicationDisconnected(): Failed to inform " + consumer, e);
+        synchronized (mVideoConsumers) {
+            for (IVideoCastConsumer consumer : mVideoConsumers) {
+                try {
+                    consumer.onApplicationDisconnected(errorCode);
+                } catch (Exception e) {
+                    LOGE(TAG, "onApplicationDisconnected(): Failed to inform " + consumer, e);
+                }
             }
         }
         if (null != mMediaRouter) {
@@ -831,12 +840,13 @@ public class VideoCastManager extends BaseCastManager
             appStatus = Cast.CastApi.getApplicationStatus(mApiClient);
             LOGD(TAG, "onApplicationStatusChanged() reached: "
                     + Cast.CastApi.getApplicationStatus(mApiClient));
-
-            for (IVideoCastConsumer consumer : mVideoConsumers) {
-                try {
-                    consumer.onApplicationStatusChanged(appStatus);
-                } catch (Exception e) {
-                    LOGE(TAG, "onApplicationStatusChanged(): Failed to inform " + consumer, e);
+            synchronized (mVideoConsumers) {
+                for (IVideoCastConsumer consumer : mVideoConsumers) {
+                    try {
+                        consumer.onApplicationStatusChanged(appStatus);
+                    } catch (Exception e) {
+                        LOGE(TAG, "onApplicationStatusChanged(): Failed to inform " + consumer, e);
+                    }
                 }
             }
         } catch (IllegalStateException e1) {
@@ -850,11 +860,13 @@ public class VideoCastManager extends BaseCastManager
         try {
             volume = getVolume();
             boolean isMute = isMute();
-            for (IVideoCastConsumer consumer : mVideoConsumers) {
-                try {
-                    consumer.onVolumeChanged(volume, isMute);
-                } catch (Exception e) {
-                    LOGE(TAG, "onVolumeChanged(): Failed to inform " + consumer, e);
+            synchronized (mVideoConsumers) {
+                for (IVideoCastConsumer consumer : mVideoConsumers) {
+                    try {
+                        consumer.onVolumeChanged(volume, isMute);
+                    } catch (Exception e) {
+                        LOGE(TAG, "onVolumeChanged(): Failed to inform " + consumer, e);
+                    }
                 }
             }
         } catch (Exception e1) {
@@ -904,11 +916,13 @@ public class VideoCastManager extends BaseCastManager
 
                         }
                     });
-            for (IVideoCastConsumer consumer : mVideoConsumers) {
-                try {
-                    consumer.onApplicationConnected(appMetadata, sessionId, wasLaunched);
-                } catch (Exception e) {
-                    LOGE(TAG, "onApplicationConnected(): Failed to inform " + consumer, e);
+            synchronized (mVideoConsumers) {
+                for (IVideoCastConsumer consumer : mVideoConsumers) {
+                    try {
+                        consumer.onApplicationConnected(appMetadata, sessionId, wasLaunched);
+                    } catch (Exception e) {
+                        LOGE(TAG, "onApplicationConnected(): Failed to inform " + consumer, e);
+                    }
                 }
             }
         } catch (TransientNetworkDisconnectionException e) {
@@ -937,11 +951,13 @@ public class VideoCastManager extends BaseCastManager
      */
     @Override
     public void onApplicationStopFailed(int errorCode) {
-        for (IVideoCastConsumer consumer : mVideoConsumers) {
-            try {
-                consumer.onApplicationStopFailed(errorCode);
-            } catch (Exception e) {
-                LOGE(TAG, "onApplicationLaunched(): Failed to inform " + consumer, e);
+        synchronized (mVideoConsumers) {
+            for (IVideoCastConsumer consumer : mVideoConsumers) {
+                try {
+                    consumer.onApplicationStopFailed(errorCode);
+                } catch (Exception e) {
+                    LOGE(TAG, "onApplicationLaunched(): Failed to inform " + consumer, e);
+                }
             }
         }
     }
@@ -960,11 +976,13 @@ public class VideoCastManager extends BaseCastManager
             return;
         } else {
             boolean showError = false;
-            for (IVideoCastConsumer consumer : mVideoConsumers) {
-                try {
-                    showError = showError || consumer.onApplicationConnectionFailed(errorCode);
-                } catch (Exception e) {
-                    LOGE(TAG, "onApplicationLaunchFailed(): Failed to inform " + consumer, e);
+            synchronized (mVideoConsumers) {
+                for (IVideoCastConsumer consumer : mVideoConsumers) {
+                    try {
+                        showError = showError || consumer.onApplicationConnectionFailed(errorCode);
+                    } catch (Exception e) {
+                        LOGE(TAG, "onApplicationLaunchFailed(): Failed to inform " + consumer, e);
+                    }
                 }
             }
             if (showError) {
@@ -1017,7 +1035,7 @@ public class VideoCastManager extends BaseCastManager
      *
      * @param media
      * @param autoPlay If <code>true</code>, playback starts after load
-     * @param position Where to start the playback (only used if autoPlay is <code>true</code>.
+     * @param position Where to start the playback (only used if autoPlay is <code>true</code>).
      *            Units is milliseconds.
      * @param customData Optional {@link JSONObject} data to be passed to the cast device
      * @throws NoConnectionException
@@ -1319,7 +1337,7 @@ public class VideoCastManager extends BaseCastManager
                 try {
                     Cast.CastApi.removeMessageReceivedCallbacks(mApiClient,
                             mRemoteMediaPlayer.getNamespace());
-                } catch (IOException e) {
+                } catch (Exception e) {
                     LOGE(TAG, "Failed to detach media channel", e);
                 }
             }
@@ -1377,11 +1395,13 @@ public class VideoCastManager extends BaseCastManager
 
             @Override
             public void onMessageReceived(CastDevice castDevice, String namespace, String message) {
-                for (IVideoCastConsumer consumer : mVideoConsumers) {
-                    try {
-                        consumer.onDataMessageReceived(message);
-                    } catch (Exception e) {
-                        LOGE(TAG, "onMessageReceived(): Failed to inform " + consumer, e);
+                synchronized (mVideoConsumers) {
+                    for (IVideoCastConsumer consumer : mVideoConsumers) {
+                        try {
+                            consumer.onDataMessageReceived(message);
+                        } catch (Exception e) {
+                            LOGE(TAG, "onMessageReceived(): Failed to inform " + consumer, e);
+                        }
                     }
                 }
             }
@@ -1394,11 +1414,13 @@ public class VideoCastManager extends BaseCastManager
     }
 
     private void onMessageSendFailed(int errorCode) {
-        for (IVideoCastConsumer consumer : mVideoConsumers) {
-            try {
-                consumer.onDataMessageSendFailed(errorCode);
-            } catch (Exception e) {
-                LOGE(TAG, "onMessageSendFailed(): Failed to inform " + consumer, e);
+        synchronized (mVideoConsumers) {
+            for (IVideoCastConsumer consumer : mVideoConsumers) {
+                try {
+                    consumer.onDataMessageSendFailed(errorCode);
+                } catch (Exception e) {
+                    LOGE(TAG, "onMessageSendFailed(): Failed to inform " + consumer, e);
+                }
             }
         }
     }
@@ -1510,13 +1532,15 @@ public class VideoCastManager extends BaseCastManager
             }
             updateMiniControllersVisibility(!makeUiHidden);
             updateMiniControllers();
-            for (IVideoCastConsumer consumer : mVideoConsumers) {
-                try {
-                    consumer.onRemoteMediaPlayerStatusUpdated();
-                    consumer.onVolumeChanged(volume, isMute);
-                } catch (Exception e) {
-                    LOGE(TAG, "onRemoteMediaplayerStatusUpdated(): Failed to inform "
-                            + consumer, e);
+            synchronized (mVideoConsumers) {
+                for (IVideoCastConsumer consumer : mVideoConsumers) {
+                    try {
+                        consumer.onRemoteMediaPlayerStatusUpdated();
+                        consumer.onVolumeChanged(volume, isMute);
+                    } catch (Exception e) {
+                        LOGE(TAG, "onRemoteMediaplayerStatusUpdated(): Failed to inform "
+                                + consumer, e);
+                    }
                 }
             }
         } catch (TransientNetworkDisconnectionException e) {
@@ -1533,11 +1557,14 @@ public class VideoCastManager extends BaseCastManager
     public void onRemoteMediaPlayerMetadataUpdated() {
         LOGD(TAG, "onRemoteMediaPlayerMetadataUpdated() reached");
         updateLockScreenMetadata();
-        for (IVideoCastConsumer consumer : mVideoConsumers) {
-            try {
-                consumer.onRemoteMediaPlayerMetadataUpdated();
-            } catch (Exception e) {
-                LOGE(TAG, "onRemoteMediaPlayerMetadataUpdated(): Failed to inform " + consumer, e);
+        synchronized (mVideoConsumers) {
+            for (IVideoCastConsumer consumer : mVideoConsumers) {
+                try {
+                    consumer.onRemoteMediaPlayerMetadataUpdated();
+                } catch (Exception e) {
+                    LOGE(TAG, "onRemoteMediaPlayerMetadataUpdated(): Failed to inform " + consumer,
+                            e);
+                }
             }
         }
         updateLockScreenMetadata();
@@ -1756,7 +1783,9 @@ public class VideoCastManager extends BaseCastManager
     public synchronized void addVideoCastConsumer(IVideoCastConsumer listener) {
         if (null != listener) {
             super.addBaseCastConsumer(listener);
-            mVideoConsumers.add(listener);
+            synchronized (mVideoConsumers) {
+                mVideoConsumers.add(listener);
+            }
             LOGD(TAG, "Successfully added the new CastConsumer listener " + listener);
         }
     }
@@ -1769,7 +1798,9 @@ public class VideoCastManager extends BaseCastManager
     public synchronized void removeVideoCastConsumer(IVideoCastConsumer listener) {
         if (null != listener) {
             super.removeBaseCastConsumer(listener);
-            mVideoConsumers.remove(listener);
+            synchronized (mVideoConsumers) {
+                mVideoConsumers.remove(listener);
+            }
         }
     }
 
@@ -1785,10 +1816,13 @@ public class VideoCastManager extends BaseCastManager
      * @param OnMiniControllerChangedListener
      * @see setOnMiniControllerChangedListener
      */
-    public synchronized void addMiniController(IMiniController miniController,
+    public void addMiniController(IMiniController miniController,
             OnMiniControllerChangedListener onChangedListener) {
         if (null != miniController) {
-            boolean result = mMiniControllers.add(miniController);
+            boolean result = false;
+            synchronized (mMiniControllers) {
+                result = mMiniControllers.add(miniController);
+            }
             if (result) {
                 miniController.setOnMiniControllerChangedListener(null == onChangedListener ? this
                         : onChangedListener);
@@ -1816,7 +1850,7 @@ public class VideoCastManager extends BaseCastManager
      *
      * @param miniController
      */
-    public synchronized void addMiniController(IMiniController miniController) {
+    public void addMiniController(IMiniController miniController) {
         addMiniController(miniController, null);
     }
 
@@ -1825,9 +1859,11 @@ public class VideoCastManager extends BaseCastManager
      *
      * @param listener
      */
-    public synchronized void removeMiniController(IMiniController listener) {
+    public void removeMiniController(IMiniController listener) {
         if (null != listener) {
-            mMiniControllers.remove(listener);
+            synchronized (mMiniControllers) {
+                mMiniControllers.remove(listener);
+            }
         }
     }
 

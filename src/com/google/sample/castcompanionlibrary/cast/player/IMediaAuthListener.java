@@ -39,10 +39,11 @@ public interface IMediaAuthListener {
      *                   be presented to the user. If no message is provided, it will be silently
      *                   ignored.
      *                   Implementers have to make sure the message is localized.
+     * @param startPoint The position in video to start the playback at (in milliseconds)
      * @param customData Optional {@link org.json.JSONObject}
      */
     public void onResult(MediaAuthStatus status, MediaInfo info, String message,
-            JSONObject customData);
+            int startPoint, JSONObject customData);
 
     /**
      * Called when IMediaAuthService returns with a failure message due to some issues such as
