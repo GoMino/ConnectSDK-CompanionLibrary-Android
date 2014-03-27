@@ -1893,6 +1893,7 @@ public class VideoCastManager extends BaseCastManager
         stopNotificationService();
         detachMediaChannel();
         removeDataChannel();
+        mState = MediaStatus.PLAYER_STATE_IDLE;
     }
 
     @Override
@@ -1918,6 +1919,7 @@ public class VideoCastManager extends BaseCastManager
         updateMiniControllersVisibility(false);
         stopNotificationService();
         removeRemoteControlClient();
+        mState = MediaStatus.PLAYER_STATE_IDLE;
     }
 
     @Override
