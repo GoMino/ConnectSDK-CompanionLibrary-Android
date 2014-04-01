@@ -263,11 +263,11 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
                         return;
                     }
                     try {
-                        double duration = mCastManager.getMediaDuration();
+                        int duration = (int) mCastManager.getMediaDuration();
                         if (duration > 0) {
                             try {
                                 currentPos = (int) mCastManager.getCurrentMediaPosition();
-                                mCastController.updateSeekbar(currentPos, (int) duration);
+                                mCastController.updateSeekbar(currentPos, duration);
                             } catch (Exception e) {
                                 LOGE(TAG, "Failed to get current media position", e);
                             }

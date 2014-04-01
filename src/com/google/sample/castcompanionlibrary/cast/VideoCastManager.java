@@ -729,14 +729,13 @@ public class VideoCastManager extends BaseCastManager
     }
 
     /**
-     * Returns the duration of the media that is loaded, in seconds. If there is no connection or
-     * if there is no channel established, this method returns -1.
+     * Returns the duration of the media that is loaded, in milliseconds.
      *
      * @return
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
      */
-    public double getMediaDuration() throws TransientNetworkDisconnectionException,
+    public long getMediaDuration() throws TransientNetworkDisconnectionException,
             NoConnectionException {
         checkConnectivity();
         checkRemoteMediaPlayerAvailable();
@@ -744,7 +743,7 @@ public class VideoCastManager extends BaseCastManager
     }
 
     /**
-     * Returns the current (approximate) position of the current media, in milliseconds. 
+     * Returns the current (approximate) position of the current media, in milliseconds.
      *
      * @return
      * @throws NoConnectionException
