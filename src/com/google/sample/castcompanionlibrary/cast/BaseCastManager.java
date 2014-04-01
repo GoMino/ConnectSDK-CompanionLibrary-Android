@@ -244,13 +244,13 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
                     }
                 }
             } catch (IllegalStateException e) {
-                LOGE(TAG, "Failed to stop the application after disconecting route", e);
+                LOGE(TAG, "Failed to stop the application after disconnecting route", e);
             } catch (IOException e) {
-                LOGE(TAG, "Failed to stop the application after disconecting route", e);
+                LOGE(TAG, "Failed to stop the application after disconnecting route", e);
             } catch (TransientNetworkDisconnectionException e) {
-                LOGE(TAG, "Failed to stop the application after disconecting route", e);
+                LOGE(TAG, "Failed to stop the application after disconnecting route", e);
             } catch (NoConnectionException e) {
-                LOGE(TAG, "Failed to stop the application after disconecting route", e);
+                LOGE(TAG, "Failed to stop the application after disconnecting route", e);
             }
             onDisconnected();
             onDeviceUnselected();
@@ -262,6 +262,7 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
                 }
                 mApiClient = null;
             }
+            mSessionId = null;
         } else if (null == mApiClient) {
             LOGD(TAG, "acquiring a conenction to Google Play services for " + mSelectedCastDevice);
             Cast.CastOptions.Builder apiOptionsBuilder = getCastOptionBuilder(mSelectedCastDevice);
