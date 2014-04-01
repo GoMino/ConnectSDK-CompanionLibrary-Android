@@ -261,7 +261,9 @@ public class VideoCastManager extends BaseCastManager
             controller.setSubTitle(mContext.getResources().getString(R.string.casting_to_device,
                     mDeviceName));
             controller.setTitle(mm.getString(MediaMetadata.KEY_TITLE));
-            controller.setIcon(mm.getImages().get(0).getUrl());
+            if (!mm.getImages().isEmpty()) {
+                controller.setIcon(mm.getImages().get(0).getUrl());
+            }
         }
     }
 
@@ -742,14 +744,13 @@ public class VideoCastManager extends BaseCastManager
     }
 
     /**
-     * Returns the current (approximate) position of the current media, in seconds. If there is no
-     * channel established, this method returns -1.
+     * Returns the current (approximate) position of the current media, in milliseconds. 
      *
      * @return
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
      */
-    public double getCurrentMediaPosition() throws TransientNetworkDisconnectionException,
+    public long getCurrentMediaPosition() throws TransientNetworkDisconnectionException,
             NoConnectionException {
         checkConnectivity();
         checkRemoteMediaPlayerAvailable();
@@ -906,8 +907,9 @@ public class VideoCastManager extends BaseCastManager
         try {
             attachDataChannel();
             attachMediaChannel();
+            mSessionId = sessionId;
             // saving device for future retrieval; we only save the last session info
-            Utils.saveStringToPreference(mContext, PREFS_KEY_SESSION_ID, sessionId);
+            Utils.saveStringToPreference(mContext, PREFS_KEY_SESSION_ID, mSessionId);
             mRemoteMediaPlayer.requestStatus(mApiClient).
                     setResultCallback(new ResultCallback<RemoteMediaPlayer.MediaChannelResult>() {
 
@@ -923,7 +925,7 @@ public class VideoCastManager extends BaseCastManager
             synchronized (mVideoConsumers) {
                 for (IVideoCastConsumer consumer : mVideoConsumers) {
                     try {
-                        consumer.onApplicationConnected(appMetadata, sessionId, wasLaunched);
+                        consumer.onApplicationConnected(appMetadata, mSessionId, wasLaunched);
                     } catch (Exception e) {
                         LOGE(TAG, "onApplicationConnected(): Failed to inform " + consumer, e);
                     }
@@ -946,6 +948,7 @@ public class VideoCastManager extends BaseCastManager
     @Override
     public void onConnectivityRecovered() {
         reattachMediaChannel();
+        reattachDataChannel();
         super.onConnectivityRecovered();
     }
 
@@ -1423,8 +1426,22 @@ public class VideoCastManager extends BaseCastManager
         };
         try {
             Cast.CastApi.setMessageReceivedCallbacks(mApiClient, mDataNamespace, mDataChannel);
-        } catch (Exception e) {
-            LOGE(TAG, "Failed to add data channel", e);
+        } catch (IOException e) {
+            LOGE(TAG, "Failed to setup data channel", e);
+        } catch (IllegalStateException e) {
+            LOGE(TAG, "Failed to setup data channel", e);
+        }
+    }
+
+    private void reattachDataChannel() {
+        if (!TextUtils.isEmpty(mDataNamespace) && null != mDataChannel && null != mApiClient) {
+            try {
+                Cast.CastApi.setMessageReceivedCallbacks(mApiClient, mDataNamespace, mDataChannel);
+            } catch (IOException e) {
+                LOGE(TAG, "Failed to setup data channel", e);
+            } catch (IllegalStateException e) {
+                LOGE(TAG, "Failed to setup data channel", e);
+            }
         }
     }
 
@@ -1487,6 +1504,7 @@ public class VideoCastManager extends BaseCastManager
             if (null != Cast.CastApi && null != mApiClient) {
                 Cast.CastApi.removeMessageReceivedCallbacks(mApiClient, mDataNamespace);
             }
+            mDataChannel = null;
             return true;
         } catch (Exception e) {
             LOGE(TAG, "Failed to remove namespace: " + mDataNamespace, e);
@@ -1676,6 +1694,7 @@ public class VideoCastManager extends BaseCastManager
             return null;
         }
         URL imgUrl = null;
+        Bitmap bm = null;
         List<WebImage> images = video.getMetadata().getImages();
         try {
             if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN_MR2) {
@@ -1683,24 +1702,28 @@ public class VideoCastManager extends BaseCastManager
                     imgUrl = new URL(images.get(1).getUrl().toString());
                 } else if (images.size() == 1) {
                     imgUrl = new URL(images.get(0).getUrl().toString());
+                } else if (null != mContext) {
+                    // we don't have a url for image so get a placeholder image from resources
+                    bm = BitmapFactory.decodeResource(mContext.getResources(),
+                            R.drawable.dummy_album_art_large);
                 }
             } else if (!images.isEmpty()) {
                 imgUrl = new URL(images.get(0).getUrl().toString());
+            } else {
+                // we don't have a url for image so get a placeholder image from resources
+                bm = BitmapFactory.decodeResource(mContext.getResources(),
+                        R.drawable.dummy_album_art_small);
             }
         } catch (MalformedURLException e) {
             LOGE(TAG, "Failed to get the url for images", e);
         }
-        Bitmap bm = null;
+
         if (null != imgUrl) {
             try {
                 bm = BitmapFactory.decodeStream(imgUrl.openStream());
             } catch (IOException e) {
                 LOGE(TAG, "Failed to decoded a bitmap for url: " + imgUrl, e);
             }
-        }
-
-        if (null == bm) {
-            bm = BitmapFactory.decodeResource(mContext.getResources(), R.drawable.dummy_album_art);
         }
 
         return bm;

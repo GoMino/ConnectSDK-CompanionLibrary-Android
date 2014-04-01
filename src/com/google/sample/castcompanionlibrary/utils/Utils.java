@@ -126,7 +126,7 @@ public class Utils {
      */
     public static String getImageUrl(MediaInfo info, int level) {
         MediaMetadata mm = info.getMetadata();
-        if (null != mm && null != mm.getImages() && mm.getImages().size() > level) {
+        if (null != mm && mm.getImages().size() > level) {
             return mm.getImages().get(level).getUrl().toString();
         }
         return null;
@@ -262,7 +262,7 @@ public class Utils {
         wrapper.putString(MediaMetadata.KEY_STUDIO, md.getString(MediaMetadata.KEY_STUDIO));
         wrapper.putString(KEY_CONTENT_TYPE, info.getContentType());
         wrapper.putInt(KEY_STREAM_TYPE, info.getStreamType());
-        if (null != md.getImages()) {
+        if (!md.getImages().isEmpty()) {
             ArrayList<String> urls = new ArrayList<String>();
             for (WebImage img : md.getImages()) {
                 urls.add(img.getUrl().toString());

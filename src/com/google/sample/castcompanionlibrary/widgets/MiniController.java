@@ -171,7 +171,8 @@ public class MiniController extends RelativeLayout implements IMiniController {
         loadViews();
     }
 
-    private void setIcon(Bitmap bm) {
+    @Override
+    final public void setIcon(Bitmap bm) {
         mIcon.setImageBitmap(bm);
     }
 

@@ -351,9 +351,7 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
         } else {
             imageUrl = Utils.getImageUrl(mSelectedMedia, 1);
         }
-        if (null != imageUrl) {
-            showImage(imageUrl);
-        }
+        showImage(imageUrl);
         if (null == mSelectedMedia) {
             return;
         }
@@ -485,6 +483,11 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
     private void showImage(final String url) {
         if (null != mImageAsyncTask) {
             mImageAsyncTask.cancel(true);
+        }
+        if (null == url) {
+            mCastController.setImage(BitmapFactory.decodeResource(getActivity().getResources(),
+                    R.drawable.dummy_album_art_large));
+            return;
         }
         if (null != mUrlAndBitmap && mUrlAndBitmap.isMatch(url)) {
             // we can reuse mBitmap
@@ -739,6 +742,8 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
         if (!sDialogCanceled && null != mMediaAuthService) {
             mMediaAuthService.abort(MediaAuthStatus.ABORT_USER_CANCELLED);
         }
+
+        mCastManager.clearContext(getActivity());
     }
 
 }

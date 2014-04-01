@@ -29,6 +29,14 @@ See LICENSE
 Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl/TPLDxj)
 
 ## Change List
+1.2 -> 1.3
+ * Fixing issue 32
+ * Fixing issue 33
+ * Adding a better BaseCastManager.clearContext() variation
+ * Implementing enhancement 30
+ * Making sure play/pause button is hidden when ProgressBar is shown in VideoMediaRouteControllerDialog
+ * probably some more adjustments and bug fixes
+ 
 1.1 -> 1.2
  * Improving thread-safety in calling various ConsumerImpl callbacks
  * (backward incompatible) Changing the signature of IMediaAuthListener.onResult

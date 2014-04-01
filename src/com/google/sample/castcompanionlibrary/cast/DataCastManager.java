@@ -357,6 +357,7 @@ public class DataCastManager extends BaseCastManager
         // registering namespaces, if any
         try {
             attachDataChannels();
+            mSessionId = sessionId;
             synchronized (mDataConsumers) {
                 for (IDataCastConsumer consumer : mDataConsumers) {
                     try {
