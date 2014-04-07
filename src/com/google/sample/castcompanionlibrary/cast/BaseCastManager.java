@@ -30,6 +30,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.MediaRouteActionProvider;
+import android.support.v7.app.MediaRouteButton;
 import android.support.v7.app.MediaRouteDialogFactory;
 import android.support.v7.media.MediaRouteSelector;
 import android.support.v7.media.MediaRouter;
@@ -108,7 +109,6 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
     protected boolean mUiVisible;
     protected GoogleApiClient mApiClient;
     protected AsyncTask<Void, Integer, Integer> mReconnectionTask;
-    protected boolean mDebuggingEnabled;
     protected int mCapabilities;
     protected boolean mConnectionSuspened;
     private boolean mWifiConnectivity = true;
@@ -226,6 +226,26 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
         setDevice(device, mDestroyOnDisconnect);
     }
 
+    /**
+     * This is called from {@link com.google.sample.castcompanionlibrary.cast.CastMediaRouterCallback}
+     * to signal the change in presence of cast devices on network.
+     *
+     * @param castPresent
+     */
+    public void onCastAvailabilityChanged(boolean castPresent) {
+        if (null != mBaseCastConsumers) {
+            synchronized (mBaseCastConsumers) {
+                for (IBaseCastConsumer consumer : mBaseCastConsumers) {
+                    try {
+                        consumer.onCastAvailabilityChanged(castPresent);
+                    } catch (Exception e) {
+                        LOGE(TAG, "onCastAvailabilityChanged(): Failed to inform " + consumer, e);
+                    }
+                }
+            }
+        }
+    }
+
     public void setDevice(CastDevice device, boolean stopAppOnExit) {
         mSelectedCastDevice = device;
         mDeviceName = mSelectedCastDevice != null ? mSelectedCastDevice.getFriendlyName() : null;
@@ -264,7 +284,7 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
             }
             mSessionId = null;
         } else if (null == mApiClient) {
-            LOGD(TAG, "acquiring a conenction to Google Play services for " + mSelectedCastDevice);
+            LOGD(TAG, "acquiring a connection to Google Play services for " + mSelectedCastDevice);
             Cast.CastOptions.Builder apiOptionsBuilder = getCastOptionBuilder(mSelectedCastDevice);
             mApiClient = new GoogleApiClient.Builder(mContext)
                     .addApi(Cast.API, apiOptionsBuilder.build())
@@ -294,13 +314,14 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
 
     /**
      * Adds and wires up the Media Router cast button. It returns a pointer to the Media Router menu
-     * item if the caller needs such reference.
+     * item if the caller needs such reference. It is assumed that the enclosing
+     * {@link android.app.Activity} inherits (directly or indirectly) from
+     * {@link android.support.v7.app.ActionBarActivity}.
      *
      * @param menu
      * @param menuResourceId The resource id of the cast button in the xml menu descriptor file
      * @return
      */
-
     public MenuItem addMediaRouterButton(Menu menu, int menuResourceId) {
         MenuItem mediaRouteMenuItem = menu.findItem(menuResourceId);
         MediaRouteActionProvider mediaRouteActionProvider = (MediaRouteActionProvider)
@@ -310,6 +331,40 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
             mediaRouteActionProvider.setDialogFactory(getMediaRouteDialogFactory());
         }
         return mediaRouteMenuItem;
+    }
+
+    /**
+     * Adds and wires up the {@link android.support.v7.app.MediaRouteButton} instance that is passed
+     * as an argument. This requires that
+     * <ul>
+     *     <li>The enclosing {@link android.app.Activity} inherits (directly or indirectly) from
+     *     {@link android.support.v4.app.FragmentActivity}</li>
+     *     <li>User adds the {@link android.support.v7.app.MediaRouteButton} to the layout and
+     *     pass a reference to that instance to this method</li>
+     *     <li>User is in charge of controlling the visibility of this button. However, this
+     *     library makes it easier to do so: use the callback
+     *     <code>onCastAvailabilityChanged(boolean)</code> to change the visibility of the button in
+     *     your client. For example, extend
+     *     {@link com.google.sample.castcompanionlibrary.cast.callbacks.VideoCastConsumerImpl}
+     *     and override that method:
+     *     <pre>
+{@code
+public void onCastAvailabilityChanged(boolean castPresent) {
+    mMediaRouteButton.setVisibility(castPresent ? View.VISIBLE : View.INVISIBLE);
+}
+    }
+     *     </pre>
+     *     </li>
+     * </ul>
+     * @param button
+     * @return
+     */
+    public MediaRouteButton addMediaRouterButton(MediaRouteButton button) {
+        button.setRouteSelector(mMediaRouteSelector);
+        if (null != getMediaRouteDialogFactory()) {
+            button.setDialogFactory(getMediaRouteDialogFactory());
+        }
+        return button;
     }
 
     /*************************************************************************/

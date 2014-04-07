@@ -29,6 +29,12 @@ See LICENSE
 Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl/TPLDxj)
 
 ## Change List
+1.3 -> 1.4
+ * Added support for MediaRouteButton
+ * Added "alias" resources for Mini Controller play/pause/stop buttons so clients can customize them easily
+ * Added a color resource to control thw color of the title of the custom VideoMediaRouteControllerDialog
+ * Fixed some typos in JavaDoc
+
 1.2 -> 1.3
  * Fixing issue 32
  * Fixing issue 33
@@ -36,7 +42,7 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
  * Implementing enhancement 30
  * Making sure play/pause button is hidden when ProgressBar is shown in VideoMediaRouteControllerDialog
  * probably some more adjustments and bug fixes
- 
+
 1.1 -> 1.2
  * Improving thread-safety in calling various ConsumerImpl callbacks
  * (backward incompatible) Changing the signature of IMediaAuthListener.onResult

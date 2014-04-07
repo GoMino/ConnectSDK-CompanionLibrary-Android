@@ -101,7 +101,7 @@ public class DataCastManager extends BaseCastManager
             LOGD(TAG, "New instance of DataCastManager is created");
             if (ConnectionResult.SUCCESS != GooglePlayServicesUtil
                     .isGooglePlayServicesAvailable(context)) {
-                String msg = "Couldn't find the appropriate version of Goolge Play Services";
+                String msg = "Couldn't find the appropriate version of Google Play Services";
                 LOGE(TAG, msg);
                 throw new RuntimeException(msg);
             }
