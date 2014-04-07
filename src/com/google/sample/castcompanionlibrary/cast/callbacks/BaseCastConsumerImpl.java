@@ -44,7 +44,6 @@ public class BaseCastConsumerImpl implements IBaseCastConsumer {
 
     @Override
     public void onCastAvailabilityChanged(boolean castPresent) {
-
     }
 
     @Override

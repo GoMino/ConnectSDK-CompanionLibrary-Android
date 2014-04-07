@@ -147,7 +147,8 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
      */
     private void handleMediaAuthTask(final IMediaAuthService authService) {
         mCastController.showLoading(true);
-        mCastController.setLine2(authService.getPendingMessage());
+        mCastController.setLine2(null != authService.getPendingMessage()
+                ? authService.getPendingMessage() : "");
         mAuthThread = new Thread(new Runnable() {
 
             @Override
@@ -330,7 +331,8 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
             case AUTHORIZING:
                 authService = mCastManager.getMediaAuthService();
                 if (null != authService) {
-                    mCastController.setLine2(authService.getPendingMessage());
+                    mCastController.setLine2(null != authService.getPendingMessage()
+                        ? authService.getPendingMessage() : "");
                     mCastController.showLoading(true);
                 }
                 break;
@@ -356,7 +358,8 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
             return;
         }
         MediaMetadata mm = mSelectedMedia.getMetadata();
-        mCastController.setLine1(mm.getString(MediaMetadata.KEY_TITLE));
+        mCastController.setLine1(null != mm.getString(MediaMetadata.KEY_TITLE)
+            ? mm.getString(MediaMetadata.KEY_TITLE) : "");
         boolean isLive = mSelectedMedia.getStreamType() == MediaInfo.STREAM_TYPE_LIVE;
         mCastController.adjustControllersForLiveStream(isLive);
     }
