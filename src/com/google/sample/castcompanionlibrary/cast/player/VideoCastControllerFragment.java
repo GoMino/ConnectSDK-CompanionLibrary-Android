@@ -528,7 +528,7 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
 
     /*
      * A modal dialog with an OK button, where upon clicking on it, will finish the activity. We use
-     * a DilaogFragment so during configuration changes, system manages the dialog for us.
+     * a DialogFragment so during configuration changes, system manages the dialog for us.
      */
     public static class ErrorDialogFragment extends DialogFragment {
 

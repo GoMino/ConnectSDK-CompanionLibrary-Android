@@ -332,7 +332,11 @@ public class VideoCastControllerActivity extends ActionBarActivity implements IV
     @Override
     public void setImage(Bitmap bitmap) {
         if (null != bitmap) {
-            mPageView.setBackgroundDrawable(new BitmapDrawable(getResources(), bitmap));
+            if (mPageView instanceof ImageView) {
+                ((ImageView) mPageView).setImageBitmap(bitmap);
+            } else {
+                mPageView.setBackgroundDrawable(new BitmapDrawable(getResources(), bitmap));
+            }
         }
     }
 
