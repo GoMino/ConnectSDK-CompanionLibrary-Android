@@ -32,6 +32,8 @@ import android.media.MediaMetadataRetriever;
 import android.media.RemoteControlClient;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v7.app.MediaRouteDialogFactory;
 import android.support.v7.media.MediaRouter.RouteInfo;
 import android.text.TextUtils;
@@ -122,6 +124,9 @@ public class VideoCastManager extends BaseCastManager
     public static final String EXTRA_START_POINT = "startPoint";
     public static final String EXTRA_SHOULD_START = "shouldStart";
     public static final String EXTRA_CUSTOM_DATA = "customData";
+	private static final int STOP_NOTIF_WHAT = 0;
+	private static final int START_NOTIF_WHAT = 1;
+	private static final int NOTIF_DELAY_MS = 300;
 
     /**
      * Volume can be controlled at two different layers, one is at the "stream" level and one at
@@ -148,6 +153,7 @@ public class VideoCastManager extends BaseCastManager
     private Cast.MessageReceivedCallback mDataChannel;
     private Set<IVideoCastConsumer> mVideoConsumers;
     private IMediaAuthService mAuthService;
+	private Handler mHandler;
 
     /**
      * Initializes the VideoCastManager for clients. Before clients can use VideoCastManager, they
@@ -238,6 +244,8 @@ public class VideoCastManager extends BaseCastManager
 
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         mMediaButtonReceiverComponent = new ComponentName(context, VideoIntentReceiver.class);
+
+		mHandler = new Handler(new UpdateNotificationHandlerCallback());
     }
 
     /*============================================================================================*/
@@ -771,12 +779,11 @@ public class VideoCastManager extends BaseCastManager
      */
     @Override
     protected void onUiVisibilityChanged(boolean visible) {
-        if (isFeatureEnabled(FEATURE_NOTIFICATION)) {
-            Intent intent = new Intent(VideoCastNotificationService.ACTION_VISIBILITY);
-            intent.setPackage(mContext.getPackageName());
-            intent.putExtra("visible", !visible);
-            mContext.startService(intent);
-        }
+		if (visible) {
+			mHandler.removeMessages(STOP_NOTIF_WHAT);
+		}
+		mHandler.sendEmptyMessageDelayed(
+                visible ? START_NOTIF_WHAT : STOP_NOTIF_WHAT, NOTIF_DELAY_MS);
         super.onUiVisibilityChanged(visible);
     }
 
@@ -1981,5 +1988,22 @@ public class VideoCastManager extends BaseCastManager
         LOGD(TAG, "onFailed: " + mContext.getString(resourceId) + ", code: " + statusCode);
         super.onFailed(resourceId, statusCode);
     }
+
+	private class UpdateNotificationHandlerCallback implements Handler.Callback {
+
+		@Override
+		public boolean handleMessage(Message msg) {
+			boolean visibility = msg.what != START_NOTIF_WHAT;
+
+			if (isFeatureEnabled(FEATURE_NOTIFICATION)) {
+				Intent intent = new Intent(VideoCastNotificationService.ACTION_VISIBILITY);
+				intent.setPackage(mContext.getPackageName());
+				intent.putExtra("visible", visibility);
+				mContext.startService(intent);
+			}
+
+			return true;
+		}
+	}
 
 }
