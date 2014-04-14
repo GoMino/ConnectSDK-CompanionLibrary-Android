@@ -84,7 +84,7 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
     private OverallState mOverallState = OverallState.UNKNOWN;
     private UrlAndBitmap mUrlAndBitmap;
     private static boolean sDialogCanceled = false;
-    private boolean mIsFresh;
+    private boolean mIsFresh = true;
 
     private enum OverallState {
         AUTHORIZING, PLAYBACK, UNKNOWN;
@@ -93,7 +93,6 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
-        mIsFresh = true;
         sDialogCanceled = false;
         mCastController = (IVideoCastController) activity;
         mHandler = new Handler();
@@ -379,18 +378,21 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
         }
         switch (mediaStatus) {
             case MediaStatus.PLAYER_STATE_PLAYING:
+            	mIsFresh = false;
                 if (mPlaybackState != MediaStatus.PLAYER_STATE_PLAYING) {
                     mPlaybackState = MediaStatus.PLAYER_STATE_PLAYING;
                     mCastController.setPlaybackStatus(mPlaybackState);
                 }
                 break;
             case MediaStatus.PLAYER_STATE_PAUSED:
+            	mIsFresh = false;
                 if (mPlaybackState != MediaStatus.PLAYER_STATE_PAUSED) {
                     mPlaybackState = MediaStatus.PLAYER_STATE_PAUSED;
                     mCastController.setPlaybackStatus(mPlaybackState);
                 }
                 break;
             case MediaStatus.PLAYER_STATE_BUFFERING:
+            	mIsFresh = false;
                 if (mPlaybackState != MediaStatus.PLAYER_STATE_BUFFERING) {
                     mPlaybackState = MediaStatus.PLAYER_STATE_BUFFERING;
                     mCastController.setPlaybackStatus(mPlaybackState);
@@ -449,7 +451,6 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
             }
             mCastManager.addVideoCastConsumer(mCastConsumer);
             updatePlayerStatus();
-            mIsFresh = false;
             mCastManager.incrementUiCounter();
         } catch (CastException e) {
             // logged already

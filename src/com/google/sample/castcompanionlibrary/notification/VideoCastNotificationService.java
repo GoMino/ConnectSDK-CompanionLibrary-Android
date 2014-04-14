@@ -26,9 +26,11 @@ import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -81,10 +83,24 @@ public class VideoCastNotificationService extends Service {
     private BroadcastReceiver mBroadcastReceiver;
     private VideoCastManager mCastManager;
     private VideoCastConsumerImpl mConsumer;
+    private DecodeVideoArtBitmapTask mBitmapDecoderTask;
 
     @Override
     public void onCreate() {
         super.onCreate();
+        LOGD(TAG, "onCreate()");
+        IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_ON);
+        filter.addAction(Intent.ACTION_SCREEN_OFF);
+        mBroadcastReceiver = new BroadcastReceiver() {
+
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                LOGD(TAG, "onReceive(): " + intent.getAction());
+            }
+        };
+
+        registerReceiver(mBroadcastReceiver, filter);
+
         readPersistedData();
         mCastManager = VideoCastManager.initialize(this, mApplicationId, mTargetActivity, null);
         if (!mCastManager.isConnected()) {
@@ -114,6 +130,7 @@ public class VideoCastNotificationService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        LOGD(TAG, "onStartCommand");
         if (null != intent) {
 
             String action = intent.getAction();
@@ -142,66 +159,16 @@ public class VideoCastNotificationService extends Service {
         return Service.START_REDELIVER_INTENT;
     }
 
-    private void setupNotification(final MediaInfo info, final boolean visible)
+    private void setupNotification(final MediaInfo info)
             throws TransientNetworkDisconnectionException, NoConnectionException {
         if (null == info) {
             return;
         }
-        try {
-            MediaMetadata mm = info.getMetadata();
-            Uri uri = null;
-            if (!mm.getImages().isEmpty()) {
-                uri = mm.getImages().get(0).getUrl();
-            }
-            if (null == uri) {
-                build(info, null, mIsPlaying, mTargetActivity);
-                if (visible) {
-                    startForeground(NOTIFICATION_ID, mNotification);
-                }
-            } else if (null != mVideoArtBitmap && null != mVideoArtUri &&
-                    mVideoArtUri.equals(uri)) {
-                build(info, mVideoArtBitmap, mIsPlaying, mTargetActivity);
-                if (visible) {
-                    startForeground(NOTIFICATION_ID, mNotification);
-                }
-            } else {
-                new Thread(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        URL imgUrl = null;
-                        try {
-                            MediaMetadata mm = info.getMetadata();
-                            mVideoArtUri = mm.getImages().get(0).getUrl();
-                            imgUrl = new URL(mVideoArtUri.toString());
-                            mVideoArtBitmap = BitmapFactory.decodeStream(imgUrl.openStream());
-                            build(info, mVideoArtBitmap, mIsPlaying, mTargetActivity);
-                            if (visible) {
-                                startForeground(NOTIFICATION_ID, mNotification);
-                            }
-                        } catch (MalformedURLException e) {
-                            LOGE(TAG, "setIcon(): Failed to load the image with url: " +
-                                    imgUrl + ", using the default one", e);
-                        } catch (IOException e) {
-                            LOGE(TAG, "setIcon(): Failed to load the image with url: " +
-                                    imgUrl + ", using the default one", e);
-                        } catch (CastException e) {
-                            LOGE(TAG, "setIcon(): Failed to load the image with url: " +
-                                    imgUrl + ", using the default one", e);
-                        } catch (TransientNetworkDisconnectionException e) {
-                            LOGE(TAG, "setIcon(): Failed to load the image with url: " +
-                                    imgUrl + " due to network issues, using the default one", e);
-                        } catch (NoConnectionException e) {
-                            LOGE(TAG, "setIcon(): Failed to load the image with url: " +
-                                    imgUrl + " due to network issues, using the default one", e);
-                        }
-
-                    }
-                }).start();
-            }
-        } catch (CastException e) {
-            // already logged
+        if(null != mBitmapDecoderTask){
+            mBitmapDecoderTask.cancel(false);
         }
+        mBitmapDecoderTask = new DecodeVideoArtBitmapTask();
+        mBitmapDecoderTask.execute(info);
     }
 
     /**
@@ -219,15 +186,15 @@ public class VideoCastNotificationService extends Service {
             switch (mediaStatus) {
                 case MediaStatus.PLAYER_STATE_BUFFERING: // (== 4)
                     mIsPlaying = false;
-                    setupNotification(mCastManager.getRemoteMediaInformation(), mVisible);
+                    setupNotification(mCastManager.getRemoteMediaInformation());
                     break;
                 case MediaStatus.PLAYER_STATE_PLAYING: // (== 2)
                     mIsPlaying = true;
-                    setupNotification(mCastManager.getRemoteMediaInformation(), mVisible);
+                    setupNotification(mCastManager.getRemoteMediaInformation());
                     break;
                 case MediaStatus.PLAYER_STATE_PAUSED: // (== 3)
                     mIsPlaying = false;
-                    setupNotification(mCastManager.getRemoteMediaInformation(), mVisible);
+                    setupNotification(mCastManager.getRemoteMediaInformation());
                     break;
                 case MediaStatus.PLAYER_STATE_IDLE: // (== 1)
                     mIsPlaying = false;
@@ -235,7 +202,7 @@ public class VideoCastNotificationService extends Service {
                             mCastManager.getIdleReason())) {
                         stopForeground(true);
                     } else {
-                        setupNotification(mCastManager.getRemoteMediaInformation(), mVisible);
+                        setupNotification(mCastManager.getRemoteMediaInformation());
                     }
                     break;
                 case MediaStatus.PLAYER_STATE_UNKNOWN: // (== 0)
@@ -258,6 +225,9 @@ public class VideoCastNotificationService extends Service {
      */
     @Override
     public void onDestroy() {
+        if(null != mBitmapDecoderTask){
+            mBitmapDecoderTask.cancel(false);
+        }
         LOGD(TAG, "onDestroy was called");
         removeNotification();
         if (null != mBroadcastReceiver) {
@@ -390,6 +360,55 @@ public class VideoCastNotificationService extends Service {
 
         } catch (ClassNotFoundException e) {
             LOGE(TAG, "Failed to find the targetActivity class", e);
+        }
+    }
+
+    private class DecodeVideoArtBitmapTask extends AsyncTask<MediaInfo, Void, Void> {
+        private MediaInfo mInfo;
+
+        protected Void doInBackground(final MediaInfo... info) {
+            mInfo = info[0];
+            if(!mInfo.getMetadata().hasImages()){
+                return null;
+            }
+            Uri imgUri = mInfo.getMetadata().getImages().get(0).getUrl();
+            if(imgUri.equals(mVideoArtUri)){
+                return null;
+            }
+            URL imgUrl = null;
+            try {
+                imgUrl = new URL(imgUri.toString());
+                mVideoArtBitmap = BitmapFactory.decodeStream(imgUrl.openStream());
+                mVideoArtUri = imgUri;
+            } catch (MalformedURLException e) {
+                LOGE(TAG, "setIcon(): Failed to load the image with url: " +
+                        imgUrl + ", using the default one", e);
+            } catch (IOException e) {
+                LOGE(TAG, "setIcon(): Failed to load the image with url: " +
+                        imgUrl + ", using the default one", e);
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void v) {
+            try {
+                if(!mInfo.getMetadata().hasImages()){
+                    build(mInfo, null, mIsPlaying, mTargetActivity);
+                }
+                else{
+                    build(mInfo, mVideoArtBitmap, mIsPlaying, mTargetActivity);
+                }
+            } catch (CastException e) {
+                LOGE(TAG, "Failed to set notification for " + mInfo.toString(), e);
+            } catch (TransientNetworkDisconnectionException e) {
+                LOGE(TAG, "Failed to set notification for " + mInfo.toString(), e);
+            } catch (NoConnectionException e) {
+                LOGE(TAG, "Failed to set notification for " + mInfo.toString(), e);
+            }
+            if (mVisible) {
+                startForeground(NOTIFICATION_ID, mNotification);
+            }
         }
     }
 }

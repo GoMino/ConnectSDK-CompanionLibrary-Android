@@ -212,7 +212,8 @@ public class VideoCastManager extends BaseCastManager
      */
     public static VideoCastManager getInstance(Context context) throws CastException {
         if (null == sInstance) {
-            LOGE(TAG, "No VideoCastManager instance was built, you need to build one first");
+            LOGE(TAG, "No VideoCastManager instance was built, you need to build one first "
+                    + "(called from Context: " + context + ")");
             throw new CastException();
         }
         LOGD(TAG, "Updated context to: " + context.getClass().getName());
