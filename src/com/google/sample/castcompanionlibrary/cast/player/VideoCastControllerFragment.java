@@ -450,6 +450,7 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
             }
             mCastManager.addVideoCastConsumer(mCastConsumer);
             mCastManager.incrementUiCounter();
+            if (!mIsFresh) updatePlayerStatus();
         } catch (CastException e) {
             // logged already
         }
