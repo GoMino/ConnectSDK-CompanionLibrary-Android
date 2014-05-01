@@ -29,6 +29,14 @@ See LICENSE
 Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl/TPLDxj)
 
 ## Change List
+1.4 -> 1.5
+ * Fixed the issue where VideoCastNotificationService was not setting up data namespace if one was configured
+ * Fixed issue 50
+ * Added aversion number that will be printed in the log statements for tracking purposes
+ * Correcting the typo in the name of method checkGooglePlaySevices() by introducing a new method and deprecating the old one (issue 48)
+ * Fixing many typos in comments and some resources
+ * Updating documentation to reflect the correct name of callbacks for the custom namespace for VideoCastManager
+
 1.3 -> 1.4
  * Added support for MediaRouteButton
  * Added "alias" resources for Mini Controller play/pause/stop buttons so clients can customize them easily

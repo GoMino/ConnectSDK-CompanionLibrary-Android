@@ -365,7 +365,7 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
 
     private void updatePlayerStatus() {
         int mediaStatus = mCastManager.getPlaybackStatus();
-        LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(), status: " + mediaStatus);
+        LOGD(TAG, "updatePlayerStatus(), state: " + mediaStatus);
         if (null == mSelectedMedia) {
             return;
         }
@@ -426,7 +426,6 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
             default:
                 break;
         }
-        mCastController.setPlaybackStatus(mPlaybackState);
     }
 
     @Override
@@ -450,7 +449,6 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
                 mCastController.closeActivity();
             }
             mCastManager.addVideoCastConsumer(mCastConsumer);
-            updatePlayerStatus();
             mCastManager.incrementUiCounter();
         } catch (CastException e) {
             // logged already

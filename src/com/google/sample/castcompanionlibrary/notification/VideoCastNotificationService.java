@@ -57,8 +57,8 @@ import java.net.URL;
 
 /**
  * A service to provide status bar Notifications when we are casting. For JB+ versions, notification
- * area provides a play/pause toggle and an "x" button to disconnect but that for GB, we do not show
- * that due to the framework limitations.
+ * area provides a play/pause toggle and an "x" button to disconnect but that for GB, we do not
+ * show that due to the framework limitations.
  */
 public class VideoCastNotificationService extends Service {
 
@@ -76,6 +76,7 @@ public class VideoCastNotificationService extends Service {
     private Uri mVideoArtUri;
     private boolean mIsPlaying;
     private Class<?> mTargetActivity;
+    private String mDataNamespace;
     private int mStatus;
     private Notification mNotification;
     private boolean mVisible;
@@ -102,7 +103,8 @@ public class VideoCastNotificationService extends Service {
         registerReceiver(mBroadcastReceiver, filter);
 
         readPersistedData();
-        mCastManager = VideoCastManager.initialize(this, mApplicationId, mTargetActivity, null);
+        mCastManager = VideoCastManager
+                .initialize(this, mApplicationId, mTargetActivity, mDataNamespace);
         if (!mCastManager.isConnected()) {
             mCastManager.reconnectSessionIfPossible(this, false);
         }
@@ -164,7 +166,7 @@ public class VideoCastNotificationService extends Service {
         if (null == info) {
             return;
         }
-        if(null != mBitmapDecoderTask){
+        if (null != mBitmapDecoderTask) {
             mBitmapDecoderTask.cancel(false);
         }
         mBitmapDecoderTask = new DecodeVideoArtBitmapTask();
@@ -225,7 +227,7 @@ public class VideoCastNotificationService extends Service {
      */
     @Override
     public void onDestroy() {
-        if(null != mBitmapDecoderTask){
+        if (null != mBitmapDecoderTask) {
             mBitmapDecoderTask.cancel(false);
         }
         LOGD(TAG, "onDestroy was called");
@@ -351,6 +353,8 @@ public class VideoCastNotificationService extends Service {
                 this, VideoCastManager.PREFS_KEY_APPLICATION_ID);
         String targetName = Utils.getStringFromPreference(
                 this, VideoCastManager.PREFS_KEY_CAST_ACTIVITY_NAME);
+        mDataNamespace = Utils.getStringFromPreference(
+                this, VideoCastManager.PREFS_KEY_CAST_CUSTOM_DATA_NAMESPACE);
         try {
             if (null != targetName) {
                 mTargetActivity = Class.forName(targetName);
@@ -364,15 +368,16 @@ public class VideoCastNotificationService extends Service {
     }
 
     private class DecodeVideoArtBitmapTask extends AsyncTask<MediaInfo, Void, Void> {
+
         private MediaInfo mInfo;
 
         protected Void doInBackground(final MediaInfo... info) {
             mInfo = info[0];
-            if(!mInfo.getMetadata().hasImages()){
+            if (!mInfo.getMetadata().hasImages()) {
                 return null;
             }
             Uri imgUri = mInfo.getMetadata().getImages().get(0).getUrl();
-            if(imgUri.equals(mVideoArtUri)){
+            if (imgUri.equals(mVideoArtUri)) {
                 return null;
             }
             URL imgUrl = null;
@@ -393,10 +398,9 @@ public class VideoCastNotificationService extends Service {
         @Override
         protected void onPostExecute(Void v) {
             try {
-                if(!mInfo.getMetadata().hasImages()){
+                if (!mInfo.getMetadata().hasImages()) {
                     build(mInfo, null, mIsPlaying, mTargetActivity);
-                }
-                else{
+                } else {
                     build(mInfo, mVideoArtBitmap, mIsPlaying, mTargetActivity);
                 }
             } catch (CastException e) {

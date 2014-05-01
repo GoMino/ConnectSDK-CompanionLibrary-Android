@@ -220,7 +220,7 @@ public class Utils {
      * @param activity
      * @return
      */
-    public static boolean checkGooglePlaySevices(final Activity activity) {
+    public static boolean checkGooglePlayServices(final Activity activity) {
         final int googlePlayServicesCheck = GooglePlayServicesUtil.isGooglePlayServicesAvailable(
                 activity);
         switch (googlePlayServicesCheck) {
@@ -238,6 +238,14 @@ public class Utils {
                 dialog.show();
         }
         return false;
+    }
+
+    /**
+     * @deprecated
+     * See <code>checkGooglePlayServices</code>
+     */
+    public static boolean checkGooglePlaySevices(final Activity activity) {
+        return checkGooglePlayServices(activity);
     }
 
     /**

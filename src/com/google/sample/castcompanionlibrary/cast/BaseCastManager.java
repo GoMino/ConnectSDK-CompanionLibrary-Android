@@ -85,10 +85,13 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
     public static final String PREFS_KEY_SESSION_ID = "session-id";
     public static final String PREFS_KEY_APPLICATION_ID = "application-id";
     public static final String PREFS_KEY_CAST_ACTIVITY_NAME = "cast-activity-name";
+    public static final String PREFS_KEY_CAST_CUSTOM_DATA_NAMESPACE = "cast-custom-data-namespace";
     public static final String PREFS_KEY_VOLUME_INCREMENT = "volume-increment";
     public static final String PREFS_KEY_ROUTE_ID = "route-id";
 
     public static final int NO_STATUS_CODE = -1;
+
+    private static String CCL_VERSION;
 
     private static final String TAG = LogUtils.makeLogTag(BaseCastManager.class);
     private static final int SESSION_RECOVERY_TIMEOUT = 5; // in seconds
@@ -174,6 +177,7 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
     /************************************************************************/
 
     protected BaseCastManager(Context context, String applicationId) {
+        CCL_VERSION = context.getString(R.string.ccl_version);
         LOGD(TAG, "BaseCastManager is instantiated");
         mContext = context;
         mHandler = new Handler(Looper.getMainLooper());
@@ -442,8 +446,15 @@ public void onCastAvailabilityChanged(boolean castPresent) {
      * @param activity
      * @return
      */
+    public static boolean checkGooglePlayServices(final Activity activity) {
+        return Utils.checkGooglePlayServices(activity);
+    }
+
+    /**
+     * @deprecated Use <code>checkGooglePlayServices</code>
+     */
     public static boolean checkGooglePlaySevices(final Activity activity) {
-        return Utils.checkGooglePlaySevices(activity);
+        return checkGooglePlayServices(activity);
     }
 
     /**
@@ -619,6 +630,7 @@ public void onCastAvailabilityChanged(boolean castPresent) {
      */
     public void clearContext(Context context){
         if (null != this.mContext && this.mContext == context) {
+            LOGD(TAG, "Cleared context: " + context);
             this.mContext = null;
         }
     }
@@ -1154,5 +1166,14 @@ public void onCastAvailabilityChanged(boolean castPresent) {
             }
         }
 
+    }
+
+    /**
+     * Returns the version of this library.
+     *
+     * @return
+     */
+    public final static String getCclVersion() {
+        return CCL_VERSION;
     }
 }
