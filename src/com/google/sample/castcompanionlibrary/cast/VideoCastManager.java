@@ -1112,13 +1112,13 @@ public class VideoCastManager extends BaseCastManager
      */
     public void play(JSONObject customData) throws
             TransientNetworkDisconnectionException, NoConnectionException {
-        LOGD(TAG, "play()");
+        LOGD(TAG, "play(customData)");
         checkConnectivity();
         if (mRemoteMediaPlayer == null) {
             LOGE(TAG, "Trying to play a video with no active media session");
             throw new NoConnectionException();
         }
-        mRemoteMediaPlayer.play(mApiClient)
+        mRemoteMediaPlayer.play(mApiClient, customData)
                 .setResultCallback(new ResultCallback<MediaChannelResult>() {
 
                     @Override
