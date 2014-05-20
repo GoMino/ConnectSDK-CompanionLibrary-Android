@@ -913,7 +913,7 @@ public void onCastAvailabilityChanged(boolean castPresent) {
             mConnectionSuspened = false;
             if (null != hint && hint.getBoolean(Cast.EXTRA_APP_NO_LONGER_RUNNING)) {
                 // the same app is not running any more
-                LOGD(TAG, "onConnected()): App no longer running, so disconnecting");
+                LOGD(TAG, "onConnected(): App no longer running, so disconnecting");
                 disconnect();
             } else {
                 onConnectivityRecovered();
