@@ -907,11 +907,17 @@ public void onCastAvailabilityChanged(boolean castPresent) {
      * (android.os.Bundle)
      */
     @Override
-    public void onConnected(Bundle arg0) {
+    public void onConnected(Bundle hint) {
         LOGD(TAG, "onConnected() reached with prior suspension: " + mConnectionSuspened);
         if (mConnectionSuspened) {
             mConnectionSuspened = false;
-            onConnectivityRecovered();
+            if (null != hint && hint.getBoolean(Cast.EXTRA_APP_NO_LONGER_RUNNING)) {
+                // the same app is not running any more
+                LOGD(TAG, "onConnected()): App no longer running, so disconnecting");
+                disconnect();
+            } else {
+                onConnectivityRecovered();
+            }
             return;
         }
         if (!isConnected()) {
