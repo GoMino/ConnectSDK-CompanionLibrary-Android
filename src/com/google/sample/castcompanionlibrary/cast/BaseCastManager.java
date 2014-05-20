@@ -471,7 +471,7 @@ public void onCastAvailabilityChanged(boolean castPresent) {
      */
     public void disconnect() {
         if (isConnected()) {
-            setDevice(null, true);
+            setDevice(null, false);
         }
     }
 

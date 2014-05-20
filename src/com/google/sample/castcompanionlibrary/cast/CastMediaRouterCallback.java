@@ -71,10 +71,10 @@ public class CastMediaRouterCallback extends MediaRouter.Callback {
     @Override
     public void onRouteAdded(MediaRouter router, RouteInfo route) {
         super.onRouteAdded(router, route);
-        if (++mRouteCount == 1) {
-            BaseCastManager.getCastManager().onCastAvailabilityChanged(true);
-        }
         if (!router.getDefaultRoute().equals(route)) {
+            if (++mRouteCount == 1) {
+                BaseCastManager.getCastManager().onCastAvailabilityChanged(true);
+            }
             selectDeviceInterface.onCastDeviceDetected(route);
         }
         if (BaseCastManager.getCastManager().getReconnectionStatus() == ReconnectionStatus.STARTED) {
