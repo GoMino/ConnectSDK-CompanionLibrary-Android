@@ -191,7 +191,7 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
 
         mMediaRouterCallback = new CastMediaRouterCallback(this, context);
         mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback,
-                MediaRouter.CALLBACK_FLAG_PERFORM_ACTIVE_SCAN);
+                MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
     }
 
     public void onWifiConnectivityChanged(boolean connected) {
@@ -422,7 +422,7 @@ public void onCastAvailabilityChanged(boolean castPresent) {
             if (null != mMediaRouter && null != mMediaRouterCallback) {
                 LOGD(TAG, "onUiVisibilityChanged() addCallback called");
                 mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback,
-                        MediaRouter.CALLBACK_FLAG_PERFORM_ACTIVE_SCAN);
+                        MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
             }
         } else {
             if (null != mMediaRouter) {
