@@ -29,7 +29,7 @@ See LICENSE
 Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl/TPLDxj)
 
 ## Change List
-1.8
+1.9
  * Added the complete reconnection logic per Cast UX Checklist
  * Addressed issues 70, 75, 92, 93, 94, 96
  * Added logic to handle failure when loading a media item in the VideoCastControllerActivity
