@@ -18,18 +18,6 @@ package com.google.sample.castcompanionlibrary.utils;
 
 import static com.google.sample.castcompanionlibrary.utils.LogUtils.LOGE;
 
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.Dialog;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.SharedPreferences;
-import android.net.Uri;
-import android.os.Bundle;
-import android.os.Parcelable;
-import android.preference.PreferenceManager;
-import android.text.TextUtils;
-
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaMetadata;
 import com.google.android.gms.common.ConnectionResult;
@@ -39,6 +27,21 @@ import com.google.sample.castcompanionlibrary.R;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.SharedPreferences;
+import android.net.Uri;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
+import android.os.Bundle;
+import android.os.Parcelable;
+import android.preference.PreferenceManager;
+import android.text.TextUtils;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 
@@ -52,6 +55,7 @@ public class Utils {
     private static final String KEY_URL = "movie-urls";
     private static final String KEY_CONTENT_TYPE = "content-type";
     private static final String KEY_STREAM_TYPE = "stream-type";
+    private static final String KEY_STREAM_DURATION = "stream-duration";
     private static final String KEY_CUSTOM_DATA = "custom-data";
 
     /**
@@ -86,14 +90,15 @@ public class Utils {
     }
 
     /**
-     * A utility method to show a simple error dialog. The textual content of the dialog is provided
-     * through the passed-in resource id.
+     * A utility method to show a simple error dialog. The textual content of the dialog is
+     * provided through the passed-in resource id.
      *
      * @param context
      * @param resourceId
      */
     public static final void showErrorDialog(Context context, int resourceId) {
-        showErrorDialog(context, context.getString(resourceId));
+        //showErrorDialog(context, context.getString(resourceId));
+        showToast(context.getApplicationContext(), resourceId);
     }
 
     /**
@@ -116,9 +121,19 @@ public class Utils {
     }
 
     /**
-     * Returns the URL of an image for the {@link MediaInformation} at the given level. Level should
-     * be a number between 0 and <code>n - 1</code> where <code>n
-     * </code> is the number of images for that given item.
+     * Shows a (long) toast.
+     *
+     * @param context
+     * @param resourceId
+     */
+    public static void showToast(Context context, int resourceId) {
+        Toast.makeText(context, context.getString(resourceId), Toast.LENGTH_LONG).show();
+    }
+
+    /**
+     * Returns the URL of an image for the {@link MediaInformation} at the given level. Level
+     * should be a number between 0 and <code>n - 1</code> where <code>n</code> is the number of
+     * images for that given item.
      *
      * @param info
      * @param level
@@ -170,6 +185,25 @@ public class Utils {
     }
 
     /**
+     * Saves a long value under the provided key in the preference manager. If <code>value</code>
+     * is <code>Long.MIN_VALUE</code>, then the provided key will be removed from the preferences.
+     *
+     * @param context
+     * @param key
+     * @param value
+     */
+    public static void saveLongToPreference(Context context, String key, long value) {
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        if (Long.MIN_VALUE == value) {
+            // we want to remove
+            pref.edit().remove(key).apply();
+        } else {
+            pref.edit().putLong(key, value).apply();
+        }
+
+    }
+
+    /**
      * Retrieves a String value from preference manager. If no such key exists, it will return
      * <code>null</code>.
      *
@@ -211,11 +245,26 @@ public class Utils {
     }
 
     /**
+     * Retrieves a long value from preference manager. If no such key exists, it will return the
+     * value provided as <code>defaultValue</code>
+     *
+     * @param context
+     * @param key
+     * @param defaultValue
+     * @return
+     */
+    public static long getLongFromPreference(Context context, String key,
+            long defaultValue) {
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        return pref.getLong(key, defaultValue);
+    }
+
+    /**
      * A utility method to validate that the appropriate version of the Google Play Services is
      * available on the device. If not, it will open a dialog to address the issue. The dialog
      * displays a localized message about the error and upon user confirmation (by tapping on
-     * dialog) will direct them to the Play Store if Google Play services is out of date or missing,
-     * or to system settings if Google Play services is disabled on the device.
+     * dialog) will direct them to the Play Store if Google Play services is out of date or
+     * missing, or to system settings if Google Play services is disabled on the device.
      *
      * @param activity
      * @return
@@ -241,8 +290,7 @@ public class Utils {
     }
 
     /**
-     * @deprecated
-     * See <code>checkGooglePlayServices</code>
+     * @deprecated See <code>checkGooglePlayServices</code>
      */
     public static boolean checkGooglePlaySevices(final Activity activity) {
         return checkGooglePlayServices(activity);
@@ -253,9 +301,9 @@ public class Utils {
      * {@link MediaInfo}. Since {@link MediaInfo} is not {@link Parcelable}, one can use this
      * container bundle to pass around from one activity to another.
      *
-     * @see <code>toMediaInfo()</code>
      * @param info
      * @return
+     * @see <code>toMediaInfo()</code>
      */
     public static Bundle fromMediaInfo(MediaInfo info) {
         if (null == info) {
@@ -270,6 +318,7 @@ public class Utils {
         wrapper.putString(MediaMetadata.KEY_STUDIO, md.getString(MediaMetadata.KEY_STUDIO));
         wrapper.putString(KEY_CONTENT_TYPE, info.getContentType());
         wrapper.putInt(KEY_STREAM_TYPE, info.getStreamType());
+        wrapper.putLong(KEY_STREAM_DURATION, info.getStreamDuration());
         if (!md.getImages().isEmpty()) {
             ArrayList<String> urls = new ArrayList<String>();
             for (WebImage img : md.getImages()) {
@@ -289,9 +338,9 @@ public class Utils {
      * Builds and returns a {@link MediaInfo} that was wrapped in a {@link Bundle} by
      * <code>fromMediaInfo</code>.
      *
-     * @see <code>fromMediaInfo()</code>
      * @param wrapper
      * @return
+     * @see <code>fromMediaInfo()</code>
      */
     public static MediaInfo toMediaInfo(Bundle wrapper) {
         if (null == wrapper) {
@@ -317,7 +366,8 @@ public class Utils {
             try {
                 customData = new JSONObject(customDataStr);
             } catch (JSONException e) {
-                LOGE(TAG, "Failed to deserialize the custom data string: custom data= " + customDataStr);
+                LOGE(TAG, "Failed to deserialize the custom data string: custom data= "
+                        + customDataStr);
             }
         }
         return new MediaInfo.Builder(wrapper.getString(KEY_URL))
@@ -325,6 +375,22 @@ public class Utils {
                 .setContentType(wrapper.getString(KEY_CONTENT_TYPE))
                 .setMetadata(metaData)
                 .setCustomData(customData)
+                .setStreamDuration(wrapper.getLong(KEY_STREAM_DURATION))
                 .build();
+    }
+
+    /**
+     * Returns the SSID of the wifi connection, or <code>null</code> if there is no wifi.
+     *
+     * @param context
+     * @return
+     */
+    public static String getWifiSsid(Context context) {
+        WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+        if (null != wifiInfo) {
+            return wifiInfo.getSSID();
+        }
+        return null;
     }
 }

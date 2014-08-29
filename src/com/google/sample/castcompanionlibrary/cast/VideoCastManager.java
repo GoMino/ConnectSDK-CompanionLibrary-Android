@@ -19,26 +19,6 @@ package com.google.sample.castcompanionlibrary.cast;
 import static com.google.sample.castcompanionlibrary.utils.LogUtils.LOGD;
 import static com.google.sample.castcompanionlibrary.utils.LogUtils.LOGE;
 
-import android.annotation.SuppressLint;
-import android.app.PendingIntent;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.res.Resources.NotFoundException;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.media.AudioManager;
-import android.media.MediaMetadataRetriever;
-import android.media.RemoteControlClient;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
-import android.support.v7.app.MediaRouteDialogFactory;
-import android.support.v7.media.MediaRouter.RouteInfo;
-import android.text.TextUtils;
-import android.view.View;
-
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
 import com.google.android.gms.cast.Cast.CastOptions.Builder;
@@ -77,6 +57,25 @@ import com.google.sample.castcompanionlibrary.widgets.MiniController.OnMiniContr
 
 import org.json.JSONObject;
 
+import android.annotation.SuppressLint;
+import android.app.PendingIntent;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.res.Resources.NotFoundException;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.media.AudioManager;
+import android.media.MediaMetadataRetriever;
+import android.media.RemoteControlClient;
+import android.os.Build;
+import android.os.Bundle;
+import android.support.v7.app.MediaRouteDialogFactory;
+import android.support.v7.media.MediaRouter.RouteInfo;
+import android.text.TextUtils;
+import android.view.KeyEvent;
+import android.view.View;
+
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -100,6 +99,7 @@ import java.util.Set;
  * <li>FEATURE_DEBUGGING: to enable GMS level logging</li>
  * <li>FEATURE_NOTIFICATION: to enable system notifications</li>
  * <li>FEATURE_LOCKSCREEN: to enable lock-screen controls on supported versions</li>
+ * <li>FEATURE_WIFI_RECONNECT: to enable reconnection logic</li>
  * </ul>
  * Callers can add {@link MiniController} components to their application pages by adding the
  * corresponding widget to their layout xml and then calling <code>addMiniController()</code>. This
@@ -124,9 +124,7 @@ public class VideoCastManager extends BaseCastManager
     public static final String EXTRA_START_POINT = "startPoint";
     public static final String EXTRA_SHOULD_START = "shouldStart";
     public static final String EXTRA_CUSTOM_DATA = "customData";
-    private static final int STOP_NOTIF_WHAT = 0;
-    private static final int START_NOTIF_WHAT = 1;
-    private static final int NOTIF_DELAY_MS = 300;
+    public static final long DEFAULT_LIVE_STREAM_DURATION_MS = 2 * 3600 * 1000L; // 2hrs
 
     /**
      * Volume can be controlled at two different layers, one is at the "stream" level and one at
@@ -147,13 +145,12 @@ public class VideoCastManager extends BaseCastManager
     private VolumeType mVolumeType = VolumeType.DEVICE;
     private int mState = MediaStatus.PLAYER_STATE_IDLE;
     private int mIdleReason;
-    private Bitmap mVideoArtBitmap;
     private final ComponentName mMediaButtonReceiverComponent;
     private final String mDataNamespace;
     private Cast.MessageReceivedCallback mDataChannel;
     private Set<IVideoCastConsumer> mVideoConsumers;
     private IMediaAuthService mAuthService;
-    private Handler mHandler;
+    private long mLiveStreamDuration = DEFAULT_LIVE_STREAM_DURATION_MS;
 
     /**
      * Initializes the VideoCastManager for clients. Before clients can use VideoCastManager, they
@@ -178,7 +175,7 @@ public class VideoCastManager extends BaseCastManager
             LOGD(TAG, "New instance of VideoCastManager is created");
             if (ConnectionResult.SUCCESS != GooglePlayServicesUtil
                     .isGooglePlayServicesAvailable(context)) {
-                String msg = "Couldn't find the appropriate version of Goolge Play Services";
+                String msg = "Couldn't find the appropriate version of Google Play Services";
                 LOGE(TAG, msg);
             }
             sInstance = new VideoCastManager(context, applicationId, targetActivity, dataNamespace);
@@ -248,12 +245,10 @@ public class VideoCastManager extends BaseCastManager
 
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         mMediaButtonReceiverComponent = new ComponentName(context, VideoIntentReceiver.class);
-
-        mHandler = new Handler(new UpdateNotificationHandlerCallback());
     }
 
     /*============================================================================================*/
-    /*========== MiniControllers managemen =======================================================*/
+    /*========== MiniControllers management ======================================================*/
     /*============================================================================================*/
 
     /**
@@ -507,15 +502,6 @@ public class VideoCastManager extends BaseCastManager
     }
 
     /**
-     * Returns the bitmap for the current video
-     *
-     * @return
-     */
-    public Bitmap getAlbumArt() {
-        return mVideoArtBitmap;
-    }
-
-    /**
      * Sets the type of volume.
      *
      * @param vType
@@ -757,6 +743,23 @@ public class VideoCastManager extends BaseCastManager
     }
 
     /**
+     * Returns the time left (in milliseconds) of the current media. If there is no
+     * {@code RemoteMediaPlayer}, it returns -1.
+     *
+     * @throws TransientNetworkDisconnectionException
+     * @throws NoConnectionException
+     */
+    public long getTimeLeftForMedia()
+            throws TransientNetworkDisconnectionException, NoConnectionException {
+        checkConnectivity();
+        if (null == mRemoteMediaPlayer) {
+            return -1;
+        }
+        return isRemoteStreamLive() ? mLiveStreamDuration : mRemoteMediaPlayer.getStreamDuration() -
+                mRemoteMediaPlayer.getApproximateStreamPosition();
+    }
+
+    /**
      * Returns the current (approximate) position of the current media, in milliseconds.
      *
      * @return
@@ -779,19 +782,6 @@ public class VideoCastManager extends BaseCastManager
         return mTargetActivity;
     }
 
-    /*
-     * This is called when ui visibility of the client has changed
-     */
-    @Override
-    protected void onUiVisibilityChanged(boolean visible) {
-        if (visible) {
-            mHandler.removeMessages(STOP_NOTIF_WHAT);
-        }
-        mHandler.sendEmptyMessageDelayed(
-                visible ? START_NOTIF_WHAT : STOP_NOTIF_WHAT, NOTIF_DELAY_MS);
-        super.onUiVisibilityChanged(visible);
-    }
-
     /*============================================================================================*/
     /*========== Notification Service ============================================================*/
     /*============================================================================================*/
@@ -802,13 +792,15 @@ public class VideoCastManager extends BaseCastManager
      * if the notification feature has been enabled during the initialization.
      * @see {@link BaseCastManager#enableFeatures()}
      */
-    private boolean startNotificationService() {
+    private boolean startNotificationService(boolean visibility) {
         if (!isFeatureEnabled(FEATURE_NOTIFICATION)) {
             return true;
         }
-        LOGD(TAG, "startNotificationService() ");
+        LOGD(TAG, "startNotificationService()");
         Intent service = new Intent(mContext, VideoCastNotificationService.class);
         service.setPackage(mContext.getPackageName());
+        service.setAction(VideoCastNotificationService.ACTION_VISIBILITY);
+        service.putExtra(VideoCastNotificationService.NOTIFICATION_VISIBILITY, !mUiVisible);
         return null != mContext.startService(service);
     }
 
@@ -817,6 +809,7 @@ public class VideoCastManager extends BaseCastManager
             return;
         }
         if (null != mContext) {
+            LOGD(TAG, "stopNotificationService(): Stopping the notification service");
             mContext.stopService(new Intent(mContext, VideoCastNotificationService.class));
         }
     }
@@ -841,7 +834,13 @@ public class VideoCastManager extends BaseCastManager
             }
         }
         if (null != mMediaRouter) {
-            mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
+            LOGD(TAG, "onApplicationDisconnected(): Cached RouteInfo: " + getRouteInfo());
+            LOGD(TAG, "onApplicationDisconnected(): Selected RouteInfo: " +
+                    mMediaRouter.getSelectedRoute());
+            if (mMediaRouter.getSelectedRoute().equals(getRouteInfo())) {
+                LOGD(TAG, "onApplicationDisconnected(): Setting route to default");
+                mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
+            }
         }
         onDeviceSelected(null);
         updateMiniControllersVisibility(false);
@@ -915,7 +914,8 @@ public class VideoCastManager extends BaseCastManager
                 }
             }
         }
-        startNotificationService();
+
+        startNotificationService(mUiVisible);
         try {
             attachDataChannel();
             attachMediaChannel();
@@ -1025,6 +1025,7 @@ public class VideoCastManager extends BaseCastManager
 
             onDeviceSelected(null);
             if (null != mMediaRouter) {
+                LOGD(TAG, "onApplicationConnectionFailed(): Setting route to default");
                 mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
             }
         }
@@ -1062,7 +1063,7 @@ public class VideoCastManager extends BaseCastManager
      */
     public void loadMedia(MediaInfo media, boolean autoPlay, int position, JSONObject customData)
             throws TransientNetworkDisconnectionException, NoConnectionException {
-        LOGD(TAG, "loadMedia: " + media);
+        LOGD(TAG, "loadMedia");
         checkConnectivity();
         if (media == null) {
             return;
@@ -1552,25 +1553,35 @@ public class VideoCastManager extends BaseCastManager
             if (mState == MediaStatus.PLAYER_STATE_PLAYING) {
                 LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = playing");
                 updateRemoteControl(true);
+                long mediaDurationLeft = getTimeLeftForMedia();
+                startReconnectionService(mediaDurationLeft);
             } else if (mState == MediaStatus.PLAYER_STATE_PAUSED) {
                 LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = paused");
                 updateRemoteControl(false);
             } else if (mState == MediaStatus.PLAYER_STATE_IDLE) {
                 LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = idle");
                 updateRemoteControl(false);
-                if (mIdleReason == MediaStatus.IDLE_REASON_FINISHED) {
-                    removeRemoteControlClient();
-                    makeUiHidden = true;
-                } else if (mIdleReason == MediaStatus.IDLE_REASON_ERROR) {
-                    // something bad happened on the cast device
-                    LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): IDLE reason = ERROR");
-                    makeUiHidden = true;
-                    removeRemoteControlClient();
-                    onFailed(R.string.failed_receiver_player_error, NO_STATUS_CODE);
-                } else if (mIdleReason == MediaStatus.IDLE_REASON_CANCELED) {
-                    LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): IDLE reason = CANCELLED");
-                    makeUiHidden = !isRemoteStreamLive();
+                switch (mIdleReason) {
+                    case MediaStatus.IDLE_REASON_FINISHED:
+                        removeRemoteControlClient();
+                        makeUiHidden = true;
+                        break;
+                    case MediaStatus.IDLE_REASON_ERROR:
+                        // something bad happened on the cast device
+                        LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): IDLE reason = ERROR");
+                        makeUiHidden = true;
+                        removeRemoteControlClient();
+                        onFailed(R.string.failed_receiver_player_error, NO_STATUS_CODE);
+                        break;
+                    case MediaStatus.IDLE_REASON_CANCELED:
+                        LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): IDLE reason = CANCELLED");
+                        makeUiHidden = !isRemoteStreamLive();
+                        break;
                 }
+                if (makeUiHidden) {
+                    stopReconnectionService();
+                }
+
             } else if (mState == MediaStatus.PLAYER_STATE_BUFFERING) {
                 LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = buffering");
             } else {
@@ -1617,13 +1628,12 @@ public class VideoCastManager extends BaseCastManager
                 }
             }
         }
-        updateLockScreenMetadata();
         try {
             updateLockScreenImage(getRemoteMediaInformation());
         } catch (TransientNetworkDisconnectionException e) {
-            LOGE(TAG, "Failed to update lock screen metadaa due to a network issue", e);
+            LOGE(TAG, "Failed to update lock screen metadata due to a network issue", e);
         } catch (NoConnectionException e) {
-            LOGE(TAG, "Failed to update lock screen metadaa due to a network issue", e);
+            LOGE(TAG, "Failed to update lock screen metadata due to a network issue", e);
         }
     }
 
@@ -1752,11 +1762,12 @@ public class VideoCastManager extends BaseCastManager
      */
     @SuppressLint("InlinedApi")
     private void updateRemoteControl(boolean playing) {
+        LOGD(TAG, "updateRemoteControl()");
         if (!isFeatureEnabled(FEATURE_LOCKSCREEN)) {
             return;
         }
         if (!isConnected()) {
-            removeRemoteControlClient();
+            //removeRemoteControlClient();
             return;
         }
         try {
@@ -1815,10 +1826,11 @@ public class VideoCastManager extends BaseCastManager
     /*
      * Removes the remote control client
      */
-    private void removeRemoteControlClient() {
+    public void removeRemoteControlClient() {
         if (isFeatureEnabled(FEATURE_LOCKSCREEN)) {
             mAudioManager.abandonAudioFocus(null);
             if (null != mRemoteControlClientCompat) {
+                LOGD(TAG, "removeRemoteControlClient(): Removing RemoteControlClient");
                 RemoteControlHelper.unregisterRemoteControlClient(mAudioManager,
                         mRemoteControlClientCompat);
                 mRemoteControlClientCompat = null;
@@ -1931,6 +1943,7 @@ public class VideoCastManager extends BaseCastManager
 
     @Override
     void onDeviceUnselected() {
+        LOGD(TAG, "onDeviceUnselected");
         stopNotificationService();
         detachMediaChannel();
         removeDataChannel();
@@ -1948,6 +1961,7 @@ public class VideoCastManager extends BaseCastManager
 
     @Override
     public void onConnectionFailed(ConnectionResult result) {
+        LOGD(TAG, "onConnectionFailed()");
         super.onConnectionFailed(result);
         updateRemoteControl(false);
         stopNotificationService();
@@ -1955,11 +1969,13 @@ public class VideoCastManager extends BaseCastManager
     }
 
     @Override
-    public void onDisconnected() {
-        super.onDisconnected();
+    public void onDisconnected(boolean stopAppOnExit, boolean clearPersistedConnectionData,
+            boolean setDefaultRoute) {
+        super.onDisconnected(stopAppOnExit, clearPersistedConnectionData, setDefaultRoute);
         updateMiniControllersVisibility(false);
-        stopNotificationService();
-        removeRemoteControlClient();
+        if (clearPersistedConnectionData && !mConnectionSuspended) {
+            removeRemoteControlClient();
+        }
         mState = MediaStatus.PLAYER_STATE_IDLE;
     }
 
@@ -2000,21 +2016,68 @@ public class VideoCastManager extends BaseCastManager
         super.onFailed(resourceId, statusCode);
     }
 
-    private class UpdateNotificationHandlerCallback implements Handler.Callback {
-
-        @Override
-        public boolean handleMessage(Message msg) {
-            boolean visibility = msg.what != START_NOTIF_WHAT;
-
-            if (isFeatureEnabled(FEATURE_NOTIFICATION)) {
-                Intent intent = new Intent(VideoCastNotificationService.ACTION_VISIBILITY);
-                intent.setPackage(mContext.getPackageName());
-                intent.putExtra("visible", visibility);
-                mContext.startService(intent);
-            }
-
+    /**
+     * Clients can call this method to delegate handling of the volume. Clients should override
+     * {@link dispatchEvent} and call this method:
+     * <pre>
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (mCastManager.onDispatchVolumeKeyEvent(event, VOLUME_DELTA)) {
             return true;
         }
+        return super.dispatchKeyEvent(event);
+    }
+     * </pre>
+     * @param event The dispatched event.
+     * @param volumeDelta The amount by which volume should be increased or decreased in each step
+     * @return <code>true</code> if volume is handled by the library, <code>false</code> otherwise.
+     */
+    public boolean onDispatchVolumeKeyEvent(KeyEvent event, double volumeDelta) {
+        if (isConnected()) {
+            boolean isKeyDown = event.getAction() == KeyEvent.ACTION_DOWN;
+            switch (event.getKeyCode()) {
+                case KeyEvent.KEYCODE_VOLUME_UP:
+                    if (changeVolume(volumeDelta, isKeyDown)) {
+                        return true;
+                    }
+                    break;
+                case KeyEvent.KEYCODE_VOLUME_DOWN:
+                    if (changeVolume(-volumeDelta, isKeyDown)) {
+                        return true;
+                    }
+                    break;
+            }
+        }
+        return false;
     }
 
+    private boolean changeVolume(double volumeIncrement, boolean isKeyDown) {
+        if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) &&
+                getPlaybackStatus() == MediaStatus.PLAYER_STATE_PLAYING &&
+                isFeatureEnabled(BaseCastManager.FEATURE_LOCKSCREEN)) {
+            return false;
+        }
+
+        if (isKeyDown) {
+            try {
+                incrementVolume(volumeIncrement);
+            } catch (CastException e) {
+                LOGE(TAG, "Failed to change volume", e);
+            } catch (TransientNetworkDisconnectionException e) {
+                LOGE(TAG, "Failed to change volume", e);
+            } catch (NoConnectionException e) {
+                LOGE(TAG, "Failed to change volume", e);
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Set the live stream duration; this is purely used in the reconnection logic. If this method
+     * is not called, the default value {@code DEFAULT_LIVE_STREAM_DURATION_MS} is used.
+     *
+     * @param duration Duration, specified in milliseconds.
+     */
+    public void setLiveStreamDuration(long duration) {
+        mLiveStreamDuration = duration;
+    }
 }

@@ -29,7 +29,15 @@ See LICENSE
 Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl/TPLDxj)
 
 ## Change List
-1.4 -> 1.5
+1.8
+ * Added the complete reconnection logic per Cast UX Checklist
+ * Addressed issues 70, 75, 92, 93, 94, 96
+ * Added logic to handle failure when loading a media item in the VideoCastControllerActivity
+ * Added "stream duration" to MediaInfo serialization
+ * Updated the gradle build file to use newer version of the Google Play services
+ * Updated the documentation
+ 
+1.5
  * Fixed the issue where VideoCastNotificationService was not setting up data namespace if one was configured
  * Fixed issue 50
  * Added aversion number that will be printed in the log statements for tracking purposes
@@ -37,13 +45,13 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
  * Fixing many typos in comments and some resources
  * Updating documentation to reflect the correct name of callbacks for the custom namespace for VideoCastManager
 
-1.3 -> 1.4
+1.4
  * Added support for MediaRouteButton
  * Added "alias" resources for Mini Controller play/pause/stop buttons so clients can customize them easily
  * Added a color resource to control thw color of the title of the custom VideoMediaRouteControllerDialog
  * Fixed some typos in JavaDoc
 
-1.2 -> 1.3
+1.3
  * Fixing issue 32
  * Fixing issue 33
  * Adding a better BaseCastManager.clearContext() variation
@@ -51,13 +59,13 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
  * Making sure play/pause button is hidden when ProgressBar is shown in VideoMediaRouteControllerDialog
  * probably some more adjustments and bug fixes
 
-1.1 -> 1.2
+1.2
  * Improving thread-safety in calling various ConsumerImpl callbacks
  * (backward incompatible) Changing the signature of IMediaAuthListener.onResult
  * Adding an API to BaseCastManager so clients can clear the "context" to avoid any leaks
  * Various bug fixes
 
-1.0 -> 1.1
+1.1
  * Added gradle build scripts (make sure you have Android Support Repository)
  * For live media, the "pause" button at various places is replaced with a "stop" button
  * Refactored the VideoCastControllerActivity to enable configuration changes without losing any running process

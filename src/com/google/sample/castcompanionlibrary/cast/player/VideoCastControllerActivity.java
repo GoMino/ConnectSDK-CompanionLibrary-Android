@@ -19,6 +19,16 @@ package com.google.sample.castcompanionlibrary.cast.player;
 import static com.google.sample.castcompanionlibrary.utils.LogUtils.LOGD;
 import static com.google.sample.castcompanionlibrary.utils.LogUtils.LOGE;
 
+import com.google.android.gms.cast.MediaInfo;
+import com.google.android.gms.cast.MediaStatus;
+import com.google.sample.castcompanionlibrary.R;
+import com.google.sample.castcompanionlibrary.cast.VideoCastManager;
+import com.google.sample.castcompanionlibrary.cast.exceptions.CastException;
+import com.google.sample.castcompanionlibrary.cast.exceptions.NoConnectionException;
+import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
+import com.google.sample.castcompanionlibrary.utils.LogUtils;
+import com.google.sample.castcompanionlibrary.utils.Utils;
+
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
@@ -36,16 +46,6 @@ import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
-
-import com.google.android.gms.cast.MediaInfo;
-import com.google.android.gms.cast.MediaStatus;
-import com.google.sample.castcompanionlibrary.R;
-import com.google.sample.castcompanionlibrary.cast.VideoCastManager;
-import com.google.sample.castcompanionlibrary.cast.exceptions.CastException;
-import com.google.sample.castcompanionlibrary.cast.exceptions.NoConnectionException;
-import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
-import com.google.sample.castcompanionlibrary.utils.LogUtils;
-import com.google.sample.castcompanionlibrary.utils.Utils;
 
 /**
  * This class provides an {@link Activity} that clients can easily add to their applications to
@@ -139,36 +139,11 @@ public class VideoCastControllerActivity extends ActionBarActivity implements IV
     }
 
     @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (mCastManager.isConnected()) {
-            if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
-                onVolumeChange((double) mVolumeIncrement);
-            } else if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-                onVolumeChange(-(double) mVolumeIncrement);
-            } else {
-                // we don't want to consume non-volume key events
-                return super.onKeyDown(keyCode, event);
-            }
-            if (mCastManager.getPlaybackStatus() == MediaStatus.PLAYER_STATE_PLAYING) {
-                return super.onKeyDown(keyCode, event);
-            } else {
-                return true;
-            }
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (mCastManager.onDispatchVolumeKeyEvent(event, mVolumeIncrement)) {
+            return true;
         }
-        return super.onKeyDown(keyCode, event);
-    }
-
-    private void onVolumeChange(double volumeIncrement) {
-        if (mCastManager == null) {
-            return;
-        }
-        try {
-            mCastManager.incrementVolume(volumeIncrement);
-        } catch (Exception e) {
-            LOGE(TAG, "onVolumeChange() Failed to change volume", e);
-            Utils.showErrorDialog(VideoCastControllerActivity.this,
-                    R.string.failed_setting_volume);
-        }
+        return super.dispatchKeyEvent(event);
     }
 
     @Override
@@ -351,12 +326,18 @@ public class VideoCastControllerActivity extends ActionBarActivity implements IV
 
     @Override
     public void setLine1(String text) {
+        if (null == text) {
+            text = "";
+        }
         mLine1.setText(text);
 
     }
 
     @Override
     public void setLine2(String text) {
+        if (null == text) {
+            text = "";
+        }
         mLine2.setText(text);
 
     }

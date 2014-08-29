@@ -18,6 +18,17 @@ package com.google.sample.castcompanionlibrary.cast.dialog.video;
 
 import static com.google.sample.castcompanionlibrary.utils.LogUtils.LOGE;
 
+import com.google.android.gms.cast.MediaInfo;
+import com.google.android.gms.cast.MediaMetadata;
+import com.google.android.gms.cast.MediaStatus;
+import com.google.sample.castcompanionlibrary.R;
+import com.google.sample.castcompanionlibrary.cast.VideoCastManager;
+import com.google.sample.castcompanionlibrary.cast.callbacks.VideoCastConsumerImpl;
+import com.google.sample.castcompanionlibrary.cast.exceptions.CastException;
+import com.google.sample.castcompanionlibrary.cast.exceptions.NoConnectionException;
+import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
+import com.google.sample.castcompanionlibrary.utils.LogUtils;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -30,17 +41,6 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-
-import com.google.android.gms.cast.MediaInfo;
-import com.google.android.gms.cast.MediaMetadata;
-import com.google.android.gms.cast.MediaStatus;
-import com.google.sample.castcompanionlibrary.R;
-import com.google.sample.castcompanionlibrary.cast.VideoCastManager;
-import com.google.sample.castcompanionlibrary.cast.callbacks.VideoCastConsumerImpl;
-import com.google.sample.castcompanionlibrary.cast.exceptions.CastException;
-import com.google.sample.castcompanionlibrary.cast.exceptions.NoConnectionException;
-import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
-import com.google.sample.castcompanionlibrary.utils.LogUtils;
 
 import java.net.URL;
 
@@ -69,6 +69,7 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
     private Context mContext;
     private boolean mClosed;
     private View mIconContainer;
+    private View mTextContainer;
 
     private int mStreamType;
 
@@ -130,8 +131,7 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
         int visibility = hide ? View.GONE : View.VISIBLE;
         mIcon.setVisibility(visibility);
         mIconContainer.setVisibility(visibility);
-        mTitle.setVisibility(visibility);
-        mSubTitle.setVisibility(visibility);
+        mTextContainer.setVisibility(visibility);
         mEmptyText.setText(resId == 0 ? R.string.no_media_info : resId);
         mEmptyText.setVisibility(hide ? View.VISIBLE : View.GONE);
         if (hide) mPausePlay.setVisibility(visibility);
@@ -170,6 +170,7 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
             mIcon.setImageBitmap(bm);
             return;
         }
+
         new Thread(new Runnable() {
             Bitmap bm = null;
 
@@ -322,26 +323,39 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
 
             @Override
             public void onClick(View v) {
-
-                if (null != mCastManager
-                        && null != mCastManager.getTargetActivity()) {
-                    try {
-                        mCastManager.onTargetActivityInvoked(mContext);
-                    } catch (TransientNetworkDisconnectionException e) {
-                        LOGE(TAG, "Failed to start the target activity due to network issues", e);
-                    } catch (NoConnectionException e) {
-                        LOGE(TAG, "Failed to start the target activity due to network issues", e);
-                    }
-                    cancel();
-                }
-
+                showTargetActivity();
             }
+
         });
+
+        mTextContainer.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                showTargetActivity();
+            }
+
+        });
+    }
+
+    private void showTargetActivity() {
+        if (null != mCastManager
+                && null != mCastManager.getTargetActivity()) {
+            try {
+                mCastManager.onTargetActivityInvoked(mContext);
+            } catch (TransientNetworkDisconnectionException e) {
+                LOGE(TAG, "Failed to start the target activity due to network issues", e);
+            } catch (NoConnectionException e) {
+                LOGE(TAG, "Failed to start the target activity due to network issues", e);
+            }
+            cancel();
+        }
     }
 
     private void loadViews(View controls) {
         mIcon = (ImageView) controls.findViewById(R.id.iconView);
         mIconContainer = controls.findViewById(R.id.iconContainer);
+        mTextContainer = controls.findViewById(R.id.textContainer);
         mPausePlay = (ImageView) controls.findViewById(R.id.playPauseView);
         mTitle = (TextView) controls.findViewById(R.id.titleView);
         mSubTitle = (TextView) controls.findViewById(R.id.subTitleView);

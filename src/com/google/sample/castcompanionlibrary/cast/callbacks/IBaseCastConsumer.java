@@ -76,4 +76,9 @@ public interface IBaseCastConsumer extends OnFailedListener {
      * network issues.
      */
     public void onConnectivityRecovered();
+
+    /**
+     * Called when visibility of the application has changed.
+     */
+    public void onUiVisibilityChanged(boolean visible);
 }

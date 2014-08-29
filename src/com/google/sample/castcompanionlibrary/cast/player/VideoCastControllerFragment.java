@@ -19,6 +19,22 @@ package com.google.sample.castcompanionlibrary.cast.player;
 import static com.google.sample.castcompanionlibrary.utils.LogUtils.LOGD;
 import static com.google.sample.castcompanionlibrary.utils.LogUtils.LOGE;
 
+import com.google.android.gms.cast.MediaInfo;
+import com.google.android.gms.cast.MediaMetadata;
+import com.google.android.gms.cast.MediaStatus;
+import com.google.android.gms.cast.RemoteMediaPlayer;
+import com.google.sample.castcompanionlibrary.R;
+import com.google.sample.castcompanionlibrary.cast.VideoCastManager;
+import com.google.sample.castcompanionlibrary.cast.callbacks.VideoCastConsumerImpl;
+import com.google.sample.castcompanionlibrary.cast.exceptions.CastException;
+import com.google.sample.castcompanionlibrary.cast.exceptions.NoConnectionException;
+import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
+import com.google.sample.castcompanionlibrary.utils.LogUtils;
+import com.google.sample.castcompanionlibrary.utils.Utils;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -33,21 +49,6 @@ import android.support.v4.app.Fragment;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.SeekBar;
-
-import com.google.android.gms.cast.MediaInfo;
-import com.google.android.gms.cast.MediaMetadata;
-import com.google.android.gms.cast.MediaStatus;
-import com.google.sample.castcompanionlibrary.R;
-import com.google.sample.castcompanionlibrary.cast.VideoCastManager;
-import com.google.sample.castcompanionlibrary.cast.callbacks.VideoCastConsumerImpl;
-import com.google.sample.castcompanionlibrary.cast.exceptions.CastException;
-import com.google.sample.castcompanionlibrary.cast.exceptions.NoConnectionException;
-import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
-import com.google.sample.castcompanionlibrary.utils.LogUtils;
-import com.google.sample.castcompanionlibrary.utils.Utils;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.net.URL;
 import java.util.Timer;
@@ -227,6 +228,16 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
                 LOGE(TAG, "Failed to update the metadata due to network issues", e);
             } catch (NoConnectionException e) {
                 LOGE(TAG, "Failed to update the metadata due to network issues", e);
+            }
+        }
+
+        @Override
+        public void onFailed(int resourceId, int statusCode) {
+            LOGD(TAG, "onFailed(): " + getString(resourceId) + ", status code: " + statusCode);
+            if (statusCode == RemoteMediaPlayer.STATUS_FAILED
+                    || statusCode == RemoteMediaPlayer.STATUS_TIMED_OUT) {
+                Utils.showErrorDialog(getActivity(), resourceId);
+                mCastController.closeActivity();
             }
         }
 
@@ -441,7 +452,7 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
         LOGD(TAG, "onResume() was called");
         try {
             mCastManager = VideoCastManager.getInstance(getActivity());
-            boolean shouldFinish = !mCastManager.isConnected()
+            boolean shouldFinish = !(mCastManager.isConnected() || mCastManager.isConnecting())
                     || (mCastManager.getPlaybackStatus() == MediaStatus.PLAYER_STATE_IDLE
                     && mCastManager.getIdleReason() == MediaStatus.IDLE_REASON_FINISHED
                     && !mIsFresh);
@@ -451,6 +462,18 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
             mCastManager.addVideoCastConsumer(mCastConsumer);
             mCastManager.incrementUiCounter();
             if (!mIsFresh) updatePlayerStatus();
+
+            // updating metadata in case someone else has changed it and we are resuming the
+            // activity
+            try {
+                mSelectedMedia = mCastManager.getRemoteMediaInformation();
+                updateMetadata();
+            } catch (TransientNetworkDisconnectionException e) {
+                LOGE(TAG, "Failed to update the metadata due to network issues", e);
+            } catch (NoConnectionException e) {
+                LOGE(TAG, "Failed to update the metadata due to network issues", e);
+            }
+
         } catch (CastException e) {
             // logged already
         }

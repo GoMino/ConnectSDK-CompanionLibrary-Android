@@ -344,12 +344,6 @@ public class DataCastManager extends BaseCastManager
                     // didn't so we deselect the device
                     onDeviceSelected(null);
                     mReconnectionStatus = ReconnectionStatus.INACTIVE;
-                    // uncomment the following if you want to clear session
-                    // persisted data if a reconnection attempt fails
-                    // Utils.saveStringToPreference(mContext,
-                    // PREFS_KEY_SESSION_ID, null);
-                    // Utils.saveStringToPreference(mContext,
-                    // PREFS_KEY_ROUTE_ID, null);
                     return;
                 }
             }

@@ -55,6 +55,10 @@ public class BaseCastConsumerImpl implements IBaseCastConsumer {
     }
 
     @Override
+    public void onUiVisibilityChanged(boolean visible) {
+    }
+
+    @Override
     public void onFailed(int resourceId, int statusCode) {
     }
 

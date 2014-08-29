@@ -19,25 +19,6 @@ package com.google.sample.castcompanionlibrary.notification;
 import static com.google.sample.castcompanionlibrary.utils.LogUtils.LOGD;
 import static com.google.sample.castcompanionlibrary.utils.LogUtils.LOGE;
 
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.app.Service;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.net.Uri;
-import android.os.AsyncTask;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.IBinder;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.TaskStackBuilder;
-import android.widget.RemoteViews;
-
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaMetadata;
 import com.google.android.gms.cast.MediaStatus;
@@ -51,6 +32,23 @@ import com.google.sample.castcompanionlibrary.cast.player.VideoCastControllerAct
 import com.google.sample.castcompanionlibrary.utils.LogUtils;
 import com.google.sample.castcompanionlibrary.utils.Utils;
 
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.Service;
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.IBinder;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.TaskStackBuilder;
+import android.widget.RemoteViews;
+
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -62,15 +60,18 @@ import java.net.URL;
  */
 public class VideoCastNotificationService extends Service {
 
+    private static final String TAG = LogUtils.makeLogTag(VideoCastNotificationService.class);
+
     public static final String ACTION_TOGGLE_PLAYBACK =
             "com.google.sample.castcompanionlibrary.action.toggleplayback";
     public static final String ACTION_STOP =
             "com.google.sample.castcompanionlibrary.action.stop";
     public static final String ACTION_VISIBILITY =
             "com.google.sample.castcompanionlibrary.action.notificationvisibility";
-    private static int NOTIFICATION_ID = 1;
 
-    private static final String TAG = LogUtils.makeLogTag(VideoCastNotificationService.class);
+    private static final int NOTIFICATION_ID = 1;
+    public static final String NOTIFICATION_VISIBILITY = "visible";
+
     private String mApplicationId;
     private Bitmap mVideoArtBitmap;
     private Uri mVideoArtUri;
@@ -81,7 +82,6 @@ public class VideoCastNotificationService extends Service {
     private Notification mNotification;
     private boolean mVisible;
     boolean mIsIcsOrAbove = Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH;
-    private BroadcastReceiver mBroadcastReceiver;
     private VideoCastManager mCastManager;
     private VideoCastConsumerImpl mConsumer;
     private DecodeVideoArtBitmapTask mBitmapDecoderTask;
@@ -90,28 +90,17 @@ public class VideoCastNotificationService extends Service {
     public void onCreate() {
         super.onCreate();
         LOGD(TAG, "onCreate()");
-        IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_ON);
-        filter.addAction(Intent.ACTION_SCREEN_OFF);
-        mBroadcastReceiver = new BroadcastReceiver() {
-
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                LOGD(TAG, "onReceive(): " + intent.getAction());
-            }
-        };
-
-        registerReceiver(mBroadcastReceiver, filter);
-
         readPersistedData();
         mCastManager = VideoCastManager
                 .initialize(this, mApplicationId, mTargetActivity, mDataNamespace);
-        if (!mCastManager.isConnected()) {
+        if (!mCastManager.isConnected() && !mCastManager.isConnecting()) {
             mCastManager.reconnectSessionIfPossible(this, false);
         }
         mConsumer = new VideoCastConsumerImpl() {
             @Override
             public void onApplicationDisconnected(int errorCode) {
-                LOGD(TAG, "onApplicationDisconnected() was reached");
+                LOGD(TAG, "onApplicationDisconnected() was reached, stopping the notification"
+                        + " service");
                 stopSelf();
             }
 
@@ -121,6 +110,16 @@ public class VideoCastNotificationService extends Service {
                 VideoCastNotificationService.this.onRemoteMediaPlayerStatusUpdated(mediaStatus);
             }
 
+            @Override
+            public void onUiVisibilityChanged(boolean visible) {
+                mVisible = !visible;
+                if (mVisible && null != mNotification) {
+                    startForeground(NOTIFICATION_ID, mNotification);
+                    mCastManager.setContext(VideoCastNotificationService.this);
+                } else {
+                    stopForeground(true);
+                }
+            }
         };
         mCastManager.addVideoCastConsumer(mConsumer);
     }
@@ -143,7 +142,7 @@ public class VideoCastNotificationService extends Service {
                 LOGD(TAG, "onStartCommand(): Action: ACTION_STOP");
                 stopApplication();
             } else if (ACTION_VISIBILITY.equals(action)) {
-                mVisible = intent.getBooleanExtra("visible", false);
+                mVisible = intent.getBooleanExtra(NOTIFICATION_VISIBILITY, false);
                 LOGD(TAG, "onStartCommand(): Action: ACTION_VISIBILITY " + mVisible);
                 if (mVisible && null != mNotification) {
                     startForeground(NOTIFICATION_ID, mNotification);
@@ -159,7 +158,7 @@ public class VideoCastNotificationService extends Service {
             LOGD(TAG, "onStartCommand(): Intent was null");
         }
 
-        return Service.START_REDELIVER_INTENT;
+        return Service.START_STICKY;
     }
 
     private void setupNotification(final MediaInfo info)
@@ -233,9 +232,9 @@ public class VideoCastNotificationService extends Service {
         }
         LOGD(TAG, "onDestroy was called");
         removeNotification();
-        if (null != mBroadcastReceiver) {
-            unregisterReceiver(mBroadcastReceiver);
-        }
+//        if (null != mBroadcastReceiver) {
+//            unregisterReceiver(mBroadcastReceiver);
+//        }
         if (null != mCastManager && null != mConsumer) {
             mCastManager.removeVideoCastConsumer(mConsumer);
             mCastManager = null;
@@ -343,6 +342,7 @@ public class VideoCastNotificationService extends Service {
         } catch (Exception e) {
             LOGE(TAG, "Failed to disconnect application", e);
         }
+        LOGD(TAG, "Stopping the notification service");
         stopSelf();
     }
 

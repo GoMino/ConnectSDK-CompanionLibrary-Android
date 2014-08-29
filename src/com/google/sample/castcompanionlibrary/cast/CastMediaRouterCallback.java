@@ -18,14 +18,14 @@ package com.google.sample.castcompanionlibrary.cast;
 
 import static com.google.sample.castcompanionlibrary.utils.LogUtils.LOGD;
 
-import android.content.Context;
-import android.support.v7.media.MediaRouter;
-import android.support.v7.media.MediaRouter.RouteInfo;
-
 import com.google.android.gms.cast.CastDevice;
 import com.google.sample.castcompanionlibrary.cast.BaseCastManager.ReconnectionStatus;
 import com.google.sample.castcompanionlibrary.utils.LogUtils;
 import com.google.sample.castcompanionlibrary.utils.Utils;
+
+import android.content.Context;
+import android.support.v7.media.MediaRouter;
+import android.support.v7.media.MediaRouter.RouteInfo;
 
 /**
  * Provides a handy implementation of {@link MediaRouter.Callback}. When a {@link RouteInfo} is
@@ -59,6 +59,7 @@ public class CastMediaRouterCallback extends MediaRouter.Callback {
         Utils.saveStringToPreference(mContext, BaseCastManager.PREFS_KEY_ROUTE_ID, info.getId());
         CastDevice device = CastDevice.getFromBundle(info.getExtras());
         selectDeviceInterface.onDeviceSelected(device);
+        BaseCastManager.getCastManager().setRouteInfo(info);
         LOGD(TAG, "onResult: mSelectedDevice=" + device.getFriendlyName());
     }
 
@@ -71,13 +72,15 @@ public class CastMediaRouterCallback extends MediaRouter.Callback {
     @Override
     public void onRouteAdded(MediaRouter router, RouteInfo route) {
         super.onRouteAdded(router, route);
+        LOGD(TAG, "Route added: " + route.getName());
         if (!router.getDefaultRoute().equals(route)) {
             if (++mRouteCount == 1) {
                 BaseCastManager.getCastManager().onCastAvailabilityChanged(true);
             }
             selectDeviceInterface.onCastDeviceDetected(route);
         }
-        if (BaseCastManager.getCastManager().getReconnectionStatus() == ReconnectionStatus.STARTED) {
+        if (BaseCastManager.getCastManager().getReconnectionStatus()
+                == ReconnectionStatus.STARTED) {
             String routeId = Utils.getStringFromPreference(mContext,
                     BaseCastManager.PREFS_KEY_ROUTE_ID);
             if (route.getId().equals(routeId)) {
@@ -97,6 +100,7 @@ public class CastMediaRouterCallback extends MediaRouter.Callback {
     @Override
     public void onRouteRemoved(MediaRouter router, RouteInfo route) {
         super.onRouteRemoved(router, route);
+        LOGD(TAG, "onRouteRemoved: " + route);
         if (--mRouteCount == 0) {
             BaseCastManager.getCastManager().onCastAvailabilityChanged(false);
         }
