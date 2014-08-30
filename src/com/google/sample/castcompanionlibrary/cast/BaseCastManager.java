@@ -99,7 +99,7 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
     public static final int CLEAR_ROUTE = 1;
     public static final int CLEAR_WIFI = 2;
     public static final int CLEAR_SESSION = 4;
-    public static final int CLEAR_MEDIA_END = 4;
+    public static final int CLEAR_MEDIA_END = 8;
 
     public static final int NO_STATUS_CODE = -1;
 
