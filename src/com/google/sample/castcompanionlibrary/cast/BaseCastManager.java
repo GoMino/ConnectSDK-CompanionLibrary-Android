@@ -1046,8 +1046,10 @@ public void onCastAvailabilityChanged(boolean castPresent) {
             return;
         }
         try {
-            String ssid = Utils.getWifiSsid(mContext);
-            Utils.saveStringToPreference(mContext, PREFS_KEY_SSID, ssid);
+            if (isFeatureEnabled(FEATURE_WIFI_RECONNECT)) {
+                String ssid = Utils.getWifiSsid(mContext);
+                Utils.saveStringToPreference(mContext, PREFS_KEY_SSID, ssid);
+            }
             Cast.CastApi.requestStatus(mApiClient);
             launchApp();
 
