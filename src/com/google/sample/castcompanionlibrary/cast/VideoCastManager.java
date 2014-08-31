@@ -1767,7 +1767,6 @@ public class VideoCastManager extends BaseCastManager
             return;
         }
         if (!isConnected()) {
-            //removeRemoteControlClient();
             return;
         }
         try {

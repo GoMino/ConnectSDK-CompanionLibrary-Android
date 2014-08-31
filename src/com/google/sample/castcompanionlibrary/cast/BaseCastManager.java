@@ -407,8 +407,6 @@ public void onCastAvailabilityChanged(boolean castPresent) {
         mVisibilityCounter++;
         if (!mUiVisible) {
             mUiVisible = true;
-            //onUiVisibilityChanged(true);
-
             mUiVisibilityHandler.removeMessages(WHAT_UI_HIDDEN);
             mUiVisibilityHandler.sendEmptyMessageDelayed(WHAT_UI_VISIBLE, UI_VISIBILITY_DELAY_MS);
         }
@@ -431,7 +429,8 @@ public void onCastAvailabilityChanged(boolean castPresent) {
             if (mUiVisible) {
                 mUiVisible = false;
                 mUiVisibilityHandler.removeMessages(WHAT_UI_VISIBLE);
-                mUiVisibilityHandler.sendEmptyMessageDelayed(WHAT_UI_HIDDEN, UI_VISIBILITY_DELAY_MS);
+                mUiVisibilityHandler.sendEmptyMessageDelayed(WHAT_UI_HIDDEN,
+                        UI_VISIBILITY_DELAY_MS);
 
             }
         } else {
@@ -556,10 +555,6 @@ public void onCastAvailabilityChanged(boolean castPresent) {
      */
     public final MediaRouteSelector getMediaRouteSelector() {
         return mMediaRouteSelector;
-    }
-
-    public final MediaRouter getMediaRouter() {
-        return mMediaRouter;
     }
 
     /**

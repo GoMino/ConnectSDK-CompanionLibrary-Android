@@ -32,7 +32,7 @@ public enum MediaAuthStatus {
     /* Service has finished and user was authorized */
     RESULT_NOT_AUTHORIZED,
 
-    /* Timneout has reached with no result */
+    /* Timeout has reached with no result */
     ABORT_TIMEOUT,
 
     /* User triggered abort */

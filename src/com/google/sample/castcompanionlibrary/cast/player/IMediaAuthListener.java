@@ -30,8 +30,8 @@ public interface IMediaAuthListener {
      * Called when IMediaAuthService has successfully obtained a result.
      *
      * @param status     Provides the status of result, will be one of
-     *                   {@link MediaAusthStatus#RESULT_AUTHORIZED} or
-     *                   {@link MediaAusthStatus#RESULT_NOT_AUTHORIZED}
+     *                   {@link MediaAuthStatus#RESULT_AUTHORIZED} or
+     *                   {@link MediaAuthStatus#RESULT_NOT_AUTHORIZED}
      * @param info       The fully populated {@link MediaInfo} that is obtained through
      *                   authorization.
      * @param message    If authorization was not granted, then an optional message can be provided

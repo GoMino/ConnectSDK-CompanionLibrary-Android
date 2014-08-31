@@ -262,10 +262,10 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
         mLoading.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
-    private void adjustControlsVisibility(boolean showPlayPlause) {
-        int visible = showPlayPlause ? View.VISIBLE : View.INVISIBLE;
+    private void adjustControlsVisibility(boolean showPlayPause) {
+        int visible = showPlayPause ? View.VISIBLE : View.INVISIBLE;
         mPausePlay.setVisibility(visible);
-        setLoadingVisibility(!showPlayPlause);
+        setLoadingVisibility(!showPlayPause);
     }
 
     @Override

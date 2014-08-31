@@ -232,9 +232,6 @@ public class VideoCastNotificationService extends Service {
         }
         LOGD(TAG, "onDestroy was called");
         removeNotification();
-//        if (null != mBroadcastReceiver) {
-//            unregisterReceiver(mBroadcastReceiver);
-//        }
         if (null != mCastManager && null != mConsumer) {
             mCastManager.removeVideoCastConsumer(mConsumer);
             mCastManager = null;
@@ -245,15 +242,10 @@ public class VideoCastNotificationService extends Service {
      * Build the RemoteViews for the notification. We also need to add the appropriate "back stack"
      * so when user goes into the CastPlayerActivity, she can have a meaningful "back" experience.
      */
-    private RemoteViews build(MediaInfo info, Bitmap bitmap, boolean isPlaying,
-            Class<?> targetActivity) throws CastException, TransientNetworkDisconnectionException,
-            NoConnectionException {
+    private RemoteViews build(MediaInfo info, Bitmap bitmap, boolean isPlaying)
+            throws CastException, TransientNetworkDisconnectionException, NoConnectionException {
         Bundle mediaWrapper = Utils.fromMediaInfo(mCastManager.getRemoteMediaInformation());
-        Intent contentIntent = null;
-        if (null == mTargetActivity) {
-            mTargetActivity = VideoCastControllerActivity.class;
-        }
-        contentIntent = new Intent(this, mTargetActivity);
+        Intent contentIntent = new Intent(this, mTargetActivity);
 
         contentIntent.putExtra("media", mediaWrapper);
 
@@ -400,9 +392,9 @@ public class VideoCastNotificationService extends Service {
         protected void onPostExecute(Void v) {
             try {
                 if (!mInfo.getMetadata().hasImages()) {
-                    build(mInfo, null, mIsPlaying, mTargetActivity);
+                    build(mInfo, null, mIsPlaying);
                 } else {
-                    build(mInfo, mVideoArtBitmap, mIsPlaying, mTargetActivity);
+                    build(mInfo, mVideoArtBitmap, mIsPlaying);
                 }
             } catch (CastException e) {
                 LOGE(TAG, "Failed to set notification for " + mInfo.toString(), e);
