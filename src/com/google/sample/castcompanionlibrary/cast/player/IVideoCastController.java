@@ -20,9 +20,14 @@ import android.graphics.Bitmap;
 
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaStatus;
+import com.google.sample.castcompanionlibrary.cast.tracks.ui.TracksChooserDialog;
 import com.google.sample.castcompanionlibrary.widgets.MiniController.OnMiniControllerChangedListener;
 
 public interface IVideoCastController {
+
+    public static final int CC_ENABLED = 1;
+    public static final int CC_DISABLED = 2;
+    public static final int CC_HIDDEN = 3;
 
     /**
      * Sets the bitmap for the album art
@@ -79,4 +84,11 @@ public interface IVideoCastController {
     public void closeActivity();
 
     public void adjustControllersForLiveStream(boolean isLive);
+
+    /**
+     * Updates the visual status of the Closed Caption icon. Possible states are provided by
+     * <code>CC_ENABLED, CC_DISABLED, CC_HIDDEN</code>
+     * @param status
+     */
+    public void updateClosedCaption(int status);
 }

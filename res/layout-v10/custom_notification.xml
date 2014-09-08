@@ -9,7 +9,7 @@
         android:layout_height="68dp"
         android:layout_alignParentLeft="true"
         android:layout_centerVertical="true"
-        android:scaleType="fitXY"
+        android:scaleType="centerCrop"
         android:src="@drawable/video_placeholder_200x200" />
 
     <TextView

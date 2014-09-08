@@ -27,6 +27,7 @@ import com.google.sample.castcompanionlibrary.cast.callbacks.VideoCastConsumerIm
 import com.google.sample.castcompanionlibrary.cast.exceptions.CastException;
 import com.google.sample.castcompanionlibrary.cast.exceptions.NoConnectionException;
 import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
+import com.google.sample.castcompanionlibrary.utils.FetchBitmapTask;
 import com.google.sample.castcompanionlibrary.utils.LogUtils;
 
 import android.content.Context;
@@ -41,8 +42,6 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-
-import java.net.URL;
 
 /**
  * A custom {@link MediaRouteControllerDialog} that provides an album art, a play/pause button and
@@ -67,11 +66,11 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
     private Drawable mPlayDrawable;
     private Drawable mStopDrawable;
     private Context mContext;
-    private boolean mClosed;
     private View mIconContainer;
     private View mTextContainer;
 
     private int mStreamType;
+    private FetchBitmapTask mFetchBitmap;
 
     public VideoMediaRouteControllerDialog(Context context, int theme) {
         super(context, theme);
@@ -81,6 +80,10 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
     protected void onStop() {
         if (null != mCastManager) {
             mCastManager.removeVideoCastConsumer(castConsumerImpl);
+        }
+        if (mFetchBitmap != null) {
+            mFetchBitmap.cancel(true);
+            mFetchBitmap = null;
         }
         super.onStop();
     }
@@ -171,33 +174,21 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
             return;
         }
 
-        new Thread(new Runnable() {
-            Bitmap bm = null;
+        if (mFetchBitmap != null) {
+            mFetchBitmap.cancel(true);
+        }
 
+        mFetchBitmap = new FetchBitmapTask() {
             @Override
-            public void run() {
-                try {
-                    URL imgUrl = new URL(mIconUri.toString());
-                    bm = BitmapFactory.decodeStream(imgUrl.openStream());
-                } catch (Exception e) {
-                    LOGE(TAG, "setIcon(): Failed to load the image with url: " +
-                            mIconUri + ", using the default one", e);
-                    bm = BitmapFactory.decodeResource(
-                            mContext.getResources(), R.drawable.video_placeholder_200x200);
+            protected void onPostExecute(Bitmap bitmap) {
+                mIcon.setImageBitmap(bitmap);
+                if (this == mFetchBitmap) {
+                    mFetchBitmap = null;
                 }
-                if (mClosed) {
-                    return;
-                }
-                mIcon.post(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        mIcon.setImageBitmap(bm);
-                    }
-                });
-
             }
-        }).start();
+        };
+
+        mFetchBitmap.start(mIconUri);
     }
 
     private void updatePlayPauseState(int state) {
@@ -274,7 +265,10 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
         if (null != castConsumerImpl) {
             mCastManager.removeVideoCastConsumer(castConsumerImpl);
         }
-        mClosed = true;
+        if (mFetchBitmap != null) {
+            mFetchBitmap.cancel(true);
+            mFetchBitmap = null;
+        }
     }
 
     /**

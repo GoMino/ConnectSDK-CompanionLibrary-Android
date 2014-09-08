@@ -19,6 +19,9 @@ package com.google.sample.castcompanionlibrary.cast.callbacks;
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
 import com.google.android.gms.cast.CastDevice;
+import com.google.android.gms.cast.TextTrackStyle;
+
+import java.util.Locale;
 
 public interface IVideoCastConsumer extends IBaseCastConsumer {
 
@@ -110,5 +113,21 @@ public interface IVideoCastConsumer extends IBaseCastConsumer {
      * @param message The received payload for the message.
      */
     public void onDataMessageReceived(String message);
+
+    /**
+     * Called when the track style of the text caption has changed
+     * @param style The new style
+     */
+    public void onTextTrackStyleChanged(TextTrackStyle style);
+
+    /**
+     * Called when Close Captions on/off is changed
+     */
+    public void onTextTrackEnabledChanged(boolean isEnabled);
+
+    /**
+     * Called when the locale for the caption has changed
+     */
+    public void onTextTrackLocaleChanged(Locale locale);
 
 }

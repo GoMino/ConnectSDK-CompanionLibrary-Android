@@ -29,6 +29,7 @@ import com.google.sample.castcompanionlibrary.cast.exceptions.CastException;
 import com.google.sample.castcompanionlibrary.cast.exceptions.NoConnectionException;
 import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
 import com.google.sample.castcompanionlibrary.cast.player.VideoCastControllerActivity;
+import com.google.sample.castcompanionlibrary.utils.FetchBitmapTask;
 import com.google.sample.castcompanionlibrary.utils.LogUtils;
 import com.google.sample.castcompanionlibrary.utils.Utils;
 
@@ -41,17 +42,12 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
 import android.widget.RemoteViews;
-
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 
 /**
  * A service to provide status bar Notifications when we are casting. For JB+ versions, notification
@@ -84,7 +80,7 @@ public class VideoCastNotificationService extends Service {
     boolean mIsIcsOrAbove = Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH;
     private VideoCastManager mCastManager;
     private VideoCastConsumerImpl mConsumer;
-    private DecodeVideoArtBitmapTask mBitmapDecoderTask;
+    private FetchBitmapTask mBitmapDecoderTask;
 
     @Override
     public void onCreate() {
@@ -169,8 +165,44 @@ public class VideoCastNotificationService extends Service {
         if (null != mBitmapDecoderTask) {
             mBitmapDecoderTask.cancel(false);
         }
-        mBitmapDecoderTask = new DecodeVideoArtBitmapTask();
-        mBitmapDecoderTask.execute(info);
+        Uri imgUri = null;
+        try {
+            if (!info.getMetadata().hasImages()) {
+                build(info, null, mIsPlaying);
+                return;
+            } else {
+                imgUri = info.getMetadata().getImages().get(0).getUrl();
+                if (imgUri.equals(mVideoArtUri)) {
+                    build(info, mVideoArtBitmap, mIsPlaying);
+                    return ;
+                }
+            }
+        } catch (CastException e) {
+            LOGE(TAG, "Failed to build notification");
+        }
+
+        mBitmapDecoderTask = new FetchBitmapTask() {
+            @Override
+            protected void onPostExecute(Bitmap bitmap) {
+                try {
+                    mVideoArtBitmap = bitmap;
+                    build(info, mVideoArtBitmap, mIsPlaying);
+                } catch (CastException e) {
+                    LOGE(TAG, "Failed to set notification for " + info.toString(), e);
+                } catch (TransientNetworkDisconnectionException e) {
+                    LOGE(TAG, "Failed to set notification for " + info.toString(), e);
+                } catch (NoConnectionException e) {
+                    LOGE(TAG, "Failed to set notification for " + info.toString(), e);
+                }
+                if (mVisible) {
+                    startForeground(NOTIFICATION_ID, mNotification);
+                }
+                if (this == mBitmapDecoderTask) {
+                    mBitmapDecoderTask = null;
+                }
+            }
+        };
+        mBitmapDecoderTask.start(imgUri);
     }
 
     /**
@@ -270,6 +302,10 @@ public class VideoCastNotificationService extends Service {
         }
         if (null != bitmap) {
             rv.setImageViewBitmap(R.id.iconView, bitmap);
+        } else {
+            bitmap = BitmapFactory.decodeResource(getResources(),
+                    R.drawable.dummy_album_art);
+            rv.setImageViewBitmap(R.id.iconView, bitmap);
         }
         rv.setTextViewText(R.id.titleView, mm.getString(MediaMetadata.KEY_TITLE));
         String castingTo = getResources().getString(R.string.casting_to_device,
@@ -357,55 +393,6 @@ public class VideoCastNotificationService extends Service {
 
         } catch (ClassNotFoundException e) {
             LOGE(TAG, "Failed to find the targetActivity class", e);
-        }
-    }
-
-    private class DecodeVideoArtBitmapTask extends AsyncTask<MediaInfo, Void, Void> {
-
-        private MediaInfo mInfo;
-
-        protected Void doInBackground(final MediaInfo... info) {
-            mInfo = info[0];
-            if (!mInfo.getMetadata().hasImages()) {
-                return null;
-            }
-            Uri imgUri = mInfo.getMetadata().getImages().get(0).getUrl();
-            if (imgUri.equals(mVideoArtUri)) {
-                return null;
-            }
-            URL imgUrl = null;
-            try {
-                imgUrl = new URL(imgUri.toString());
-                mVideoArtBitmap = BitmapFactory.decodeStream(imgUrl.openStream());
-                mVideoArtUri = imgUri;
-            } catch (MalformedURLException e) {
-                LOGE(TAG, "setIcon(): Failed to load the image with url: " +
-                        imgUrl + ", using the default one", e);
-            } catch (IOException e) {
-                LOGE(TAG, "setIcon(): Failed to load the image with url: " +
-                        imgUrl + ", using the default one", e);
-            }
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void v) {
-            try {
-                if (!mInfo.getMetadata().hasImages()) {
-                    build(mInfo, null, mIsPlaying);
-                } else {
-                    build(mInfo, mVideoArtBitmap, mIsPlaying);
-                }
-            } catch (CastException e) {
-                LOGE(TAG, "Failed to set notification for " + mInfo.toString(), e);
-            } catch (TransientNetworkDisconnectionException e) {
-                LOGE(TAG, "Failed to set notification for " + mInfo.toString(), e);
-            } catch (NoConnectionException e) {
-                LOGE(TAG, "Failed to set notification for " + mInfo.toString(), e);
-            }
-            if (mVisible) {
-                startForeground(NOTIFICATION_ID, mNotification);
-            }
         }
     }
 }

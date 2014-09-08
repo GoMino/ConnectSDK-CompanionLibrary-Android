@@ -8,4 +8,8 @@
     <dimen name="mini_controller_icon_width">89dp</dimen>
     <dimen name="mini_controller_icon_height">50dp</dimen>
 
+    <!-- Captions Related -->
+    <dimen name="captions_dialog_no_message_text_size">18sp</dimen>
+    <dimen name="captions_dialog_row_text_size">18sp</dimen>
+
 </resources>

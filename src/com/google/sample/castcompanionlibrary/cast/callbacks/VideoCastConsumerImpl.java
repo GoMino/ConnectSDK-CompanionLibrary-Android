@@ -17,6 +17,9 @@
 package com.google.sample.castcompanionlibrary.cast.callbacks;
 
 import com.google.android.gms.cast.ApplicationMetadata;
+import com.google.android.gms.cast.TextTrackStyle;
+
+import java.util.Locale;
 
 /**
  * This is a no-ops implementation of {@link IVideoCastConsumer} so that the clients that like to
@@ -70,6 +73,18 @@ public class VideoCastConsumerImpl extends BaseCastConsumerImpl
 
     @Override
     public void onDataMessageReceived(String message) {
+    }
+
+    @Override
+    public void onTextTrackStyleChanged(TextTrackStyle style) {
+    }
+
+    @Override
+    public void onTextTrackEnabledChanged(boolean isEnabled) {
+    }
+
+    @Override
+    public void onTextTrackLocaleChanged(Locale locale) {
     }
 
 }

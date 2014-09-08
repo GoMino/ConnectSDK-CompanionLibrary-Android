@@ -30,6 +30,7 @@ import com.google.android.gms.cast.MediaMetadata;
 import com.google.android.gms.cast.MediaStatus;
 import com.google.android.gms.cast.RemoteMediaPlayer;
 import com.google.android.gms.cast.RemoteMediaPlayer.MediaChannelResult;
+import com.google.android.gms.cast.TextTrackStyle;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.ResultCallback;
@@ -45,17 +46,17 @@ import com.google.sample.castcompanionlibrary.cast.exceptions.OnFailedListener;
 import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
 import com.google.sample.castcompanionlibrary.cast.player.IMediaAuthService;
 import com.google.sample.castcompanionlibrary.cast.player.VideoCastControllerActivity;
+import com.google.sample.castcompanionlibrary.cast.tracks.TracksPreferenceManager;
 import com.google.sample.castcompanionlibrary.notification.VideoCastNotificationService;
 import com.google.sample.castcompanionlibrary.remotecontrol.RemoteControlClientCompat;
 import com.google.sample.castcompanionlibrary.remotecontrol.RemoteControlHelper;
 import com.google.sample.castcompanionlibrary.remotecontrol.VideoIntentReceiver;
+import com.google.sample.castcompanionlibrary.utils.FetchBitmapTask;
 import com.google.sample.castcompanionlibrary.utils.LogUtils;
 import com.google.sample.castcompanionlibrary.utils.Utils;
 import com.google.sample.castcompanionlibrary.widgets.IMiniController;
 import com.google.sample.castcompanionlibrary.widgets.MiniController;
 import com.google.sample.castcompanionlibrary.widgets.MiniController.OnMiniControllerChangedListener;
-
-import org.json.JSONObject;
 
 import android.annotation.SuppressLint;
 import android.app.PendingIntent;
@@ -68,21 +69,25 @@ import android.graphics.BitmapFactory;
 import android.media.AudioManager;
 import android.media.MediaMetadataRetriever;
 import android.media.RemoteControlClient;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceScreen;
 import android.support.v7.app.MediaRouteDialogFactory;
 import android.support.v7.media.MediaRouter.RouteInfo;
 import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.accessibility.CaptioningManager;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+
+import org.json.JSONObject;
 
 /**
  * A concrete subclass of {@link BaseCastManager} that is suitable for casting video contents (it
@@ -148,9 +153,12 @@ public class VideoCastManager extends BaseCastManager
     private final ComponentName mMediaButtonReceiverComponent;
     private final String mDataNamespace;
     private Cast.MessageReceivedCallback mDataChannel;
-    private Set<IVideoCastConsumer> mVideoConsumers;
+    private Set<IVideoCastConsumer> mVideoConsumers = Collections
+            .synchronizedSet(new HashSet<IVideoCastConsumer>());
     private IMediaAuthService mAuthService;
     private long mLiveStreamDuration = DEFAULT_LIVE_STREAM_DURATION_MS;
+    private long[] mActiveTrackIds;
+    private static TracksPreferenceManager mTrackManager;
 
     /**
      * Initializes the VideoCastManager for clients. Before clients can use VideoCastManager, they
@@ -182,6 +190,14 @@ public class VideoCastManager extends BaseCastManager
             mCastManager = sInstance;
         }
         return sInstance;
+    }
+
+    @Override
+    protected void onFeaturesUpdated(int capabilities) {
+        if (isFeatureEnabled(FEATURE_CAPTIONS_PREFERENCE)) {
+            mTrackManager = new TracksPreferenceManager(mContext.getApplicationContext());
+            registerCaptionListener(mContext.getApplicationContext());
+        }
     }
 
     /**
@@ -228,7 +244,6 @@ public class VideoCastManager extends BaseCastManager
             String dataNamespace) {
         super(context, applicationId);
         LOGD(TAG, "VideoCastManager is instantiated");
-        mVideoConsumers = Collections.synchronizedSet(new HashSet<IVideoCastConsumer>());
         mDataNamespace = dataNamespace;
         if (null == targetActivity) {
             targetActivity = VideoCastControllerActivity.class;
@@ -1063,6 +1078,25 @@ public class VideoCastManager extends BaseCastManager
      */
     public void loadMedia(MediaInfo media, boolean autoPlay, int position, JSONObject customData)
             throws TransientNetworkDisconnectionException, NoConnectionException {
+        loadMedia(media, null, autoPlay, position, customData);
+    }
+
+    /**
+     * Loads a media. For this to succeed, you need to have successfully launched the application.
+     *
+     * @param media
+     * @param activeTracks An array containing the list of track IDs to be set active for this
+     * media upon a successful load
+     * @param autoPlay If <code>true</code>, playback starts after load
+     * @param position Where to start the playback (only used if autoPlay is <code>true</code>).
+     * Units is milliseconds.
+     * @param customData Optional {@link JSONObject} data to be passed to the cast device
+     * @throws NoConnectionException
+     * @throws TransientNetworkDisconnectionException
+     */
+    public void loadMedia(MediaInfo media, final long[] activeTracks, boolean autoPlay,
+            int position, JSONObject customData)
+            throws TransientNetworkDisconnectionException, NoConnectionException {
         LOGD(TAG, "loadMedia");
         checkConnectivity();
         if (media == null) {
@@ -1080,6 +1114,11 @@ public class VideoCastManager extends BaseCastManager
                     public void onResult(MediaChannelResult result) {
                         if (!result.getStatus().isSuccess()) {
                             onFailed(R.string.failed_load, result.getStatus().getStatusCode());
+                        } else if (activeTracks != null) {
+                            setActiveTrackIds(activeTracks);
+                        } else {
+                            // to get around an existing bug
+                            setActiveTrackIds(new long[]{});
                         }
 
                     }
@@ -1262,7 +1301,6 @@ public class VideoCastManager extends BaseCastManager
      * @param position in milliseconds
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
-     * @throws CastException
      */
     public void seekAndPlay(int position) throws TransientNetworkDisconnectionException,
             NoConnectionException {
@@ -1480,7 +1518,6 @@ public class VideoCastManager extends BaseCastManager
      * returned for the message.
      *
      * @param message
-     * @return
      * @throws IllegalStateException If the namespace is empty or null
      * @throws NoConnectionException If no connectivity to the device exists
      * @throws TransientNetworkDisconnectionException If framework is still trying to recover from
@@ -1543,8 +1580,10 @@ public class VideoCastManager extends BaseCastManager
             LOGD(TAG, "mApiClient or mRemoteMediaPlayer is null, so will not proceed");
             return;
         }
-        mState = mRemoteMediaPlayer.getMediaStatus().getPlayerState();
-        mIdleReason = mRemoteMediaPlayer.getMediaStatus().getIdleReason();
+        MediaStatus mediaStatus = mRemoteMediaPlayer.getMediaStatus();
+        mActiveTrackIds = mediaStatus.getActiveTrackIds();
+        mState = mediaStatus.getPlayerState();
+        mIdleReason = mediaStatus.getIdleReason();
 
         try {
             double volume = getVolume();
@@ -1690,71 +1729,54 @@ public class VideoCastManager extends BaseCastManager
         if (null == info) {
             return;
         }
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                if (null == mRemoteControlClientCompat) {
-                    return;
-                }
-                try {
-                    Bitmap bm = getBitmapForLockScreen(info);
-                    if (null == bm) {
-                        return;
-                    }
-                    mRemoteControlClientCompat.editMetadata(false).putBitmap(
-                            RemoteControlClientCompat.MetadataEditorCompat.
-                                    METADATA_KEY_ARTWORK, bm
-                    ).apply();
-                } catch (Exception e) {
-                    LOGD(TAG, "Failed to update lock screen image", e);
-                }
-            }
-        }).start();
+        setBitmapForLockScreen(info);
     }
 
     /*
      * Returns the {@link Bitmap} appropriate for the right size image for lock screen. In ICS and
      * JB, the image shown on the lock screen is a small size bitmap but for KitKat, the image is a
-     * full-screen image so we need to separately handle these two cases.
+     * full-screen image so we need to separately handle these two cases. Should not be called on
+     * the main thread.
      */
-    private Bitmap getBitmapForLockScreen(MediaInfo video) {
-        if (null == video) {
-            return null;
+    private void setBitmapForLockScreen(MediaInfo video) {
+        if (null == video || mRemoteControlClientCompat == null) {
+            return;
         }
-        URL imgUrl = null;
+        Uri imgUrl = null;
         Bitmap bm = null;
         List<WebImage> images = video.getMetadata().getImages();
-        try {
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                if (images.size() > 1) {
-                    imgUrl = new URL(images.get(1).getUrl().toString());
-                } else if (images.size() == 1) {
-                    imgUrl = new URL(images.get(0).getUrl().toString());
-                } else if (null != mContext) {
-                    // we don't have a url for image so get a placeholder image from resources
-                    bm = BitmapFactory.decodeResource(mContext.getResources(),
-                            R.drawable.dummy_album_art_large);
-                }
-            } else if (!images.isEmpty()) {
-                imgUrl = new URL(images.get(0).getUrl().toString());
-            } else {
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            if (images.size() > 1) {
+                imgUrl = images.get(1).getUrl();
+            } else if (images.size() == 1) {
+                imgUrl = images.get(0).getUrl();
+            } else if (null != mContext) {
                 // we don't have a url for image so get a placeholder image from resources
                 bm = BitmapFactory.decodeResource(mContext.getResources(),
-                        R.drawable.dummy_album_art_small);
+                        R.drawable.dummy_album_art_large);
             }
-        } catch (MalformedURLException e) {
-            LOGE(TAG, "Failed to get the url for images", e);
+        } else if (!images.isEmpty()) {
+            imgUrl = images.get(0).getUrl();
+        } else {
+            // we don't have a url for image so get a placeholder image from resources
+            bm = BitmapFactory.decodeResource(mContext.getResources(),
+                    R.drawable.dummy_album_art_small);
         }
+        if (null != bm) {
+            mRemoteControlClientCompat.editMetadata(false).putBitmap(
+                    RemoteControlClientCompat.MetadataEditorCompat.
+                            METADATA_KEY_ARTWORK, bm).apply();
+        } else {
 
-        if (null != imgUrl) {
-            try {
-                bm = BitmapFactory.decodeStream(imgUrl.openStream());
-            } catch (IOException e) {
-                LOGE(TAG, "Failed to decoded a bitmap for url: " + imgUrl, e);
-            }
+            new FetchBitmapTask() {
+                @Override
+                protected void onPostExecute(Bitmap bitmap) {
+                    mRemoteControlClientCompat.editMetadata(false).putBitmap(
+                            RemoteControlClientCompat.MetadataEditorCompat.
+                                    METADATA_KEY_ARTWORK, bitmap).apply();
+                }
+            }.start(imgUrl);
         }
-
-        return bm;
     }
 
     /*
@@ -2019,13 +2041,14 @@ public class VideoCastManager extends BaseCastManager
      * Clients can call this method to delegate handling of the volume. Clients should override
      * {@link dispatchEvent} and call this method:
      * <pre>
-    public boolean dispatchKeyEvent(KeyEvent event) {
+     public boolean dispatchKeyEvent(KeyEvent event) {
         if (mCastManager.onDispatchVolumeKeyEvent(event, VOLUME_DELTA)) {
             return true;
         }
         return super.dispatchKeyEvent(event);
-    }
+     }
      * </pre>
+     *
      * @param event The dispatched event.
      * @param volumeDelta The amount by which volume should be increased or decreased in each step
      * @return <code>true</code> if volume is handled by the library, <code>false</code> otherwise.
@@ -2079,4 +2102,183 @@ public class VideoCastManager extends BaseCastManager
     public void setLiveStreamDuration(long duration) {
         mLiveStreamDuration = duration;
     }
+
+    /**
+     * Sets the active tracks for the currently loaded media.
+     */
+    public void setActiveTrackIds(long[] trackIds) {
+        if (null == mRemoteMediaPlayer || null == mRemoteMediaPlayer.getMediaInfo()) {
+            return;
+        }
+        mRemoteMediaPlayer.setActiveMediaTracks(mApiClient, trackIds)
+                .setResultCallback(new ResultCallback<MediaChannelResult>() {
+                    @Override
+                    public void onResult(
+                            MediaChannelResult mediaChannelResult) {
+                        LOGD(TAG, "Setting track result was successful? " + mediaChannelResult
+                                .getStatus().isSuccess());
+                        if (!mediaChannelResult.getStatus().isSuccess()) {
+                            LOGD(TAG, "Failed since: " + mediaChannelResult.getStatus()
+                                    + " and status code:" + mediaChannelResult.getStatus()
+                                    .getStatusCode());
+                        }
+                    }
+                });
+    }
+
+    /**
+     * Sets or updates the style of the Text Track.
+     */
+    public void setTextTrackStyle(TextTrackStyle style) {
+        mRemoteMediaPlayer.setTextTrackStyle(mApiClient, style)
+                .setResultCallback(new ResultCallback<MediaChannelResult>() {
+                    @Override
+                    public void onResult(MediaChannelResult result) {
+                        if (!result.getStatus().isSuccess()) {
+                            onFailed(R.string.failed_to_set_track_style,
+                                    result.getStatus().getStatusCode());
+                        }
+                    }
+                });
+        synchronized (mVideoConsumers) {
+            for (IVideoCastConsumer consumer : mVideoConsumers) {
+                try {
+                    consumer.onTextTrackStyleChanged(style);
+                } catch (Exception e) {
+                    LOGE(TAG, "onTextTrackStyleChanged(): Failed to inform " + consumer, e);
+                }
+            }
+        }
+    }
+
+    /**
+     * Signals a change in the Text Track style. Clients should not call this directly.
+     */
+    public void onTextTrackStyleChanged(TextTrackStyle style) {
+        LOGD(TAG, "onTextTrackStyleChanged() reached");
+        if (mRemoteMediaPlayer == null || mRemoteMediaPlayer.getMediaInfo() == null) {
+            return;
+        }
+        mRemoteMediaPlayer.setTextTrackStyle(mApiClient, style)
+                .setResultCallback(new ResultCallback<MediaChannelResult>() {
+                    @Override
+                    public void onResult(MediaChannelResult result) {
+                        if (!result.getStatus().isSuccess()) {
+                            onFailed(R.string.failed_to_set_track_style,
+                                    result.getStatus().getStatusCode());
+                        }
+                    }
+                });
+        synchronized (mVideoConsumers) {
+            for (IVideoCastConsumer consumer : mVideoConsumers) {
+                try {
+                    consumer.onTextTrackStyleChanged(style);
+                } catch (Exception e) {
+                    LOGE(TAG, "onTextTrackStyleChanged(): Failed to inform " + consumer, e);
+                }
+            }
+        }
+    }
+
+    /**
+     * Signals a change in the Text Track on/off state. Clients should not call this directly.
+     */
+    public void onTextTrackEnabledChanged(boolean isEnabled) {
+        LOGD(TAG, "onTextTrackEnabledChanged() reached");
+        if (isEnabled) {
+
+        } else {
+            setActiveTrackIds(new long[]{});
+        }
+
+        synchronized (mVideoConsumers) {
+            for (IVideoCastConsumer consumer : mVideoConsumers) {
+                try {
+                    consumer.onTextTrackEnabledChanged(isEnabled);
+                } catch (Exception e) {
+                    LOGE(TAG, "onTextTrackEnabledChanged(): Failed to inform " + consumer, e);
+                }
+            }
+        }
+    }
+
+    /**
+     * Signals a change in the Text Track locale. Clients should not call this directly.
+     */
+    public void onTextTrackLocaleChanged(Locale locale) {
+        LOGD(TAG, "onTextTrackLocaleChanged() reached");
+        for (IVideoCastConsumer consumer : mVideoConsumers) {
+            try {
+                consumer.onTextTrackLocaleChanged(locale);
+            } catch (Exception e) {
+                LOGE(TAG, "onTextTrackLocaleChanged(): Failed to inform " + consumer, e);
+            }
+        }
+    }
+
+    @SuppressLint("NewApi")
+    private void registerCaptionListener(final Context context) {
+        if (Utils.IS_KITKAT_OR_ABOVE) {
+            CaptioningManager captioningManager =
+                    (CaptioningManager) context.getSystemService(Context.CAPTIONING_SERVICE);
+            captioningManager.addCaptioningChangeListener(
+                    new CaptioningManager.CaptioningChangeListener() {
+                        @Override
+                        public void onEnabledChanged(boolean enabled) {
+                            onTextTrackEnabledChanged(enabled);
+                        }
+
+                        @Override
+                        public void onUserStyleChanged(
+                                CaptioningManager.CaptionStyle userStyle) {
+                            onTextTrackStyleChanged(mTrackManager.getTextTrackStyle());
+                        }
+
+                        @Override
+                        public void onFontScaleChanged(float fontScale) {
+                            onTextTrackStyleChanged(mTrackManager.getTextTrackStyle());
+                        }
+
+                        @Override
+                        public void onLocaleChanged(Locale locale) {
+                            onTextTrackLocaleChanged(locale);
+                        }
+                    }
+            );
+        }
+    }
+
+    /**
+     * Updates the summary of the captions between "on" and "off" based on the user selected
+     * preferences. This can be called by the caller application when they add captions settings to
+     * their preferences. Preferably this should be called in the {@link onResume()} of the
+     * PreferenceActivity so that it gets updated when needed.
+     */
+    public void updateCaptionSummary(String captionScreenKey, PreferenceScreen preferenceScreen) {
+        int status = R.string.info_na;
+        if (isFeatureEnabled(FEATURE_CAPTIONS_PREFERENCE)) {
+            status = mTrackManager.isCaptionEnabled() ? R.string.on : R.string.off;
+        }
+        preferenceScreen.findPreference(captionScreenKey)
+                .setSummary(status);
+    }
+
+    /**
+     * Returns the instance of {@link TracksPreferenceManager} that is being used.
+     */
+    public TracksPreferenceManager getTracksPreferenceManager() {
+        return mTrackManager;
+    }
+
+    /**
+     * Returns the list of current active tracks. If there is no remote media, then this will
+     * return <code>null</code>.
+     */
+    public long[] getActiveTrackIds() {
+        if (mRemoteMediaPlayer != null && mRemoteMediaPlayer.getMediaStatus() != null) {
+            return mRemoteMediaPlayer.getMediaStatus().getActiveTrackIds();
+        }
+        return null;
+    }
+
 }

@@ -87,6 +87,7 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
     public static final int FEATURE_LOCKSCREEN = 2;
     public static final int FEATURE_NOTIFICATION = 4;
     public static final int FEATURE_WIFI_RECONNECT = 8;
+    public static final int FEATURE_CAPTIONS_PREFERENCE = 16;
     public static final String PREFS_KEY_SESSION_ID = "session-id";
     public static final String PREFS_KEY_SSID = "ssid";
     public static final String PREFS_KEY_MEDIA_END = "media-end";
@@ -591,6 +592,13 @@ public void onCastAvailabilityChanged(boolean castPresent) {
      */
     public final void enableFeatures(int capabilities) {
         mCapabilities = capabilities;
+        onFeaturesUpdated(mCapabilities);
+    }
+
+    /**
+     * Allow subclasses to be notified of changes to capabilities if they want to.
+     */
+    protected void onFeaturesUpdated(int capabilities) {
     }
 
     /*

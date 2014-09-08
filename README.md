@@ -11,7 +11,7 @@ CastCompanionLibrary-android is a library project to enable developers integrate
 * Set up the project dependencies
 
 ## Documentation
-See the "CastCompanionLibray.pdf" inside the project for a more extensive documentation.
+See the "CastCompanionLibrary.pdf" inside the project for a more extensive documentation.
 
 ## References and How to report bugs
 * [Cast Developer Documentation](http://developers.google.com/cast/)
@@ -29,6 +29,11 @@ See LICENSE
 Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl/TPLDxj)
 
 ## Change List
+1.10
+ * Added support for Tracks and Closed Captions. See the documentation for details.
+ * Refactored image loading across the library.
+ * Fixed issue 105
+ 
 1.9
  * Added the complete reconnection logic per Cast UX Checklist
  * Addressed issues 70, 75, 92, 93, 94, 96

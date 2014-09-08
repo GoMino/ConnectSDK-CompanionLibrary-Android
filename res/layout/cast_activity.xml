@@ -2,16 +2,18 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/pageView"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/black" >
-
+    android:layout_height="match_parent">
+    <ImageView
+        android:id="@+id/background_image"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:scaleType="centerCrop" />
     <RelativeLayout
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
         android:background="@drawable/cast_player_bg_gradient_light" >
-
         <RelativeLayout
             android:id="@+id/controllers"
             android:layout_width="fill_parent"
@@ -53,12 +55,23 @@
                 android:id="@+id/endText"
                 android:layout_width="wrap_content"
                 android:layout_height="fill_parent"
-                android:layout_alignParentRight="true"
                 android:layout_marginRight="16dp"
+                android:layout_toLeftOf="@+id/cc"
                 android:gravity="center_vertical"
+                android:layout_alignWithParentIfMissing="true"
                 android:maxLines="1"
                 android:text="0:00"
                 android:textColor="@color/white" />
+
+            <ImageView
+                android:id="@+id/cc"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/cc"
+                android:layout_alignParentRight="true"
+                android:layout_marginRight="16dp"
+                android:layout_centerInParent="true"
+                />
 
             <SeekBar
                 android:id="@+id/seekBar1"

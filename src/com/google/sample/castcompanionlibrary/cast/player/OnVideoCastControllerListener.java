@@ -19,11 +19,17 @@ package com.google.sample.castcompanionlibrary.cast.player;
 import android.view.View;
 import android.widget.SeekBar;
 
+import com.google.android.gms.cast.MediaTrack;
 import com.google.sample.castcompanionlibrary.cast.exceptions.CastException;
 import com.google.sample.castcompanionlibrary.cast.exceptions.NoConnectionException;
 import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
 
-public interface OnVideoCastControllerListener {
+
+import com.google.sample.castcompanionlibrary.cast.tracks.ui.TracksChooserDialog;
+
+import java.util.List;
+
+public interface OnVideoCastControllerListener extends TracksChooserDialog.OnTracksSelectedListener{
 
     /**
      * Called when seeking is stopped by user.
