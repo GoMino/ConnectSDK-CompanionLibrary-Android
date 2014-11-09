@@ -43,7 +43,8 @@ import com.google.sample.castcompanionlibrary.cast.dialog.video.VideoMediaRouteD
 import com.google.sample.castcompanionlibrary.cast.exceptions.CastException;
 import com.google.sample.castcompanionlibrary.cast.exceptions.NoConnectionException;
 import com.google.sample.castcompanionlibrary.cast.exceptions.OnFailedListener;
-import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
+import com.google.sample.castcompanionlibrary.cast.exceptions
+        .TransientNetworkDisconnectionException;
 import com.google.sample.castcompanionlibrary.cast.player.IMediaAuthService;
 import com.google.sample.castcompanionlibrary.cast.player.VideoCastControllerActivity;
 import com.google.sample.castcompanionlibrary.cast.tracks.TracksPreferenceManager;
@@ -56,7 +57,8 @@ import com.google.sample.castcompanionlibrary.utils.LogUtils;
 import com.google.sample.castcompanionlibrary.utils.Utils;
 import com.google.sample.castcompanionlibrary.widgets.IMiniController;
 import com.google.sample.castcompanionlibrary.widgets.MiniController;
-import com.google.sample.castcompanionlibrary.widgets.MiniController.OnMiniControllerChangedListener;
+import com.google.sample.castcompanionlibrary.widgets.MiniController
+        .OnMiniControllerChangedListener;
 
 import android.annotation.SuppressLint;
 import android.app.PendingIntent;
@@ -157,8 +159,7 @@ public class VideoCastManager extends BaseCastManager
             .synchronizedSet(new HashSet<IVideoCastConsumer>());
     private IMediaAuthService mAuthService;
     private long mLiveStreamDuration = DEFAULT_LIVE_STREAM_DURATION_MS;
-    private long[] mActiveTrackIds;
-    private static TracksPreferenceManager mTrackManager;
+    private TracksPreferenceManager mTrackManager;
 
     /**
      * Initializes the VideoCastManager for clients. Before clients can use VideoCastManager, they
@@ -240,7 +241,7 @@ public class VideoCastManager extends BaseCastManager
         return sInstance;
     }
 
-    private VideoCastManager(Context context, String applicationId, Class<?> targetActivity,
+    protected VideoCastManager(Context context, String applicationId, Class<?> targetActivity,
             String dataNamespace) {
         super(context, applicationId);
         LOGD(TAG, "VideoCastManager is instantiated");
@@ -294,7 +295,7 @@ public class VideoCastManager extends BaseCastManager
      * Updates the information and state of all MiniControllers
      */
     private void updateMiniControllers() {
-        if (null != mMiniControllers && !mMiniControllers.isEmpty()) {
+        if (null != mMiniControllers) {
             synchronized (mMiniControllers) {
                 for (final IMiniController controller : mMiniControllers) {
                     try {
@@ -907,7 +908,7 @@ public class VideoCastManager extends BaseCastManager
     }
 
     @Override
-    void onApplicationConnected(ApplicationMetadata appMetadata,
+    protected void onApplicationConnected(ApplicationMetadata appMetadata,
             String applicationStatus, String sessionId, boolean wasLaunched) {
         LOGD(TAG, "onApplicationConnected() reached with sessionId: " + sessionId
                 + ", and mReconnectionStatus=" + mReconnectionStatus);
@@ -1015,7 +1016,7 @@ public class VideoCastManager extends BaseCastManager
                     try {
                         showError = showError || consumer.onApplicationConnectionFailed(errorCode);
                     } catch (Exception e) {
-                        LOGE(TAG, "onApplicationLaunchFailed(): Failed to inform " + consumer, e);
+                        LOGE(TAG, "onApplicationConnectionFailed(): Failed to inform " + consumer, e);
                     }
                 }
             }
@@ -1116,11 +1117,7 @@ public class VideoCastManager extends BaseCastManager
                             onFailed(R.string.failed_load, result.getStatus().getStatusCode());
                         } else if (activeTracks != null) {
                             setActiveTrackIds(activeTracks);
-                        } else {
-                            // to get around an existing bug
-                            setActiveTrackIds(new long[]{});
                         }
-
                     }
                 });
     }
@@ -1581,7 +1578,6 @@ public class VideoCastManager extends BaseCastManager
             return;
         }
         MediaStatus mediaStatus = mRemoteMediaPlayer.getMediaStatus();
-        mActiveTrackIds = mediaStatus.getActiveTrackIds();
         mState = mediaStatus.getPlayerState();
         mIdleReason = mediaStatus.getIdleReason();
 
@@ -1771,9 +1767,11 @@ public class VideoCastManager extends BaseCastManager
             new FetchBitmapTask() {
                 @Override
                 protected void onPostExecute(Bitmap bitmap) {
-                    mRemoteControlClientCompat.editMetadata(false).putBitmap(
-                            RemoteControlClientCompat.MetadataEditorCompat.
-                                    METADATA_KEY_ARTWORK, bitmap).apply();
+                    if (mRemoteControlClientCompat != null) {
+                        mRemoteControlClientCompat.editMetadata(false).putBitmap(
+                                RemoteControlClientCompat.MetadataEditorCompat.
+                                        METADATA_KEY_ARTWORK, bitmap).apply();
+                    }
                 }
             }.start(imgUrl);
         }
@@ -1963,7 +1961,7 @@ public class VideoCastManager extends BaseCastManager
     /*============================================================================================*/
 
     @Override
-    void onDeviceUnselected() {
+    protected void onDeviceUnselected() {
         LOGD(TAG, "onDeviceUnselected");
         stopNotificationService();
         detachMediaChannel();
@@ -1972,7 +1970,7 @@ public class VideoCastManager extends BaseCastManager
     }
 
     @Override
-    Builder getCastOptionBuilder(CastDevice device) {
+    protected Builder getCastOptionBuilder(CastDevice device) {
         Builder builder = Cast.CastOptions.builder(mSelectedCastDevice, new CastListener());
         if (isFeatureEnabled(FEATURE_DEBUGGING)) {
             builder.setVerboseLoggingEnabled(true);
@@ -2001,7 +1999,7 @@ public class VideoCastManager extends BaseCastManager
     }
 
     @Override
-    MediaRouteDialogFactory getMediaRouteDialogFactory() {
+    protected MediaRouteDialogFactory getMediaRouteDialogFactory() {
         return new VideoMediaRouteDialogFactory();
     }
 
