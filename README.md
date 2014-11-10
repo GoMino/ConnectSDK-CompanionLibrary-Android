@@ -3,9 +3,9 @@
 CastCompanionLibrary-android is a library project to enable developers integrate Cast capabilities into their applications faster and easier.
 
 ## Dependencies
-* google-play-services_lib library from the Android SDK (at least version 4.3)
-* android-support-v7-appcompat (version 19.0.1 or above)
-* android-support-v7-mediarouter (version 19.0.1 or above)
+* google-play-services_lib library from the Android SDK (at least version 6.1)
+* android-support-v7-appcompat (version 21 or above)
+* android-support-v7-mediarouter (version 20 or above)
 
 ## Setup Instructions
 * Set up the project dependencies
