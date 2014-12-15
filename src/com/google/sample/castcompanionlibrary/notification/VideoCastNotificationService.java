@@ -379,9 +379,11 @@ public class VideoCastNotificationService extends Service {
                 .setContentText(castingTo)
                 .setContentIntent(contentPendingIntent)
                 .setLargeIcon(bitmap)
-                .addAction(isPlaying ? R.drawable.ic_av_pause_light : R.drawable.ic_av_play_light,
-                        "Pause", playbackPendingIntent)
-                .addAction(R.drawable.ic_cast_stop, "Disconnect", stopPendingIntent)
+                .addAction(isPlaying ? R.drawable.ic_pause_white_48dp :
+                                R.drawable.ic_play_arrow_white_48dp,
+                        getString(R.string.pause), playbackPendingIntent)
+                .addAction(R.drawable.ic_clear_white_48dp, getString(R.string.disconnect),
+                        stopPendingIntent)
                 .setStyle(new Notification.MediaStyle()
                                 .setShowActionsInCompactView(new int[]{0,1}))
                 .setOngoing(true)
