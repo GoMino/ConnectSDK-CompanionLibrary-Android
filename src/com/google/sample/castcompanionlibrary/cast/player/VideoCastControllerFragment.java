@@ -479,18 +479,17 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
             mCastManager.incrementUiCounter();
             if (!mIsFresh) {
                 updatePlayerStatus();
-            }
-
-            // updating metadata in case someone else has changed it and we are resuming the
-            // activity
-            try {
-                mSelectedMedia = mCastManager.getRemoteMediaInformation();
-                updateClosedCaptionState();
-                updateMetadata();
-            } catch (TransientNetworkDisconnectionException e) {
-                LOGE(TAG, "Failed to update the metadata due to network issues", e);
-            } catch (NoConnectionException e) {
-                LOGE(TAG, "Failed to update the metadata due to network issues", e);
+                // updating metadata in case someone else has changed it and we are resuming the
+                // activity
+                try {
+                    mSelectedMedia = mCastManager.getRemoteMediaInformation();
+                    updateClosedCaptionState();
+                    updateMetadata();
+                } catch (TransientNetworkDisconnectionException e) {
+                    LOGE(TAG, "Failed to update the metadata due to network issues", e);
+                } catch (NoConnectionException e) {
+                    LOGE(TAG, "Failed to update the metadata due to network issues", e);
+                }
             }
 
         } catch (CastException e) {
