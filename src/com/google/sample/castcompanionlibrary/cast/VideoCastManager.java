@@ -1590,9 +1590,11 @@ public class VideoCastManager extends BaseCastManager
                 updateRemoteControl(true);
                 long mediaDurationLeft = getTimeLeftForMedia();
                 startReconnectionService(mediaDurationLeft);
+                startNotificationService(mUiVisible);
             } else if (mState == MediaStatus.PLAYER_STATE_PAUSED) {
                 LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = paused");
                 updateRemoteControl(false);
+                startNotificationService(mUiVisible);
             } else if (mState == MediaStatus.PLAYER_STATE_IDLE) {
                 LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = idle");
                 updateRemoteControl(false);

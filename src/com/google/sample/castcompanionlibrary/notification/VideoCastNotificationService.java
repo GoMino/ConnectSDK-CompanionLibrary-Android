@@ -144,8 +144,18 @@ public class VideoCastNotificationService extends Service {
             } else if (ACTION_VISIBILITY.equals(action)) {
                 mVisible = intent.getBooleanExtra(NOTIFICATION_VISIBILITY, false);
                 LOGD(TAG, "onStartCommand(): Action: ACTION_VISIBILITY " + mVisible);
-                if (mVisible && null != mNotification) {
-                    startForeground(NOTIFICATION_ID, mNotification);
+                if (mVisible) {
+                    if (mNotification != null) {
+                        startForeground(NOTIFICATION_ID, mNotification);
+                    } else {
+                        try {
+                            setupNotification(mCastManager.getRemoteMediaInformation());
+                        } catch (TransientNetworkDisconnectionException e) {
+                            LOGE(TAG, "onStartCommand() failed to get media", e);
+                        } catch (NoConnectionException e) {
+                            LOGE(TAG, "onStartCommand() failed to get media", e);
+                        }
+                    }
                     mCastManager.setContext(this);
                 } else {
                     stopForeground(true);
@@ -285,7 +295,6 @@ public class VideoCastNotificationService extends Service {
      */
     private RemoteViews build(MediaInfo info, Bitmap bitmap, boolean isPlaying)
             throws CastException, TransientNetworkDisconnectionException, NoConnectionException {
-        Log.d(TAG, "Build version is: " + Build.VERSION.SDK_INT);
         if (mIsLollipopOrAbove) {
             buildForLollipopAndAbove(info, bitmap, isPlaying);
             return null;
@@ -340,7 +349,7 @@ public class VideoCastNotificationService extends Service {
         return rv;
     }
 
-    @TargetApi(Build.VERSION_CODES.L)
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     private void buildForLollipopAndAbove(MediaInfo info, Bitmap bitmap, boolean isPlaying)
             throws CastException, TransientNetworkDisconnectionException, NoConnectionException {
 
