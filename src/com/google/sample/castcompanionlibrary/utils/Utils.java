@@ -337,13 +337,6 @@ public class Utils {
     }
 
     /**
-     * @deprecated See <code>checkGooglePlayServices</code>
-     */
-    public static boolean checkGooglePlaySevices(final Activity activity) {
-        return checkGooglePlayServices(activity);
-    }
-
-    /**
      * Builds and returns a {@link Bundle} which contains a select subset of data in the
      * {@link MediaInfo}. Since {@link MediaInfo} is not {@link Parcelable}, one can use this
      * container bundle to pass around from one activity to another.

@@ -36,8 +36,7 @@ import com.google.sample.castcompanionlibrary.cast.callbacks.IBaseCastConsumer;
 import com.google.sample.castcompanionlibrary.cast.exceptions.CastException;
 import com.google.sample.castcompanionlibrary.cast.exceptions.NoConnectionException;
 import com.google.sample.castcompanionlibrary.cast.exceptions.OnFailedListener;
-import com.google.sample.castcompanionlibrary.cast.exceptions
-        .TransientNetworkDisconnectionException;
+import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
 import com.google.sample.castcompanionlibrary.cast.reconnection.ReconnectionService;
 import com.google.sample.castcompanionlibrary.utils.LogUtils;
 import com.google.sample.castcompanionlibrary.utils.Utils;
@@ -65,10 +64,9 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  * An abstract class that manages connectivity to a cast device. Subclasses are expected to extend
@@ -121,8 +119,8 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
     protected CastMediaRouterCallback mMediaRouterCallback;
     protected CastDevice mSelectedCastDevice;
     protected String mDeviceName;
-    private final Set<IBaseCastConsumer> mBaseCastConsumers = Collections
-            .synchronizedSet(new HashSet<IBaseCastConsumer>());
+    private final Set<IBaseCastConsumer> mBaseCastConsumers =
+            new CopyOnWriteArraySet<IBaseCastConsumer>();
     private boolean mDestroyOnDisconnect = false;
     protected String mApplicationId;
     protected Handler mHandler;
@@ -222,13 +220,11 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
         } else {
             setDevice(device);
         }
-        synchronized (mBaseCastConsumers) {
-            for (IBaseCastConsumer consumer : mBaseCastConsumers) {
-                try {
-                    consumer.onDeviceSelected(device);
-                } catch (Exception e) {
-                    LOGE(TAG, "onDeviceSelected(): Failed to inform " + consumer, e);
-                }
+        for (IBaseCastConsumer consumer : mBaseCastConsumers) {
+            try {
+                consumer.onDeviceSelected(device);
+            } catch (Exception e) {
+                LOGE(TAG, "onDeviceSelected(): Failed to inform " + consumer, e);
             }
         }
     }
@@ -239,13 +235,11 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
      * to signal the change in presence of cast devices on network.
      */
     public void onCastAvailabilityChanged(boolean castPresent) {
-        synchronized (mBaseCastConsumers) {
-            for (IBaseCastConsumer consumer : mBaseCastConsumers) {
-                try {
-                    consumer.onCastAvailabilityChanged(castPresent);
-                } catch (Exception e) {
-                    LOGE(TAG, "onCastAvailabilityChanged(): Failed to inform " + consumer, e);
-                }
+        for (IBaseCastConsumer consumer : mBaseCastConsumers) {
+            try {
+                consumer.onCastAvailabilityChanged(castPresent);
+            } catch (Exception e) {
+                LOGE(TAG, "onCastAvailabilityChanged(): Failed to inform " + consumer, e);
             }
         }
     }
@@ -322,13 +316,11 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
     @Override
     public void onCastDeviceDetected(RouteInfo info) {
         if (null != mBaseCastConsumers) {
-            synchronized (mBaseCastConsumers) {
-                for (IBaseCastConsumer consumer : mBaseCastConsumers) {
-                    try {
-                        consumer.onCastDeviceDetected(info);
-                    } catch (Exception e) {
-                        LOGE(TAG, "onCastDeviceDetected(): Failed to inform " + consumer, e);
-                    }
+            for (IBaseCastConsumer consumer : mBaseCastConsumers) {
+                try {
+                    consumer.onCastDeviceDetected(info);
+                } catch (Exception e) {
+                    LOGE(TAG, "onCastDeviceDetected(): Failed to inform " + consumer, e);
                 }
             }
         }
@@ -448,13 +440,11 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
                 stopCastDiscovery();
             }
         }
-        synchronized (mBaseCastConsumers) {
-            for (IBaseCastConsumer consumer : mBaseCastConsumers) {
-                try {
-                    consumer.onUiVisibilityChanged(visible);
-                } catch (Exception e) {
-                    LOGE(TAG, "onUiVisibilityChanged: Failed to inform " + consumer, e);
-                }
+        for (IBaseCastConsumer consumer : mBaseCastConsumers) {
+            try {
+                consumer.onUiVisibilityChanged(visible);
+            } catch (Exception e) {
+                LOGE(TAG, "onUiVisibilityChanged: Failed to inform " + consumer, e);
             }
         }
     }
@@ -481,13 +471,6 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
      */
     public static boolean checkGooglePlayServices(final Activity activity) {
         return Utils.checkGooglePlayServices(activity);
-    }
-
-    /**
-     * @deprecated Use <code>checkGooglePlayServices</code>
-     */
-    public static boolean checkGooglePlaySevices(final Activity activity) {
-        return checkGooglePlayServices(activity);
     }
 
     /**
@@ -704,13 +687,11 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
     private void onReconnectionStatusChanged(int status) {
         LOGD(TAG, "onReconnectionStatusChanged(): status = " + (status == RECONNECTION_SUCCESSFUL
                 ? "Success" : (status == RECONNECTION_FAILED ? "Failed" : "Started")));
-        synchronized (mBaseCastConsumers) {
-            for (IBaseCastConsumer consumer : mBaseCastConsumers) {
-                try {
-                    consumer.onReconnectionStatusChanged(status);
-                } catch (Exception e) {
-                    LOGE(TAG, "onReconnectionStatusChanged(): Failed to inform " + consumer, e);
-                }
+        for (IBaseCastConsumer consumer : mBaseCastConsumers) {
+            try {
+                consumer.onReconnectionStatusChanged(status);
+            } catch (Exception e) {
+                LOGE(TAG, "onReconnectionStatusChanged(): Failed to inform " + consumer, e);
             }
         }
     }
@@ -980,13 +961,11 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
      * disconnect. Note: this is not called by SDK.
      */
     public void onConnectivityRecovered() {
-        synchronized (mBaseCastConsumers) {
-            for (IBaseCastConsumer consumer : mBaseCastConsumers) {
-                try {
-                    consumer.onConnectivityRecovered();
-                } catch (Exception e) {
-                    LOGE(TAG, "onConnectivityRecovered: Failed to inform " + consumer, e);
-                }
+        for (IBaseCastConsumer consumer : mBaseCastConsumers) {
+            try {
+                consumer.onConnectivityRecovered();
+            } catch (Exception e) {
+                LOGE(TAG, "onConnectivityRecovered: Failed to inform " + consumer, e);
             }
         }
     }
@@ -1024,13 +1003,11 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
             Cast.CastApi.requestStatus(mApiClient);
             launchApp();
 
-            synchronized (mBaseCastConsumers) {
-                for (IBaseCastConsumer consumer : mBaseCastConsumers) {
-                    try {
-                        consumer.onConnected();
-                    } catch (Exception e) {
-                        LOGE(TAG, "onConnected: Failed to inform " + consumer, e);
-                    }
+            for (IBaseCastConsumer consumer : mBaseCastConsumers) {
+                try {
+                    consumer.onConnected();
+                } catch (Exception e) {
+                    LOGE(TAG, "onConnected: Failed to inform " + consumer, e);
                 }
             }
 
@@ -1054,13 +1031,11 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
             boolean setDefaultRoute) {
         LOGD(TAG, "onDisconnected() reached");
         mDeviceName = null;
-        synchronized (mBaseCastConsumers) {
-            for (IBaseCastConsumer consumer : mBaseCastConsumers) {
-                try {
-                    consumer.onDisconnected();
-                } catch (Exception e) {
-                    LOGE(TAG, "onDisconnected(): Failed to inform " + consumer, e);
-                }
+        for (IBaseCastConsumer consumer : mBaseCastConsumers) {
+            try {
+                consumer.onDisconnected();
+            } catch (Exception e) {
+                LOGE(TAG, "onDisconnected(): Failed to inform " + consumer, e);
             }
         }
     }
@@ -1081,13 +1056,11 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
             mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
         }
         boolean showError = false;
-        synchronized (mBaseCastConsumers) {
-            for (IBaseCastConsumer consumer : mBaseCastConsumers) {
-                try {
-                    showError = showError || consumer.onConnectionFailed(result);
-                } catch (Exception e) {
-                    LOGE(TAG, "onConnectionFailed(): Failed to inform " + consumer, e);
-                }
+        for (IBaseCastConsumer consumer : mBaseCastConsumers) {
+            try {
+                showError = showError || consumer.onConnectionFailed(result);
+            } catch (Exception e) {
+                LOGE(TAG, "onConnectionFailed(): Failed to inform " + consumer, e);
             }
         }
         if (showError) {
@@ -1099,13 +1072,11 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
     public void onConnectionSuspended(int cause) {
         mConnectionSuspended = true;
         LOGD(TAG, "onConnectionSuspended() was called with cause: " + cause);
-        synchronized (mBaseCastConsumers) {
-            for (IBaseCastConsumer consumer : mBaseCastConsumers) {
-                try {
-                    consumer.onConnectionSuspended(cause);
-                } catch (Exception e) {
-                    LOGE(TAG, "onConnectionSuspended(): Failed to inform " + consumer, e);
-                }
+        for (IBaseCastConsumer consumer : mBaseCastConsumers) {
+            try {
+                consumer.onConnectionSuspended(cause);
+            } catch (Exception e) {
+                LOGE(TAG, "onConnectionSuspended(): Failed to inform " + consumer, e);
             }
         }
     }
@@ -1209,10 +1180,8 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
      */
     public void addBaseCastConsumer(IBaseCastConsumer listener) {
         if (null != listener) {
-            synchronized (mBaseCastConsumers) {
-                if (mBaseCastConsumers.add(listener)) {
-                    LOGD(TAG, "Successfully added the new BaseCastConsumer listener " + listener);
-                }
+            if (mBaseCastConsumers.add(listener)) {
+                LOGD(TAG, "Successfully added the new BaseCastConsumer listener " + listener);
             }
         }
     }
@@ -1222,11 +1191,9 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
      */
     public void removeBaseCastConsumer(IBaseCastConsumer listener) {
         if (null != listener) {
-            synchronized (mBaseCastConsumers) {
-                if (mBaseCastConsumers.remove(listener)) {
-                    LOGD(TAG, "Successfully removed the existing BaseCastConsumer listener " +
-                            listener);
-                }
+            if (mBaseCastConsumers.remove(listener)) {
+                LOGD(TAG, "Successfully removed the existing BaseCastConsumer listener " +
+                        listener);
             }
         }
     }
@@ -1251,13 +1218,11 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
     @Override
     public void onFailed(int resourceId, int statusCode) {
         LOGD(TAG, "onFailed() was called with statusCode: " + statusCode);
-        synchronized (mBaseCastConsumers) {
-            for (IBaseCastConsumer consumer : mBaseCastConsumers) {
-                try {
-                    consumer.onFailed(resourceId, statusCode);
-                } catch (Exception e) {
-                    LOGE(TAG, "onFailed(): Failed to inform " + consumer, e);
-                }
+        for (IBaseCastConsumer consumer : mBaseCastConsumers) {
+            try {
+                consumer.onFailed(resourceId, statusCode);
+            } catch (Exception e) {
+                LOGE(TAG, "onFailed(): Failed to inform " + consumer, e);
             }
         }
 
