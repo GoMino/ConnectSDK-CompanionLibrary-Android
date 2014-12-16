@@ -48,6 +48,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.media.RemoteControlClient;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -929,7 +930,11 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
                 }
 
             };
-            mReconnectionTask.execute();
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+                mReconnectionTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            } else {
+                mReconnectionTask.execute();
+            }
         }
     }
 
