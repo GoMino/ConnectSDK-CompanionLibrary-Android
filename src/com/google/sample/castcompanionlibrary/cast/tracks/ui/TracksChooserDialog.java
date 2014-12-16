@@ -55,7 +55,7 @@ public class TracksChooserDialog extends DialogFragment {
     private TracksListAdapter mTextAdapter;
     private TracksListAdapter mAudioVideoAdapter;
     private List<MediaTrack> mTextTracks = new ArrayList<MediaTrack>();
-    private List<MediaTrack> mAudioVideoTracks = new ArrayList<MediaTrack>();
+    private List<MediaTrack> mAudioTracks = new ArrayList<MediaTrack>();
     private static final long TEXT_TRACK_NONE_ID = -1;
     private static final MediaTrack TEXT_TRACK_NONE = new MediaTrack.Builder(TEXT_TRACK_NONE_ID,
             MediaTrack.TYPE_TEXT)
@@ -140,7 +140,7 @@ public class TracksChooserDialog extends DialogFragment {
         mTextAdapter = new TracksListAdapter(getActivity(), R.layout.tracks_row_layout,
                 mTextTracks, mSelectedTextPosition);
         mAudioVideoAdapter = new TracksListAdapter(getActivity(), R.layout.tracks_row_layout,
-                mAudioVideoTracks, mSelectedAudioPosition);
+                mAudioTracks, mSelectedAudioPosition);
 
         listView1.setAdapter(mTextAdapter);
         listView2.setAdapter(mAudioVideoAdapter);
@@ -162,7 +162,7 @@ public class TracksChooserDialog extends DialogFragment {
 
         // create tab 2
         TabHost.TabSpec tab2 = tabs.newTabSpec("tab2");
-        if (mAudioVideoTracks == null || mAudioVideoTracks.isEmpty()) {
+        if (mAudioTracks == null || mAudioTracks.isEmpty()) {
             listView2.setVisibility(View.INVISIBLE);
             tab2.setContent(R.id.audio_empty_message);
         } else {
@@ -175,7 +175,7 @@ public class TracksChooserDialog extends DialogFragment {
 
     private void partitionTracks() {
         List<MediaTrack> allTracks = mMediaInfo.getMediaTracks();
-        mAudioVideoTracks.clear();
+        mAudioTracks.clear();
         mTextTracks.clear();
         mTextTracks.add(TEXT_TRACK_NONE);
         mSelectedTextPosition = 0;
@@ -197,8 +197,7 @@ public class TracksChooserDialog extends DialogFragment {
                         textPosition++;
                         break;
                     case MediaTrack.TYPE_AUDIO:
-                    case MediaTrack.TYPE_VIDEO:
-                        mAudioVideoTracks.add(track);
+                        mAudioTracks.add(track);
                         if (mActiveTracks != null) {
                             for(int i=0; i < mActiveTracks.length; i++) {
                                 if (mActiveTracks[i] == track.getId()) {
