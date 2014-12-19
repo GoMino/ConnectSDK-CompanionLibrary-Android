@@ -43,6 +43,7 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.annotation.Nullable;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
 import android.text.TextUtils;
@@ -107,8 +108,8 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
     }
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
         mCastConsumer = new MyCastConsumer();
         Bundle bundle = getArguments();
         if (null == bundle) {
@@ -699,11 +700,11 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
                 mMediaAuthTimer.cancel();
             }
             mSelectedMedia = info;
-            updateClosedCaptionState();
             mHandler.post(new Runnable() {
 
                 @Override
                 public void run() {
+                    updateClosedCaptionState();
                     mOverallState = OverallState.PLAYBACK;
                     onReady(info, true, startPoint, customData);
                 }
