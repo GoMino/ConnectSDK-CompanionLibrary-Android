@@ -443,6 +443,13 @@ public class VideoCastManager extends BaseCastManager
     }
 
     /**
+     * Sets the {@link com.google.sample.castcompanionlibrary.cast.player.IMediaAuthService}.
+     */
+    public void setMediaAuthService(IMediaAuthService authService) {
+        mAuthService = authService;
+    }
+
+    /**
      * Removes the pointer to the {@link IMediaAuthService} so it can be GC.
      */
     public void removeMediaAuthService() {
