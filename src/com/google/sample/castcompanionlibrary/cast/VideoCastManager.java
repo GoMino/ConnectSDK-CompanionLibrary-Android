@@ -131,6 +131,7 @@ public class VideoCastManager extends BaseCastManager
     public static final String EXTRA_SHOULD_START = "shouldStart";
     public static final String EXTRA_CUSTOM_DATA = "customData";
     public static final long DEFAULT_LIVE_STREAM_DURATION_MS = 2 * 3600 * 1000L; // 2hrs
+    public static final String PREFS_KEY_START_ACTIVITY = "ccl-start-cast-activity";
 
     /**
      * Volume can be controlled at two different layers, one is at the "stream" level and one at
@@ -363,6 +364,10 @@ public class VideoCastManager extends BaseCastManager
     /*========== VideoCastControllerActivity management ==========================================*/
     /*============================================================================================*/
 
+    private void setFlagForStartCastControllerActivity(Context context) {
+        Utils.saveBooleanToPreference(context, PREFS_KEY_START_ACTIVITY, true);
+    }
+
     /**
      * Launches the VideoCastControllerActivity that provides a default Cast Player page.
      *
@@ -382,6 +387,7 @@ public class VideoCastManager extends BaseCastManager
         if (null != customData) {
             intent.putExtra(EXTRA_CUSTOM_DATA, customData.toString());
         }
+        setFlagForStartCastControllerActivity(context);
         context.startActivity(intent);
     }
 
@@ -400,6 +406,7 @@ public class VideoCastManager extends BaseCastManager
         intent.putExtra(EXTRA_MEDIA, mediaWrapper);
         intent.putExtra(EXTRA_START_POINT, position);
         intent.putExtra(EXTRA_SHOULD_START, shouldStart);
+        setFlagForStartCastControllerActivity(context);
         context.startActivity(intent);
     }
 
@@ -415,6 +422,7 @@ public class VideoCastManager extends BaseCastManager
             this.mAuthService = authService;
             Intent intent = new Intent(context, VideoCastControllerActivity.class);
             intent.putExtra(EXTRA_HAS_AUTH, true);
+            setFlagForStartCastControllerActivity(context);
             context.startActivity(intent);
         }
     }
@@ -422,15 +430,16 @@ public class VideoCastManager extends BaseCastManager
     /**
      * Launches the {@link VideoCastControllerActivity} that provides a default Cast Player page.
      *
-     * @param ctx
+     * @param context
      * @param mediaInfo pointing to the media that is or will be casted
      * @param position (in milliseconds) is the starting point of the media playback
      * @param shouldStart indicates if the remote playback should start after launching the new
      * page
      */
-    public void startCastControllerActivity(Context ctx,
+    public void startCastControllerActivity(Context context,
             MediaInfo mediaInfo, int position, boolean shouldStart) {
-        startCastControllerActivity(ctx, Utils.fromMediaInfo(mediaInfo), position, shouldStart);
+        setFlagForStartCastControllerActivity(context);
+        startCastControllerActivity(context, Utils.fromMediaInfo(mediaInfo), position, shouldStart);
     }
 
     /**

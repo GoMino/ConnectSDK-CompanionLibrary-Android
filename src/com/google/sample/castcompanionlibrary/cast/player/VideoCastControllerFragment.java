@@ -120,7 +120,10 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
 
         // Retain this fragment across configuration changes.
         setRetainInstance(true);
-
+        boolean explicitStartActivity = Utils.getBooleanFromPreference(getActivity(),
+                VideoCastManager.PREFS_KEY_START_ACTIVITY, false);
+        Utils.saveBooleanToPreference(getActivity(), VideoCastManager.PREFS_KEY_START_ACTIVITY,
+                false);
         if (extras.getBoolean(VideoCastManager.EXTRA_HAS_AUTH)) {
             mOverallState = OverallState.AUTHORIZING;
             mMediaAuthService = mCastManager.getMediaAuthService();
@@ -141,7 +144,7 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
             }
             MediaInfo info = Utils.toMediaInfo(mediaWrapper);
             int startPoint = extras.getInt(VideoCastManager.EXTRA_START_POINT, 0);
-            onReady(info, shouldStartPlayback, startPoint, customData);
+            onReady(info, shouldStartPlayback && explicitStartActivity, startPoint, customData);
         }
     }
 

@@ -238,6 +238,25 @@ public class Utils {
     }
 
     /**
+     * Saves a boolean value under the provided key in the preference manager. If <code>value</code>
+     * is <code>null</code>, then the provided key will be removed from the preferences.
+     *
+     * @param context
+     * @param key
+     * @param value
+     */
+    public static void saveBooleanToPreference(Context context, String key, Boolean value) {
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        if (value == null) {
+            // we want to remove
+            pref.edit().remove(key).apply();
+        } else {
+            pref.edit().putBoolean(key, value).apply();
+        }
+
+    }
+
+    /**
      * Retrieves a String value from preference manager. If no such key exists, it will return
      * <code>null</code>.
      *
