@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Google Inc. All Rights Reserved.
+ * Copyright (C) 2014 Google Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,9 +42,7 @@ import com.google.sample.castcompanionlibrary.utils.LogUtils;
 import com.google.sample.castcompanionlibrary.utils.Utils;
 
 import android.app.Activity;
-import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.media.RemoteControlClient;
 import android.os.AsyncTask;
@@ -184,34 +182,26 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
      /* ********************************************************************/
 
     protected BaseCastManager(Context context, String applicationId) {
-        CCL_VERSION = context.getString(R.string.ccl_version);
+        mContext = context.getApplicationContext();
+        CCL_VERSION = mContext.getString(R.string.ccl_version);
         LOGD(TAG, "BaseCastManager is instantiated");
-        mContext = context;
         mHandler = new Handler(Looper.getMainLooper());
         mUiVisibilityHandler = new Handler(new UpdateUiVisibilityHandlerCallback());
         mApplicationId = applicationId;
         Utils.saveStringToPreference(mContext, PREFS_KEY_APPLICATION_ID, applicationId);
 
         LOGD(TAG, "Application ID is: " + mApplicationId);
-        mMediaRouter = MediaRouter.getInstance(context);
+        mMediaRouter = MediaRouter.getInstance(mContext);
         mMediaRouteSelector = new MediaRouteSelector.Builder().addControlCategory(
                 CastMediaControlIntent.categoryForCast(mApplicationId)).build();
 
-        mMediaRouterCallback = new CastMediaRouterCallback(this, context);
+        mMediaRouterCallback = new CastMediaRouterCallback(this, mContext);
         mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback,
                 MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
     }
 
     public static BaseCastManager getCastManager() {
         return mCastManager;
-    }
-
-    /**
-     * Sets the {@link Context} for the subsequent calls. Setting context can help the library to
-     * show error messages to the user.
-     */
-    public void setContext(Context context) {
-        mContext = context;
     }
 
     @Override
@@ -294,6 +284,19 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
             mApiClient = null;
         }
         mSessionId = null;
+    }
+
+    /**
+     * Returns {@code true} if and only if the selected cast device is on the local network.
+     *
+     * @throws CastException if no cast device has been selected.
+     */
+
+    public boolean isDeviceOnLocalNetwork() throws CastException {
+        if (mSelectedCastDevice == null) {
+            throw new CastException("No cast device has yet been selected");
+        }
+        return mSelectedCastDevice.isOnLocalNetwork();
     }
 
     public void setDevice(CastDevice device) {
@@ -699,24 +702,24 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
 
     /**
      * Returns <code>true</code> if there is enough persisted information to attempt a session
-     * recovery. For this to return <code>true</code>, there needs to be persisted session ID and
-     * route ID from the last successful launch.
+     * recovery. For this to return <code>true</code>, there needs to be a persisted session ID and
+     * a route ID from the last successful launch.
      */
-    public final boolean canConsiderSessionRecovery(Context context) {
-        return canConsiderSessionRecovery(context, null);
+    protected final boolean canConsiderSessionRecovery() {
+        return canConsiderSessionRecovery(null);
     }
 
     /**
      * Returns <code>true</code> if there is enough persisted information to attempt a session
-     * recovery. For this to return <code>true</code>, there needs to be persisted session ID and
-     * route ID from the last successful launch. In addition, if <code>ssidName</code> is non-null,
+     * recovery. For this to return <code>true</code>, there needs to be a persisted session ID and
+     * a route ID from the last successful launch. In addition, if {@code ssidName} is non-null,
      * then an additional check is also performed to make sure the persisted wifi name is the same
-     * as the <code>ssidName</code>
+     * as the {@code ssidName}.
      */
-    public final boolean canConsiderSessionRecovery(Context context, String ssidName) {
-        String sessionId = Utils.getStringFromPreference(context, PREFS_KEY_SESSION_ID);
-        String routeId = Utils.getStringFromPreference(context, PREFS_KEY_ROUTE_ID);
-        String ssid = Utils.getStringFromPreference(context, PREFS_KEY_SSID);
+    protected final boolean canConsiderSessionRecovery(String ssidName) {
+        String sessionId = Utils.getStringFromPreference(mContext, PREFS_KEY_SESSION_ID);
+        String routeId = Utils.getStringFromPreference(mContext, PREFS_KEY_ROUTE_ID);
+        String ssid = Utils.getStringFromPreference(mContext, PREFS_KEY_SSID);
         if (null == sessionId || null == routeId) {
             return false;
         }
@@ -766,16 +769,23 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
      * <li>The Cast Device that user had connected to previously is still running the same session
      * </ul>
      * Under these conditions, a best-effort attempt will be made to continue with the same
-     * session.
-     * This attempt will go on for <code>timeoutInSeconds</code> seconds. During this period, an
-     * optional dialog can be shown if <code>showDialog</code> is set to <code>true</code>. The
-     * message in this dialog can be changed by overriding the resource
-     * <code>R.string.session_reconnection_attempt</code>
-     * <p>Note: this variant does not check for the matching Wifi SSID name</p>
+     * session. This attempt will go on for <code>timeoutInSeconds</code> seconds.
      */
-    public void reconnectSessionIfPossible(final Context context, final boolean showDialog,
-            final int timeoutInSeconds) {
-        reconnectSessionIfPossible(context, showDialog, timeoutInSeconds, null);
+    public void reconnectSessionIfPossible(int timeoutInSeconds) {
+        reconnectSessionIfPossible(timeoutInSeconds, null);
+    }
+
+    /**
+     * This method tries to automatically re-establish re-establish connection to a session if
+     * <ul>
+     * <li>User had not done a manual disconnect in the last session
+     * <li>Device that user had connected to previously is still running the same session
+     * </ul>
+     * Under these conditions, a best-effort attempt will be made to continue with the same
+     * session. This attempt will go on for {@code SESSION_RECOVERY_TIMEOUT} seconds.
+     */
+    public void reconnectSessionIfPossible() {
+        reconnectSessionIfPossible(SESSION_RECOVERY_TIMEOUT);
     }
 
     /**
@@ -786,21 +796,19 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
      * </ul>
      * Under these conditions, a best-effort attempt will be made to continue with the same
      * session.
-     * This attempt will go on for <code>timeoutInSeconds</code> seconds. During this period, an
-     * optional dialog can be shown if <code>showDialog</code> is set to <code>true</code>. The
-     * message in this dialog can be changed by overriding the resource
-     * <code>R.string.session_reconnection_attempt</code>
+     * This attempt will go on for <code>timeoutInSeconds</code> seconds.
      *
+     * @param timeoutInSeconds the length of time, in seconds, to attempt reconnection before giving
+     * up
      * @param ssidName The name of Wifi SSID
      */
-    public void reconnectSessionIfPossible(final Context context, final boolean showDialog,
-            final int timeoutInSeconds, String ssidName) {
+    public void reconnectSessionIfPossible(final int timeoutInSeconds, String ssidName) {
         LOGD(TAG, "reconnectSessionIfPossible()");
         if (isConnected()) {
             return;
         }
-        String routeId = Utils.getStringFromPreference(context, PREFS_KEY_ROUTE_ID);
-        if (canConsiderSessionRecovery(context, ssidName)) {
+        String routeId = Utils.getStringFromPreference(mContext, PREFS_KEY_ROUTE_ID);
+        if (canConsiderSessionRecovery(ssidName)) {
             List<RouteInfo> routes = mMediaRouter.getRoutes();
             RouteInfo theRoute = null;
             if (null != routes && !routes.isEmpty()) {
@@ -822,74 +830,20 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
                 onReconnectionStatusChanged(RECONNECTION_STARTED);
             }
 
+            // cancel any prior reconnection task
+            if (mReconnectionTask != null && !mReconnectionTask.isCancelled()) {
+                mReconnectionTask.cancel(true);
+            }
+
             // we may need to reconnect to an existing session
             mReconnectionTask = new AsyncTask<Void, Integer, Integer>() {
-                private ProgressDialog dlg;
                 private final int SUCCESS = 1;
                 private final int FAILED = 2;
 
                 @Override
                 protected void onCancelled() {
-                    if (null != dlg) {
-                        dlg.dismiss();
-                    }
                     super.onCancelled();
-                }
-
-                @Override
-                protected void onPreExecute() {
-                    if (!showDialog) {
-                        return;
-                    }
-                    dlg = new ProgressDialog(context);
-                    dlg.setMessage(context.getString(R.string.session_reconnection_attempt));
-                    dlg.setIndeterminate(true);
-                    dlg.setCancelable(true);
-                    dlg.setOnCancelListener(new DialogInterface.OnCancelListener() {
-
-                        @Override
-                        public void onCancel(DialogInterface dialog) {
-                            switch (mReconnectionStatus) {
-                                case STARTED:
-                                case IN_PROGRESS:
-                                case FINALIZE:
-                                    mReconnectionStatus = ReconnectionStatus.INACTIVE;
-                                    onDeviceSelected(null);
-                                    break;
-                                default:
-                                    break;
-                            }
-                            mReconnectionStatus = ReconnectionStatus.INACTIVE;
-                            if (null != dlg) {
-                                dlg.dismiss();
-                            }
-                            mReconnectionTask.cancel(true);
-                        }
-                    });
-                    dlg.setButton(ProgressDialog.BUTTON_NEGATIVE, "Cancel",
-                            new DialogInterface.OnClickListener() {
-
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    switch (mReconnectionStatus) {
-                                        case STARTED:
-                                        case IN_PROGRESS:
-                                        case FINALIZE:
-                                            mReconnectionStatus = ReconnectionStatus.INACTIVE;
-                                            onDeviceSelected(null);
-                                            break;
-                                        default:
-                                            break;
-                                    }
-                                    mReconnectionStatus = ReconnectionStatus.INACTIVE;
-                                    if (null != dlg) {
-                                        dlg.cancel();
-                                    }
-                                    mReconnectionTask.cancel(true);
-                                }
-                            }
-                    );
-                    dlg.show();
+                    mReconnectionTask = null;
                 }
 
                 @Override
@@ -897,9 +851,6 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
                     for (int i = 0; i < timeoutInSeconds; i++) {
                         LOGD(TAG, "Reconnection: Attempt " + (i + 1));
                         if (mReconnectionTask.isCancelled()) {
-                            if (null != dlg) {
-                                dlg.dismiss();
-                            }
                             return SUCCESS;
                         }
                         try {
@@ -916,9 +867,6 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
 
                 @Override
                 protected void onPostExecute(Integer result) {
-                    if (showDialog && null != dlg) {
-                        dlg.dismiss();
-                    }
                     if (null != result) {
                         if (result == FAILED) {
                             mReconnectionStatus = ReconnectionStatus.INACTIVE;
@@ -927,6 +875,7 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
                             onDeviceSelected(null);
                         }
                     }
+                    mReconnectionTask = null;
                 }
 
             };
@@ -936,26 +885,6 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
                 mReconnectionTask.execute();
             }
         }
-    }
-
-    /**
-     * This method tries to automatically re-establish re-establish connection to a session if
-     * <ul>
-     * <li>User had not done a manual disconnect in the last session
-     * <li>Device that user had connected to previously is still running the same session
-     * </ul>
-     * Under these conditions, a best-effort attempt will be made to continue with the same
-     * session.
-     * This attempt will go on for 5 seconds. During this period, an optional dialog can be shown
-     * if
-     * <code>showDialog</code> is set to <code>true
-     * </code>.
-     *
-     * @param showDialog if set to <code>true</code>, a dialog will be shown
-     */
-    public void reconnectSessionIfPossible(final Context context, final boolean showDialog) {
-        LOGD(TAG, "Context for calling reconnectSessionIfPossible(): " + context);
-        reconnectSessionIfPossible(context, showDialog, SESSION_RECOVERY_TIMEOUT);
     }
 
     /************************************************************/
@@ -1069,7 +998,7 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
             }
         }
         if (showError) {
-            Utils.showErrorDialog(mContext, R.string.failed_to_connect);
+            Utils.showToast(mContext, R.string.failed_to_connect);
         }
     }
 
@@ -1303,5 +1232,4 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
             return true;
         }
     }
-
 }

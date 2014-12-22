@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Google Inc. All Rights Reserved.
+ * Copyright (C) 2014 Google Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,9 +72,9 @@ import java.util.Set;
  * provided by the Google Play services, the library checks to ensure that the right version of that
  * service is installed. It also provides a simple static method
  * <code>checkGooglePlayServices()</code> that clients can call at an early stage of their
- * applications to provide a dialog for users if they need to update/activate their GMS library. To
- * learn more about this library, please read the documentation that is distributed as part of this
- * library.
+ * applications to provide a dialog for users if they need to update/activate their Google Play
+ * Services library. To learn more about this library, please read the documentation that is
+ * distributed as part of this library.
  */
 public class DataCastManager extends BaseCastManager
         implements Cast.MessageReceivedCallback {
@@ -135,29 +135,6 @@ public class DataCastManager extends BaseCastManager
                     "call initialize() first");
             throw new CastException();
         }
-        return sInstance;
-    }
-
-    /**
-     * Returns the initialized instance of this class. If it is not initialized yet, a
-     * {@link CastException} will be thrown. The {@link Context} that is passed as the argument will
-     * be used to update the context. The main purpose of updating context is to enable the library
-     * to provide {@link Context} related functionalities, e.g. it can create an error dialog if
-     * needed. This method is preferred over the similar one without a context argument.
-     *
-     * @see {@link initialize()}, {@link setContext()}
-     * @param ctx the current Context
-     * @return
-     * @throws CastException
-     */
-    public static DataCastManager getInstance(Context ctx) throws CastException {
-        if (null == sInstance) {
-            LOGE(TAG, "No DataCastManager instance was initialized, you need to " +
-                    "call initialize() first");
-            throw new CastException();
-        }
-        LOGD(TAG, "Updated context to: " + ctx.getClass().getName());
-        sInstance.mContext = ctx;
         return sInstance;
     }
 

@@ -24,10 +24,8 @@ import com.google.android.gms.cast.MediaTrack;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.images.WebImage;
-import com.google.sample.castcompanionlibrary.R;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -104,37 +102,6 @@ public class Utils {
             result += "0" + sec;
         }
         return result;
-    }
-
-    /**
-     * A utility method to show a simple error dialog. The textual content of the dialog is
-     * provided through the passed-in resource id.
-     *
-     * @param context
-     * @param resourceId
-     */
-    public static final void showErrorDialog(Context context, int resourceId) {
-        //showErrorDialog(context, context.getString(resourceId));
-        showToast(context.getApplicationContext(), resourceId);
-    }
-
-    /**
-     * A utility method to show a simple error dialog.
-     *
-     * @param context
-     * @param message The message to be shown in the dialog
-     */
-    public static final void showErrorDialog(Context context, String message) {
-        new AlertDialog.Builder(context).setTitle(R.string.error)
-                .setMessage(message)
-                .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int id) {
-                        dialog.cancel();
-                    }
-                })
-                .create()
-                .show();
     }
 
     /**
@@ -253,7 +220,6 @@ public class Utils {
         } else {
             pref.edit().putBoolean(key, value).apply();
         }
-
     }
 
     /**

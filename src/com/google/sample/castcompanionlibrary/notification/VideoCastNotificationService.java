@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Google Inc. All Rights Reserved.
+ * Copyright (C) 2014 Google Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ public class VideoCastNotificationService extends Service {
         mCastManager = VideoCastManager
                 .initialize(this, mApplicationId, mTargetActivity, mDataNamespace);
         if (!mCastManager.isConnected() && !mCastManager.isConnecting()) {
-            mCastManager.reconnectSessionIfPossible(this, false);
+            mCastManager.reconnectSessionIfPossible();
         }
         mConsumer = new VideoCastConsumerImpl() {
             @Override
@@ -114,7 +114,6 @@ public class VideoCastNotificationService extends Service {
                 mVisible = !visible;
                 if (mVisible && null != mNotification) {
                     startForeground(NOTIFICATION_ID, mNotification);
-                    mCastManager.setContext(VideoCastNotificationService.this);
                 } else {
                     stopForeground(true);
                 }
@@ -155,7 +154,6 @@ public class VideoCastNotificationService extends Service {
                             LOGE(TAG, "onStartCommand() failed to get media", e);
                         }
                     }
-                    mCastManager.setContext(this);
                 } else {
                     stopForeground(true);
                 }

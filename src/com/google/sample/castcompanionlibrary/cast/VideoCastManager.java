@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Google Inc. All Rights Reserved.
+ * Copyright (C) 2014 Google Inc. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -114,13 +114,13 @@ import org.json.JSONObject;
  * (see {@link IVideoCastConsumer}). Since the number of these callbacks is usually much larger
  * than what a single application might be interested in, there is a no-op implementation of this
  * interface (see {@link VideoCastConsumerImpl}) that applications can subclass to override only
- * those methods that they are interested in. Since this library depends on the cast
- * functionalities provided by the Google Play services, the library checks to ensure that the
- * right version of that service is installed. It also provides a simple static method
+ * those methods that they are interested in. Since this library depends on the cast functionalities
+ * provided by the Google Play services, the library checks to ensure that the right version of that
+ * service is installed. It also provides a simple static method
  * <code>checkGooglePlayServices()</code> that clients can call at an early stage of their
- * applications to provide a dialog for users if they need to update/activate their GMS library. To
- * learn more about this library, please read the documentation that is distributed as part of this
- * library.
+ * applications to provide a dialog for users if they need to update/activate their Google Play
+ * Services library. To learn more about this library, please read the documentation that is
+ * distributed as part of this library.
  */
 public class VideoCastManager extends BaseCastManager
         implements OnMiniControllerChangedListener, OnFailedListener {
@@ -217,30 +217,6 @@ public class VideoCastManager extends BaseCastManager
         return sInstance;
     }
 
-    /**
-     * Returns the initialized instances of this class. If it is not initialized yet, a
-     * {@link CastException} will be thrown. The {@link Context} that is passed as the argument
-     * will be used to update the context for the <code>VideoCastManager</code> instance. The main
-     * purpose of updating context is to enable the library to provide {@link Context} related
-     * functionalities, e.g. it can create an error dialog if needed. This method is preferred over
-     * the similar one without a context argument.
-     *
-     * @param context the current Context
-     * @return
-     * @throws CastException
-     * @see {@link initialize()}, {@link setContext()}
-     */
-    public static VideoCastManager getInstance(Context context) throws CastException {
-        if (null == sInstance) {
-            LOGE(TAG, "No VideoCastManager instance was built, you need to build one first "
-                    + "(called from Context: " + context + ")");
-            throw new CastException();
-        }
-        LOGD(TAG, "Updated context to: " + context);
-        sInstance.mContext = context;
-        return sInstance;
-    }
-
     protected VideoCastManager(Context context, String applicationId, Class<?> targetActivity,
             String dataNamespace) {
         super(context, applicationId);
@@ -259,8 +235,8 @@ public class VideoCastManager extends BaseCastManager
 
         mMiniControllers = Collections.synchronizedSet(new HashSet<IMiniController>());
 
-        mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        mMediaButtonReceiverComponent = new ComponentName(context, VideoIntentReceiver.class);
+        mAudioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
+        mMediaButtonReceiverComponent = new ComponentName(mContext, VideoIntentReceiver.class);
     }
 
     /*============================================================================================*/
@@ -1007,9 +983,8 @@ public class VideoCastManager extends BaseCastManager
         LOGD(TAG, "onApplicationConnectionFailed() reached with errorCode: " + errorCode);
         if (mReconnectionStatus == ReconnectionStatus.IN_PROGRESS) {
             if (errorCode == CastStatusCodes.APPLICATION_NOT_RUNNING) {
-                // while trying to re-establish session, we
-                // found out that the app is not running so we need
-                // to disconnect
+                // while trying to re-establish session, we found out that the app is not running
+                // so we need to disconnect
                 mReconnectionStatus = ReconnectionStatus.INACTIVE;
                 onDeviceSelected(null);
             }
@@ -1028,16 +1003,16 @@ public class VideoCastManager extends BaseCastManager
                     case CastStatusCodes.APPLICATION_NOT_FOUND:
                         LOGD(TAG, "onApplicationConnectionFailed(): failed due to: " +
                                 "ERROR_APPLICATION_NOT_FOUND");
-                        Utils.showErrorDialog(mContext, R.string.failed_to_find_app);
+                        Utils.showToast(mContext, R.string.failed_to_find_app);
                         break;
                     case CastStatusCodes.TIMEOUT:
                         LOGD(TAG, "onApplicationConnectionFailed(): failed due to: ERROR_TIMEOUT");
-                        Utils.showErrorDialog(mContext, R.string.failed_app_launch_timeout);
+                        Utils.showToast(mContext, R.string.failed_app_launch_timeout);
                         break;
                     default:
                         LOGD(TAG, "onApplicationConnectionFailed(): failed due to: errorcode="
                                 + errorCode);
-                        Utils.showErrorDialog(mContext, R.string.failed_to_launch_app);
+                        Utils.showToast(mContext, R.string.failed_to_launch_app);
                         break;
                 }
             }

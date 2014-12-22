@@ -101,7 +101,7 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
         mCastController = (IVideoCastController) activity;
         mHandler = new Handler();
         try {
-            mCastManager = VideoCastManager.getInstance(activity);
+            mCastManager = VideoCastManager.getInstance();
         } catch (CastException e) {
             // logged already
         }
@@ -243,7 +243,7 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
             LOGD(TAG, "onFailed(): " + getString(resourceId) + ", status code: " + statusCode);
             if (statusCode == RemoteMediaPlayer.STATUS_FAILED
                     || statusCode == RemoteMediaPlayer.STATUS_TIMED_OUT) {
-                Utils.showErrorDialog(getActivity(), resourceId);
+                Utils.showToast(getActivity(), resourceId);
                 mCastController.closeActivity();
             }
         }
@@ -472,7 +472,7 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
         super.onResume();
         LOGD(TAG, "onResume() was called");
         try {
-            mCastManager = VideoCastManager.getInstance(getActivity());
+            mCastManager = VideoCastManager.getInstance();
             try {
                 if (mCastManager.isRemoteMoviePaused() || mCastManager.isRemoteMoviePlaying()) {
                     if (mCastManager.getRemoteMediaInformation() != null &&

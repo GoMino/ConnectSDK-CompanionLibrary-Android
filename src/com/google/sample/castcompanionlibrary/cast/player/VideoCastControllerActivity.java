@@ -98,7 +98,7 @@ public class VideoCastControllerActivity extends ActionBarActivity implements IV
             mVolumeIncrement = DEFAULT_VOLUME_INCREMENT;
         }
         try {
-            mCastManager = VideoCastManager.getInstance(this);
+            mCastManager = VideoCastManager.getInstance();
         } catch (CastException e) {
             // logged already
             finish();
@@ -154,7 +154,7 @@ public class VideoCastControllerActivity extends ActionBarActivity implements IV
     protected void onResume() {
         LOGD(TAG, "onResume() was called");
         try {
-            mCastManager = VideoCastManager.getInstance(VideoCastControllerActivity.this);
+            mCastManager = VideoCastManager.getInstance();
         } catch (CastException e) {
             // logged already
         }
@@ -186,15 +186,15 @@ public class VideoCastControllerActivity extends ActionBarActivity implements IV
                     mListener.onPlayPauseClicked(v);
                 } catch (TransientNetworkDisconnectionException e) {
                     LOGE(TAG, "Failed to toggle playback due to temporary network issue", e);
-                    Utils.showErrorDialog(VideoCastControllerActivity.this,
+                    Utils.showToast(VideoCastControllerActivity.this,
                             R.string.failed_no_connection_trans);
                 } catch (NoConnectionException e) {
                     LOGE(TAG, "Failed to toggle playback due to network issues", e);
-                    Utils.showErrorDialog(VideoCastControllerActivity.this,
+                    Utils.showToast(VideoCastControllerActivity.this,
                             R.string.failed_no_connection);
                 } catch (Exception e) {
                     LOGE(TAG, "Failed to toggle playback due to other issues", e);
-                    Utils.showErrorDialog(VideoCastControllerActivity.this,
+                    Utils.showToast(VideoCastControllerActivity.this,
                             R.string.failed_perform_action);
                 }
             }
