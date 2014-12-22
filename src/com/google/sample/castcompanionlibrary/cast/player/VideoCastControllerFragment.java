@@ -469,15 +469,33 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
 
     @Override
     public void onResume() {
+        super.onResume();
         LOGD(TAG, "onResume() was called");
         try {
             mCastManager = VideoCastManager.getInstance(getActivity());
-            boolean shouldFinish = !(mCastManager.isConnected() || mCastManager.isConnecting())
-                    || (mCastManager.getPlaybackStatus() == MediaStatus.PLAYER_STATE_IDLE
-                    && mCastManager.getIdleReason() == MediaStatus.IDLE_REASON_FINISHED
-                    && !mIsFresh);
-            if (shouldFinish) {
-                mCastController.closeActivity();
+            try {
+                if (mCastManager.isRemoteMoviePaused() || mCastManager.isRemoteMoviePlaying()) {
+                    if (mCastManager.getRemoteMediaInformation() != null &&
+                            mSelectedMedia.getContentId()
+                                    .equals(mCastManager.getRemoteMediaInformation()
+                                            .getContentId())) {
+                        mIsFresh = false;
+                    }
+                }
+            } catch (TransientNetworkDisconnectionException e) {
+                LOGE(TAG, "Failed getting status of media playback", e);
+            } catch (NoConnectionException e) {
+                LOGE(TAG, "Failed getting status of media playback", e);
+            }
+            boolean shouldFinish = false;
+            if (!mCastManager.isConnecting()) {
+                shouldFinish = !(mCastManager.isConnected())
+                        || (mCastManager.getPlaybackStatus() == MediaStatus.PLAYER_STATE_IDLE
+                        && mCastManager.getIdleReason() == MediaStatus.IDLE_REASON_FINISHED);
+                if (shouldFinish) {
+                    mCastController.closeActivity();
+                    return;
+                }
             }
             mCastManager.addVideoCastConsumer(mCastConsumer);
             mCastManager.incrementUiCounter();
@@ -499,7 +517,6 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
         } catch (CastException e) {
             // logged already
         }
-        super.onResume();
     }
 
     @Override
