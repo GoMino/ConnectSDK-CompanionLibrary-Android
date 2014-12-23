@@ -237,7 +237,7 @@ public class VideoCastControllerActivity extends ActionBarActivity implements IV
                         mListener.onProgressChanged(seekBar, progress, fromUser);
                     }
                 } catch (Exception e) {
-                    LOGE(TAG, "Failed to set teh progress result", e);
+                    LOGE(TAG, "Failed to set the progress result", e);
                 }
             }
         });

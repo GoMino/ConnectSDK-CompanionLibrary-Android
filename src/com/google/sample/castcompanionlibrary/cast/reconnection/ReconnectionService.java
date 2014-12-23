@@ -225,7 +225,7 @@ public class ReconnectionService extends Service {
             stopSelf();
         } else {
             // since we are connected and our timer has gone off, lets update the time remaining
-            // on the media (since media may have been paused) and reset teh time left
+            // on the media (since media may have been paused) and reset the time left
             long timeLeft = 0;
             try {
                 timeLeft = mCastManager.isRemoteStreamLive() ? 0 :
