@@ -460,6 +460,7 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
 
     public final void stopCastDiscovery() {
         mMediaRouter.removeCallback(mMediaRouterCallback);
+        mMediaRouterCallback.resetRouteCount();
     }
 
     /*************************************************************************/
