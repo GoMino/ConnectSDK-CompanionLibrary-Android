@@ -29,6 +29,43 @@ See LICENSE
 Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl/TPLDxj)
 
 ## Change List
+1.12
+### Notice: there are some backward-incompatible changes in this release, please read the change list carefully
+ * Changing CCL to use Application Context in most everything. As a result, one does not need to set context for CCL in each
+       Activity which should avoid any context leaks and prevent some random NPEs. Consequently, there will be no "dialog" supported by
+       CCL unless the caller method provides an explicit context. For various versions of reconnectSessionIfPossible, we now have
+       reconnection callbacks that can be used by callers to provide visual feedback, so these methods now have new signatures.
+       In addition, now you can initialize Cast Managers in your Application's onCreate().
+       There are some backward-incompatible changes so clients need to make adjustments if needed.
+       In particular, the noteworthy breaking changes are:
+     * Variations of reconnectSessionIfPossible have new arguments
+     * Utils.showErrorDialog() has been removed
+     * setContext() on Cast Managers is removed
+     * CastManagers' getInstance(Context) are removed
+ * Updating BaseCastManager, VideoCastManager and DataCastManager to use CopyOnWriteArraySet to manage consumers. Since the number of
+ consumers is low, there will be no performance hit and CopyOnWriteArraySet provides a safer data structure.
+ * Decoupled dependency between components interested in receiving notifications when the list of active tracks
+   changes and the sources that can cause such changes. This also allowed improving the TracksChooserDialog
+   to gracefully rebuild itself when needed.
+ * Improving VideoCastControllerFragment's behavior when it needs to be closed.
+ * Fixing an issue that upon reconstruction of VideoCastControllerActivity/Fragment, it would restart the media.
+ * In VideoCastControllerFragment, moved most of the initial work to onActivityCreated() so that a rebuild of the associated activity and fragment doesn't run into a NPE
+ * Adding a new API to allow clients set the MediaAuthService directly (VideoCastManager.setMediaAuthService(IMediaAuthService authService))
+ * Making sure that the reconnection AsyncTask is using a thread pool regardless of the Android version,
+ * Removed "Video Tracks" from Tracks Chooser Dialog since that doesn't make sense to be presented there.
+ * Updating the style of Cast dialog for Lollipop to match the respective framework.
+ * Adding Toolbar component to the simple cast_activity.xml layout in landscape, this was missed in a previous update where toolbar was introduced.
+ * Changing the icon representing "Disconnect" in Lollipop notification
+ * Fixing a bug where notification service wouldn't restart if playback was restarted on a different device.
+ * Fixing an issue that when a new media was started while another one was casting, the metadata wouldn't update immediately
+   in VideoCastControllerActivity to reflect the new media.
+ * Updating to the latest version of Gradle suitable for the latest publicly released version of Android Studio,
+ * Updating the gradle build to use the latest version of Google Play Services and selectively use cast APIs from Google Play Services.
+ * Improving discovery for MediaRouteButton by resetting the count of discovered routes whenever cast discovery is stopped.
+ * Updating the PDF documentation
+ * Fixing some typos
+ * Addressing issues #89, #130, #132, #134, #137, #138, #139, #140,
+
 1.11
  * Added support for Notifications and Lock Screen controls (via Notifications) on Android Lollipop.
  * Updated dependencies to use Google Play Services 6.1 and Support Libraries v21.
