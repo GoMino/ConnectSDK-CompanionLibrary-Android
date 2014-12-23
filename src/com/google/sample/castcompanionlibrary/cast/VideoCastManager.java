@@ -28,6 +28,7 @@ import com.google.android.gms.cast.CastStatusCodes;
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaMetadata;
 import com.google.android.gms.cast.MediaStatus;
+import com.google.android.gms.cast.MediaTrack;
 import com.google.android.gms.cast.RemoteMediaPlayer;
 import com.google.android.gms.cast.RemoteMediaPlayer.MediaChannelResult;
 import com.google.android.gms.cast.TextTrackStyle;
@@ -46,6 +47,7 @@ import com.google.sample.castcompanionlibrary.cast.exceptions.OnFailedListener;
 import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
 import com.google.sample.castcompanionlibrary.cast.player.IMediaAuthService;
 import com.google.sample.castcompanionlibrary.cast.player.VideoCastControllerActivity;
+import com.google.sample.castcompanionlibrary.cast.tracks.OnTracksSelectedListener;
 import com.google.sample.castcompanionlibrary.cast.tracks.TracksPreferenceManager;
 import com.google.sample.castcompanionlibrary.notification.VideoCastNotificationService;
 import com.google.sample.castcompanionlibrary.remotecontrol.RemoteControlClientCompat;
@@ -157,6 +159,8 @@ public class VideoCastManager extends BaseCastManager
     private Cast.MessageReceivedCallback mDataChannel;
     private final Set<IVideoCastConsumer> mVideoConsumers =
             new CopyOnWriteArraySet<IVideoCastConsumer>();
+    private final Set<OnTracksSelectedListener> mTracksSelectedListeners =
+            new CopyOnWriteArraySet<OnTracksSelectedListener>();
     private IMediaAuthService mAuthService;
     private long mLiveStreamDuration = DEFAULT_LIVE_STREAM_DURATION_MS;
     private TracksPreferenceManager mTrackManager;
@@ -2239,6 +2243,41 @@ public class VideoCastManager extends BaseCastManager
             return mRemoteMediaPlayer.getMediaStatus().getActiveTrackIds();
         }
         return null;
+    }
+
+    /**
+     * Adds an {@link com.google.sample.castcompanionlibrary.cast.tracks.OnTracksSelectedListener}
+     * to the lis of listeners.
+     */
+    public void addTracksSelectedListener(OnTracksSelectedListener listener) {
+        if (listener != null) {
+            mTracksSelectedListeners.add(listener);
+        }
+    }
+
+    /**
+     * Removes an {@link com.google.sample.castcompanionlibrary.cast.tracks
+     * .OnTracksSelectedListener} from the lis of listeners.
+     */
+    public void removeTracksSelectedListener(OnTracksSelectedListener listener) {
+        if (listener != null) {
+            mTracksSelectedListeners.remove(listener);
+        }
+    }
+
+    /**
+     * Notifies all the {@link com.google.sample.castcompanionlibrary.cast.tracks
+     * .OnTracksSelectedListener} that the set of active tracks has changed.
+     *
+     * @param tracks the set of active tracks. Must be {@code non-null} but can be an empty list.
+     */
+    public void notifyTracksSelectedListeners(List<MediaTrack> tracks) {
+        if (tracks == null) {
+            throw new IllegalArgumentException("tracks must not be null");
+        }
+        for(OnTracksSelectedListener listener : mTracksSelectedListeners) {
+            listener.onTracksSelected(tracks);
+        }
     }
 
 }

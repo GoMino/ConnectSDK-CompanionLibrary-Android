@@ -120,6 +120,7 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
 
         // Retain this fragment across configuration changes.
         setRetainInstance(true);
+        mCastManager.addTracksSelectedListener(this);
         boolean explicitStartActivity = Utils.getBooleanFromPreference(getActivity(),
                 VideoCastManager.PREFS_KEY_START_ACTIVITY, false);
         Utils.saveBooleanToPreference(getActivity(), VideoCastManager.PREFS_KEY_START_ACTIVITY,
@@ -822,6 +823,7 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
         }
 
         mCastManager.clearContext(getActivity());
+        mCastManager.removeTracksSelectedListener(this);
     }
 
 }

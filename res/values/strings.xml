@@ -11,6 +11,7 @@
     <string name="info_na">Information Not Available</string>
     <string name="pause">Pause</string>
     <string name="disconnect">Disconnect</string>
+    <string name="none">None</string>
 
     <!-- Used in Error Dialog -->
     <string name="ok">OK</string>

@@ -34,7 +34,9 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.KeyEvent;
@@ -244,16 +246,29 @@ public class VideoCastControllerActivity extends ActionBarActivity implements IV
             @Override
             public void onClick(View v) {
                 try {
-                    new TracksChooserDialog(mCastManager.getRemoteMediaInformation(),
-                            mVideoCastControllerFragment)
-                            .show(getSupportFragmentManager(), "dlg");
+                    showTracksChooserDialog();
                 } catch (TransientNetworkDisconnectionException e) {
                     LOGE(TAG, "Failed to get the media", e);
                 } catch (NoConnectionException e) {
-                    e.printStackTrace();
+                    LOGE(TAG, "Failed to get the media", e);
                 }
             }
         });
+    }
+
+    private void showTracksChooserDialog()
+            throws TransientNetworkDisconnectionException, NoConnectionException {
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        Fragment prev = getSupportFragmentManager().findFragmentByTag("dialog");
+        if (prev != null) {
+            transaction.remove(prev);
+        }
+        transaction.addToBackStack(null);
+
+        // Create and show the dialog.
+        TracksChooserDialog dialogFragment = TracksChooserDialog
+                .newInstance(mCastManager.getRemoteMediaInformation());
+        dialogFragment.show(transaction, "dialog");
     }
 
     private void setupActionBar() {
