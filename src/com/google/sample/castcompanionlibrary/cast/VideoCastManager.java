@@ -104,10 +104,11 @@ import org.json.JSONObject;
  * pass an OR-ed expression built from one ore more of the following constants:
  * <p>
  * <ul>
- * <li>FEATURE_DEBUGGING: to enable GMS level logging</li>
+ * <li>FEATURE_DEBUGGING: to enable Google Play Services level logging</li>
  * <li>FEATURE_NOTIFICATION: to enable system notifications</li>
  * <li>FEATURE_LOCKSCREEN: to enable lock-screen controls on supported versions</li>
  * <li>FEATURE_WIFI_RECONNECT: to enable reconnection logic</li>
+ * <li>FEATURE_CAPTIONS_PREFERENCE: to enable Closed Caption Preference handling logic</li>
  * </ul>
  * Callers can add {@link MiniController} components to their application pages by adding the
  * corresponding widget to their layout xml and then calling <code>addMiniController()</code>. This
@@ -418,7 +419,6 @@ public class VideoCastManager extends BaseCastManager
      */
     public void startCastControllerActivity(Context context,
             MediaInfo mediaInfo, int position, boolean shouldStart) {
-        setFlagForStartCastControllerActivity(context);
         startCastControllerActivity(context, Utils.fromMediaInfo(mediaInfo), position, shouldStart);
     }
 
@@ -803,7 +803,7 @@ public class VideoCastManager extends BaseCastManager
      * if the notification feature has been enabled during the initialization.
      * @see {@link BaseCastManager#enableFeatures()}
      */
-    private boolean startNotificationService(boolean visibility) {
+    private boolean startNotificationService() {
         if (!isFeatureEnabled(FEATURE_NOTIFICATION)) {
             return true;
         }
@@ -920,7 +920,7 @@ public class VideoCastManager extends BaseCastManager
             }
         }
 
-        startNotificationService(mUiVisible);
+        startNotificationService();
         try {
             attachDataChannel();
             attachMediaChannel();
@@ -1568,11 +1568,11 @@ public class VideoCastManager extends BaseCastManager
                 updateRemoteControl(true);
                 long mediaDurationLeft = getTimeLeftForMedia();
                 startReconnectionService(mediaDurationLeft);
-                startNotificationService(mUiVisible);
+                startNotificationService();
             } else if (mState == MediaStatus.PLAYER_STATE_PAUSED) {
                 LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = paused");
                 updateRemoteControl(false);
-                startNotificationService(mUiVisible);
+                startNotificationService();
             } else if (mState == MediaStatus.PLAYER_STATE_IDLE) {
                 LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = idle");
                 updateRemoteControl(false);

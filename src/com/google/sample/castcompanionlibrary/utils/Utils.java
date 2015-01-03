@@ -449,14 +449,19 @@ public class Utils {
                 LOGE(TAG, "Failed to build media tracks from the wrapper bundle", e);
             }
         }
-        return new MediaInfo.Builder(wrapper.getString(KEY_URL))
+        MediaInfo.Builder mediaBuilder = new MediaInfo.Builder(wrapper.getString(KEY_URL))
                 .setStreamType(wrapper.getInt(KEY_STREAM_TYPE))
                 .setContentType(wrapper.getString(KEY_CONTENT_TYPE))
                 .setMetadata(metaData)
                 .setCustomData(customData)
-                .setMediaTracks(mediaTracks)
-                .setStreamDuration(wrapper.getLong(KEY_STREAM_DURATION))
-                .build();
+                .setMediaTracks(mediaTracks);
+
+        if (wrapper.containsKey(KEY_STREAM_DURATION)
+                && wrapper.getLong(KEY_STREAM_DURATION) >= 0) {
+            mediaBuilder.setStreamDuration(wrapper.getLong(KEY_STREAM_DURATION));
+        }
+
+        return mediaBuilder.build();
     }
 
     /**
@@ -478,6 +483,9 @@ public class Utils {
      * Scale and center-crop a bitmap to fit the given dimensions.
      */
     public static Bitmap scaleCenterCrop(Bitmap source, int newHeight, int newWidth) {
+        if (source == null) {
+            return null;
+        }
         int sourceWidth = source.getWidth();
         int sourceHeight = source.getHeight();
 

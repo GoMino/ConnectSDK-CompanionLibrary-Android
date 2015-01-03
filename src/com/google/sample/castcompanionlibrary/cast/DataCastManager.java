@@ -57,7 +57,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
  * and pass an OR-ed expression built from one ore more of the following constants:
  * <p>
  * <ul>
- * <li>FEATURE_DEBUGGING: to enable GMS level logging</li>
+ * <li>FEATURE_DEBUGGING: to enable Google Play Services level logging</li>
  * </ul>
  * Beyond managing the connectivity to a cast device, this class provides easy-to-use methods to
  * send and receive messages using one or more namespaces. These namespaces can be configured during

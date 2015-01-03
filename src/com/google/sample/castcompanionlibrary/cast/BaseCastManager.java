@@ -291,7 +291,6 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
      *
      * @throws CastException if no cast device has been selected.
      */
-
     public boolean isDeviceOnLocalNetwork() throws CastException {
         if (mSelectedCastDevice == null) {
             throw new CastException("No cast device has yet been selected");
@@ -842,12 +841,6 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
                 private final int FAILED = 2;
 
                 @Override
-                protected void onCancelled() {
-                    super.onCancelled();
-                    mReconnectionTask = null;
-                }
-
-                @Override
                 protected Integer doInBackground(Void... params) {
                     for (int i = 0; i < timeoutInSeconds; i++) {
                         LOGD(TAG, "Reconnection: Attempt " + (i + 1));
@@ -876,7 +869,6 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
                             onDeviceSelected(null);
                         }
                     }
-                    mReconnectionTask = null;
                 }
 
             };
