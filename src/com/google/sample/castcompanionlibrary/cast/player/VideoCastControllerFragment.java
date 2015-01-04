@@ -123,6 +123,9 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
         mCastManager.addTracksSelectedListener(this);
         boolean explicitStartActivity = Utils.getBooleanFromPreference(getActivity(),
                 VideoCastManager.PREFS_KEY_START_ACTIVITY, false);
+        if (explicitStartActivity) {
+            mIsFresh = true;
+        }
         Utils.saveBooleanToPreference(getActivity(), VideoCastManager.PREFS_KEY_START_ACTIVITY,
                 false);
         if (extras.getBoolean(VideoCastManager.EXTRA_HAS_AUTH)) {
@@ -493,7 +496,7 @@ public class VideoCastControllerFragment extends Fragment implements OnVideoCast
                 shouldFinish = !(mCastManager.isConnected())
                         || (mCastManager.getPlaybackStatus() == MediaStatus.PLAYER_STATE_IDLE
                         && mCastManager.getIdleReason() == MediaStatus.IDLE_REASON_FINISHED);
-                if (shouldFinish) {
+                if (shouldFinish && !mIsFresh) {
                     mCastController.closeActivity();
                     return;
                 }
