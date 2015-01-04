@@ -833,7 +833,8 @@ public class VideoCastManager extends BaseCastManager
             LOGD(TAG, "onApplicationDisconnected(): Cached RouteInfo: " + getRouteInfo());
             LOGD(TAG, "onApplicationDisconnected(): Selected RouteInfo: " +
                     mMediaRouter.getSelectedRoute());
-            if (mMediaRouter.getSelectedRoute().equals(getRouteInfo())) {
+            if ((getRouteInfo() == null) || mMediaRouter.getSelectedRoute()
+                    .equals(getRouteInfo())) {
                 LOGD(TAG, "onApplicationDisconnected(): Setting route to default");
                 mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
             }
