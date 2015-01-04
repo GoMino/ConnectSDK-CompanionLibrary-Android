@@ -612,7 +612,7 @@ public class VideoCastManager extends BaseCastManager
             checkRemoteMediaPlayerAvailable();
             return mRemoteMediaPlayer.getMediaStatus().getStreamVolume();
         } else {
-            return Cast.CastApi.getVolume(mApiClient);
+            return getDeviceVolume();
         }
     }
 
@@ -648,15 +648,7 @@ public class VideoCastManager extends BaseCastManager
                     }
             );
         } else {
-            try {
-                Cast.CastApi.setVolume(mApiClient, volume);
-            } catch (IOException e) {
-                throw new CastException(e);
-            } catch (IllegalStateException e) {
-                throw new CastException(e);
-            } catch (IllegalArgumentException e) {
-                throw new CastException(e);
-            }
+            setDeviceVolume(volume);
         }
     }
 
@@ -710,7 +702,7 @@ public class VideoCastManager extends BaseCastManager
             checkRemoteMediaPlayerAvailable();
             return mRemoteMediaPlayer.getMediaStatus().isMute();
         } else {
-            return Cast.CastApi.isMute(mApiClient);
+            return isDeviceMute();
         }
     }
 
@@ -730,12 +722,7 @@ public class VideoCastManager extends BaseCastManager
             checkRemoteMediaPlayerAvailable();
             mRemoteMediaPlayer.setStreamMute(mApiClient, mute);
         } else {
-            try {
-                Cast.CastApi.setMute(mApiClient, mute);
-            } catch (Exception e) {
-                LOGE(TAG, "Failed to set volume", e);
-                throw new CastException("Failed to set volume", e);
-            }
+            setDeviceMute(mute);
         }
     }
 
@@ -872,8 +859,8 @@ public class VideoCastManager extends BaseCastManager
                     LOGE(TAG, "onApplicationStatusChanged(): Failed to inform " + consumer, e);
                 }
             }
-        } catch (IllegalStateException e1) {
-            // no use in logging this
+        } catch (IllegalStateException e) {
+            LOGE(TAG, "onApplicationStatusChanged()", e);
         }
     }
 
@@ -951,6 +938,9 @@ public class VideoCastManager extends BaseCastManager
             onFailed(R.string.failed_no_connection_trans, NO_STATUS_CODE);
         } catch (NoConnectionException e) {
             LOGE(TAG, "Failed to attach media/data channel due to network issues", e);
+            onFailed(R.string.failed_no_connection, NO_STATUS_CODE);
+        } catch (CastException e) {
+            LOGE(TAG, "Failed to attach media/data channel due to IO issues", e);
             onFailed(R.string.failed_no_connection, NO_STATUS_CODE);
         }
 
@@ -1329,7 +1319,7 @@ public class VideoCastManager extends BaseCastManager
     }
 
     private void attachMediaChannel() throws TransientNetworkDisconnectionException,
-            NoConnectionException {
+            NoConnectionException, CastException {
         LOGD(TAG, "attachMediaChannel()");
         checkConnectivity();
         if (null == mRemoteMediaPlayer) {
@@ -1361,8 +1351,10 @@ public class VideoCastManager extends BaseCastManager
             LOGD(TAG, "Registering MediaChannel namespace");
             Cast.CastApi.setMessageReceivedCallbacks(mApiClient, mRemoteMediaPlayer.getNamespace(),
                     mRemoteMediaPlayer);
-        } catch (Exception e) {
-            LOGE(TAG, "Failed to set up media channel", e);
+        } catch (IOException e) {
+            throw new CastException("attachMediaChannel()", e);
+        } catch (IllegalStateException e) {
+            throw new NoConnectionException("attachMediaChannel()", e);
         }
     }
 
@@ -1372,10 +1364,8 @@ public class VideoCastManager extends BaseCastManager
                 LOGD(TAG, "Registering MediaChannel namespace");
                 Cast.CastApi.setMessageReceivedCallbacks(mApiClient,
                         mRemoteMediaPlayer.getNamespace(), mRemoteMediaPlayer);
-            } catch (IOException e) {
-                LOGE(TAG, "Failed to setup media channel", e);
-            } catch (IllegalStateException e) {
-                LOGE(TAG, "Failed to setup media channel", e);
+            } catch (IOException | IllegalStateException e) {
+                LOGE(TAG, "reattachMediaChannel()", e);
             }
         }
     }
@@ -1387,8 +1377,8 @@ public class VideoCastManager extends BaseCastManager
                 try {
                     Cast.CastApi.removeMessageReceivedCallbacks(mApiClient,
                             mRemoteMediaPlayer.getNamespace());
-                } catch (Exception e) {
-                    LOGE(TAG, "Failed to detach media channel", e);
+                } catch (IllegalStateException | IOException e) {
+                    LOGE(TAG, "detachMediaChannel()", e);
                 }
             }
             mRemoteMediaPlayer = null;
@@ -1456,10 +1446,8 @@ public class VideoCastManager extends BaseCastManager
         };
         try {
             Cast.CastApi.setMessageReceivedCallbacks(mApiClient, mDataNamespace, mDataChannel);
-        } catch (IOException e) {
-            LOGE(TAG, "Failed to setup data channel", e);
-        } catch (IllegalStateException e) {
-            LOGE(TAG, "Failed to setup data channel", e);
+        } catch (IOException | IllegalStateException e) {
+            LOGE(TAG, "attachDataChannel()", e);
         }
     }
 
@@ -1467,10 +1455,8 @@ public class VideoCastManager extends BaseCastManager
         if (!TextUtils.isEmpty(mDataNamespace) && null != mDataChannel && null != mApiClient) {
             try {
                 Cast.CastApi.setMessageReceivedCallbacks(mApiClient, mDataNamespace, mDataChannel);
-            } catch (IOException e) {
-                LOGE(TAG, "Failed to setup data channel", e);
-            } catch (IllegalStateException e) {
-                LOGE(TAG, "Failed to setup data channel", e);
+            } catch (IOException | IllegalStateException e) {
+                LOGE(TAG, "reattachDataChannel()", e);
             }
         }
     }
@@ -1534,8 +1520,9 @@ public class VideoCastManager extends BaseCastManager
             mDataChannel = null;
             Utils.saveStringToPreference(mContext, PREFS_KEY_CAST_CUSTOM_DATA_NAMESPACE, null);
             return true;
-        } catch (Exception e) {
-            LOGE(TAG, "Failed to remove namespace: " + mDataNamespace, e);
+        } catch (IOException | IllegalStateException e) {
+            LOGE(TAG, String.format("removeDataChannel() Failed to remove namespace %s",
+                    mDataNamespace), e);
         }
         return false;
 

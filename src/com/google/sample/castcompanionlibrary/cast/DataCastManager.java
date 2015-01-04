@@ -165,10 +165,8 @@ public class DataCastManager extends BaseCastManager
             Cast.CastApi.setMessageReceivedCallbacks(mApiClient, namespace, this);
             mNamespaceList.add(namespace);
             return true;
-        } catch (IOException e) {
-            LOGE(TAG, "Failed to add namespace", e);
-        } catch (IllegalStateException e) {
-            LOGE(TAG, "Failed to add namespace", e);
+        } catch (IOException | IllegalStateException e) {
+            LOGE(TAG, String.format("addNamespace(%s)", namespace), e);
         }
         return false;
     }
@@ -199,10 +197,8 @@ public class DataCastManager extends BaseCastManager
             Cast.CastApi.removeMessageReceivedCallbacks(mApiClient, namespace);
             mNamespaceList.remove(namespace);
             return true;
-        } catch (IOException e) {
-            LOGE(TAG, "Failed to remove namespace: " + namespace, e);
-        } catch (IllegalStateException e) {
-            LOGE(TAG, "Failed to remove namespace: " + namespace, e);
+        } catch (IOException | IllegalStateException e) {
+            LOGE(TAG, String.format("removeNamespace(%s)", namespace), e);
         }
         return false;
 
@@ -379,8 +375,8 @@ public class DataCastManager extends BaseCastManager
             for (String namespace : mNamespaceList) {
                 try {
                     Cast.CastApi.removeMessageReceivedCallbacks(mApiClient, namespace);
-                } catch (Exception e) {
-                    LOGE(TAG, "Failed to add namespace: " + namespace, e);
+                } catch (IOException | IllegalStateException e) {
+                    LOGE(TAG, String.format("detachDataChannels(%s)", namespace), e);
                 }
             }
         }

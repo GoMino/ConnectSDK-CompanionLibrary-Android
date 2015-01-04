@@ -585,9 +585,10 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
         checkConnectivity();
         try {
             Cast.CastApi.setVolume(mApiClient, volume);
-        } catch (Exception e) {
-            LOGE(TAG, "Failed to set volume", e);
-            throw new CastException("Failed to set volume");
+        } catch (IOException | IllegalArgumentException e) {
+            throw new CastException("setVolume()", e);
+        } catch (IllegalStateException e) {
+            throw new NoConnectionException("setVolume()", e);
         }
     }
 
@@ -600,7 +601,11 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
     public final double getDeviceVolume() throws TransientNetworkDisconnectionException,
             NoConnectionException {
         checkConnectivity();
-        return Cast.CastApi.getVolume(mApiClient);
+        try {
+            return Cast.CastApi.getVolume(mApiClient);
+        } catch (IllegalStateException e) {
+            throw new NoConnectionException("getDeviceVolume()", e);
+        }
     }
 
     /**
@@ -629,7 +634,11 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
     public final boolean isDeviceMute() throws TransientNetworkDisconnectionException,
             NoConnectionException {
         checkConnectivity();
-        return Cast.CastApi.isMute(mApiClient);
+        try {
+            return Cast.CastApi.isMute(mApiClient);
+        } catch (IllegalStateException e) {
+            throw new NoConnectionException("isDeviceMute()", e);
+        }
     }
 
     /**
@@ -644,9 +653,10 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
         checkConnectivity();
         try {
             Cast.CastApi.setMute(mApiClient, mute);
-        } catch (Exception e) {
-            LOGE(TAG, "Failed to set mute to: " + mute, e);
-            throw new CastException("Failed to mute");
+        } catch (IOException e) {
+            throw new CastException("setDeviceMute()");
+        } catch (IllegalStateException e) {
+            throw new NoConnectionException("setDeviceMute()", e);
         }
     }
 
@@ -938,14 +948,10 @@ public abstract class BaseCastManager implements DeviceSelectionListener, Connec
                 }
             }
 
-        } catch (IOException e) {
-            LOGE(TAG, "error requesting status", e);
-        } catch (IllegalStateException e) {
-            LOGE(TAG, "error requesting status", e);
-        } catch (TransientNetworkDisconnectionException e) {
-            LOGE(TAG, "error requesting status due to network issues", e);
-        } catch (NoConnectionException e) {
-            LOGE(TAG, "error requesting status due to network issues", e);
+        } catch (IOException | IllegalStateException e) {
+            LOGE(TAG, "onConnected() error requesting status", e);
+        } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
+            LOGE(TAG, "onConnected() error requesting status due to network issues", e);
         }
 
     }
