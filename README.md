@@ -29,6 +29,14 @@ See LICENSE
 Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl/TPLDxj)
 
 ## Change List
+1.14
+
+ * Wrapped some IllegalStateExceptions for proper handling. This should address issue #144 as well.
+ * Fixing an issue that sometimes when a media finishes, start of the next media would result in
+ immediate closure of the VideoCastControllerActivity
+ * Fixed a corner case where sometimes when the receiver is stopped due to reaching a time out, the
+  sender was disconnecting but the cast icon was not reflecting that correctly.
+
 1.13
 
  * Addressed a NPE in reconnection task (issue #143)
