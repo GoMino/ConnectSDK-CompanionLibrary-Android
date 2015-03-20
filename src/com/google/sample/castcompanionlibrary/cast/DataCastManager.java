@@ -375,7 +375,7 @@ public class DataCastManager extends BaseCastManager
             for (String namespace : mNamespaceList) {
                 try {
                     Cast.CastApi.removeMessageReceivedCallbacks(mApiClient, namespace);
-                } catch (IOException | IllegalStateException e) {
+                } catch (IOException | IllegalArgumentException e) {
                     LOGE(TAG, String.format("detachDataChannels(%s)", namespace), e);
                 }
             }

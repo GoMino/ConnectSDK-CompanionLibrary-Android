@@ -851,8 +851,7 @@ public class VideoCastManager extends BaseCastManager
         }
         try {
             appStatus = Cast.CastApi.getApplicationStatus(mApiClient);
-            LOGD(TAG, "onApplicationStatusChanged() reached: "
-                    + Cast.CastApi.getApplicationStatus(mApiClient));
+            LOGD(TAG, "onApplicationStatusChanged() reached: " + appStatus);
             for (IVideoCastConsumer consumer : mVideoConsumers) {
                 try {
                     consumer.onApplicationStatusChanged(appStatus);
