@@ -1,20 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2015 Google Inc. All rights reserved.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+  -->
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/pageView"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/ccl_cast_activity_background_color">
+
     <ImageView
-        android:id="@+id/background_image"
+        android:id="@+id/pageview"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:scaleType="centerCrop" />
+
     <RelativeLayout
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
         android:background="@drawable/cast_player_bg_gradient_light" >
+
         <RelativeLayout
             android:id="@+id/controllers"
             android:layout_width="fill_parent"
@@ -23,37 +41,37 @@
             android:visibility="invisible" >
 
             <ImageView
-                android:id="@+id/imageView1"
+                android:id="@+id/imageview"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentLeft="true"
                 android:src="@drawable/ic_av_pause_dark" />
 
             <TextView
-                android:id="@+id/liveText"
+                android:id="@+id/live_text"
                 android:layout_width="fill_parent"
                 android:layout_height="fill_parent"
                 android:layout_marginLeft="5dp"
-                android:layout_toRightOf="@+id/imageView1"
+                android:layout_toRightOf="@+id/imageview"
                 android:gravity="center_vertical"
                 android:maxLines="1"
-                android:textColor="@color/white"
-                android:text="@string/live"
+                android:textColor="@color/ccl_cast_activity_text_color"
+                android:text="@string/ccl_live"
                 android:visibility="invisible"/>
 
             <TextView
-                android:id="@+id/startText"
+                android:id="@+id/start_text"
                 android:layout_width="wrap_content"
                 android:layout_height="fill_parent"
                 android:layout_marginLeft="5dp"
-                android:layout_toRightOf="@+id/imageView1"
+                android:layout_toRightOf="@+id/imageview"
                 android:gravity="center_vertical"
                 android:maxLines="1"
                 android:text="00:00"
-                android:textColor="@color/white" />
+                android:textColor="@color/ccl_cast_activity_text_color" />
 
             <TextView
-                android:id="@+id/endText"
+                android:id="@+id/end_text"
                 android:layout_width="wrap_content"
                 android:layout_height="fill_parent"
                 android:layout_marginRight="16dp"
@@ -62,7 +80,7 @@
                 android:layout_alignWithParentIfMissing="true"
                 android:maxLines="1"
                 android:text="0:00"
-                android:textColor="@color/white" />
+                android:textColor="@color/ccl_cast_activity_text_color" />
 
             <ImageView
                 android:id="@+id/cc"
@@ -75,30 +93,30 @@
                 />
 
             <SeekBar
-                android:id="@+id/seekBar1"
+                android:id="@+id/seekbar"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_centerVertical="true"
                 android:layout_gravity="center"
                 android:layout_marginLeft="5dp"
                 android:layout_marginRight="5dp"
-                android:layout_toLeftOf="@+id/endText"
-                android:layout_toRightOf="@+id/startText" />
+                android:layout_toLeftOf="@+id/end_text"
+                android:layout_toRightOf="@+id/start_text" />
         </RelativeLayout>
 
         <TextView
-            android:id="@+id/textView1"
+            android:id="@+id/textview1"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:layout_above="@+id/textView2"
+            android:layout_above="@+id/textview2"
             android:ellipsize="end"
             android:gravity="center_horizontal"
             android:maxLines="1"
             android:textAppearance="?android:attr/textAppearanceLarge"
-            android:textColor="#E5FFFFFF" />
+            android:textColor="@color/ccl_cast_activity_progress_text_color" />
 
         <TextView
-            android:id="@+id/textView2"
+            android:id="@+id/textview2"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_above="@+id/controllers"
@@ -107,16 +125,17 @@
             android:gravity="center_horizontal"
             android:maxLines="1"
             android:textAppearance="?android:attr/textAppearanceMedium"
-            android:textColor="#E5AAAAAA" />
+            android:textColor="@color/ccl_cast_activity_progress_text_color" />
     </RelativeLayout>
 
     <ProgressBar
-        android:id="@+id/progressBar1"
+        android:id="@+id/progressbar1"
         style="?android:attr/progressBarStyleLarge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
         android:visibility="gone" />
+
     <android.support.v7.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_height="wrap_content"
