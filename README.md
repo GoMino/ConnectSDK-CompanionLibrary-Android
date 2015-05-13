@@ -29,6 +29,12 @@ See LICENSE
 Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl/TPLDxj)
 
 ## Change List
+2.0.1
+
+ * Improving the management of MediaRouteButton
+ * Working around a bug in Play Services, see issue #170
+ * Fixing a typo
+
 2.0
 #### Notice: this release introduces a restructured and updated code base that has backward-incompatible changes. Most of these changes can be handled by a simple search-and-replace action but there are some changes to the API names and signatures that may need more manual handling. Below you can find a list of changes.
 
