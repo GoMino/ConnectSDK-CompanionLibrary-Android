@@ -36,7 +36,7 @@ import android.support.v7.media.MediaRouter.RouteInfo;
 public class CastMediaRouterCallback extends MediaRouter.Callback {
     private static final String TAG = LogUtils.makeLogTag(CastMediaRouterCallback.class);
     private final BaseCastManager mCastManager;
-    private int mRouteCount = 0;
+    private boolean mRouteAvailable = false;
 
     public CastMediaRouterCallback(BaseCastManager castManager) {
         this.mCastManager = castManager;
@@ -67,9 +67,7 @@ public class CastMediaRouterCallback extends MediaRouter.Callback {
     @Override
     public void onRouteAdded(MediaRouter router, RouteInfo route) {
         if (!router.getDefaultRoute().equals(route)) {
-            if (++mRouteCount == 1) {
-                mCastManager.onCastAvailabilityChanged(true);
-            }
+            notifyRouteAvailabilityChangedIfNeeded(router);
             mCastManager.onCastDeviceDetected(route);
         }
         if (mCastManager.getReconnectionStatus()
@@ -91,16 +89,34 @@ public class CastMediaRouterCallback extends MediaRouter.Callback {
 
     @Override
     public void onRouteRemoved(MediaRouter router, RouteInfo route) {
-        if (--mRouteCount == 0) {
-            mCastManager.onCastAvailabilityChanged(false);
+        notifyRouteAvailabilityChangedIfNeeded(router);
+    }
+
+    @Override
+    public void onRouteChanged(MediaRouter router, RouteInfo route) {
+        notifyRouteAvailabilityChangedIfNeeded(router);
+    }
+
+    private void notifyRouteAvailabilityChangedIfNeeded(MediaRouter router) {
+        boolean routeAvailable = isRouteAvailable(router);
+        if (routeAvailable != mRouteAvailable) {
+            // availability of routes have changed
+            mRouteAvailable = routeAvailable;
+            mCastManager.onCastAvailabilityChanged(mRouteAvailable);
         }
     }
 
+    private boolean isRouteAvailable(MediaRouter router) {
+        return router.isRouteAvailable(mCastManager.getMediaRouteSelector(),
+            MediaRouter.AVAILABILITY_FLAG_IGNORE_DEFAULT_ROUTE
+                | MediaRouter.AVAILABILITY_FLAG_REQUIRE_MATCH);
+    }
+
     /**
-     * Resets the count of discovered routes. This should be called when we stop the discovery so
-     * next time that we start the discovery, the count of discovered routes reflect the reality.
+     * Returns {@code true} if and only if there is at least one route matching the
+     * {@link BaseCastManager#getMediaRouteSelector()}.
      */
-    public void resetRouteCount() {
-        mRouteCount = 0;
+    public boolean isRouteAvailable() {
+        return mRouteAvailable;
     }
 }

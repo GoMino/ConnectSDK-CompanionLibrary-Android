@@ -258,8 +258,11 @@ public abstract class BaseCastManager
         onDisconnected(stopAppOnExit, clearPersistedConnectionData, setDefaultRoute);
         onDeviceUnselected();
         if (mApiClient != null) {
-            LOGD(TAG, "Trying to disconnect");
-            mApiClient.disconnect();
+            // the following conditional clause is to get around a bug in play services
+            if (mApiClient.isConnected()) {
+                LOGD(TAG, "Trying to disconnect");
+                mApiClient.disconnect();
+            }
             if ((mMediaRouter != null) && setDefaultRoute) {
                 LOGD(TAG, "disconnectDevice(): Setting route to default");
                 mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
@@ -437,7 +440,6 @@ public abstract class BaseCastManager
      */
     public final void stopCastDiscovery() {
         mMediaRouter.removeCallback(mMediaRouterCallback);
-        mMediaRouterCallback.resetRouteCount();
     }
 
     /**
@@ -1140,5 +1142,13 @@ public abstract class BaseCastManager
             onUiVisibilityChanged(msg.what == WHAT_UI_VISIBLE);
             return true;
         }
+    }
+
+    /**
+     * Returns {@code true} if and only if there is at least one route matching the
+     * {@link #getMediaRouteSelector()}.
+     */
+    public boolean isAnyRouteAvailable() {
+        return mMediaRouterCallback.isRouteAvailable();
     }
 }
