@@ -61,6 +61,9 @@ public class VideoIntentReceiver extends BroadcastReceiver {
                 castMgr.disconnect();
                 break;
             case Intent.ACTION_MEDIA_BUTTON:
+                if (!intent.hasExtra(Intent.EXTRA_KEY_EVENT)) {
+                    return;
+                }
                 KeyEvent keyEvent = (KeyEvent) intent.getExtras().get(Intent.EXTRA_KEY_EVENT);
                 if (keyEvent.getAction() != KeyEvent.ACTION_DOWN) {
                     return;
