@@ -29,6 +29,11 @@ See LICENSE
 Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl/TPLDxj)
 
 ## Change List
+2.0.2
+
+ * Addressing issues #171, #174
+ * DataCastConsumer.onApplicationConnectionFailed() now returns void
+
 2.0.1
 
  * Improving the management of MediaRouteButton

@@ -143,6 +143,7 @@ public class VideoCastManager extends BaseCastManager
     public static final long DEFAULT_LIVE_STREAM_DURATION_MS = TimeUnit.HOURS.toMillis(2); // 2hrs
     public static final String PREFS_KEY_START_ACTIVITY = "ccl-start-cast-activity";
     private TracksPreferenceManager mTrackManager;
+    private ComponentName mMediaEventReceiver;
 
     /**
      * Volume can be controlled at two different layers, one is at the "stream" level and one at
@@ -1505,9 +1506,8 @@ public class VideoCastManager extends BaseCastManager
         mAudioManager.requestAudioFocus(null, AudioManager.STREAM_MUSIC,
                 AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
 
-        ComponentName eventReceiver = new ComponentName(
-                mContext, VideoIntentReceiver.class.getName());
-        mAudioManager.registerMediaButtonEventReceiver(eventReceiver);
+        mMediaEventReceiver = new ComponentName(mContext, VideoIntentReceiver.class.getName());
+        mAudioManager.registerMediaButtonEventReceiver(mMediaEventReceiver);
 
         if (mRemoteControlClientCompat == null) {
             Intent intent = new Intent(Intent.ACTION_MEDIA_BUTTON);
@@ -1655,8 +1655,12 @@ public class VideoCastManager extends BaseCastManager
      * Removes the remote control client
      */
     public void removeRemoteControlClient() {
+        LOGD(TAG, "removeRemoteControlClient()");
         if (isFeatureEnabled(FEATURE_LOCKSCREEN)) {
             mAudioManager.abandonAudioFocus(null);
+            if (mMediaEventReceiver != null) {
+                mAudioManager.unregisterMediaButtonEventReceiver(mMediaEventReceiver);
+            }
             if (mRemoteControlClientCompat != null) {
                 RemoteControlHelper.unregisterRemoteControlClient(mAudioManager,
                         mRemoteControlClientCompat);

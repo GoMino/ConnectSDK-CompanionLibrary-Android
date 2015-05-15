@@ -51,13 +51,8 @@ public interface DataCastConsumer extends BaseCastConsumer {
      * <li>5 : Application not currently running
      * <li>6 : Application already running
      * </ul>
-     * If this method returns <code>true</code>, then the library will provide an error dialog to
-     * inform the user. Clients can extend this method and return <code>false</code> to handle the
-     * error message themselves.
-     *
-     * @return <code>true</code> if you want the library handle the error message
      */
-    public boolean onApplicationConnectionFailed(int errorCode);
+    public void onApplicationConnectionFailed(int errorCode);
 
     /**
      * Called when application status changes. The argument is built by the receiver

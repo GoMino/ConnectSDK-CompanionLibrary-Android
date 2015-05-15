@@ -39,8 +39,7 @@ public class DataCastConsumerImpl extends BaseCastConsumerImpl implements DataCa
     }
 
     @Override
-    public boolean onApplicationConnectionFailed(int errorCode) {
-        return true;
+    public void onApplicationConnectionFailed(int errorCode) {
     }
 
     @Override
