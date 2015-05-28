@@ -93,8 +93,8 @@ public class DataCastManager extends BaseCastManager implements Cast.MessageRece
      * this class before requesting an instance will result in a {@link CastException} exception.
      *
      * @param context
-     * @param applicationId the unique ID for your application
-     * @param namespaces to be set up for this class.
+     * @param applicationId the application ID for your application
+     * @param namespaces Namespaces to be set up for this class.
      */
     public static synchronized DataCastManager initialize(Context context,
             String applicationId, String... namespaces) {

@@ -17,19 +17,19 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- pressed -->
     <item android:state_pressed="true"
-          android:drawable="@drawable/ic_closed_caption_blue"/>
+          android:drawable="@drawable/ic_closed_caption_googblue_36dp"/>
     <!-- focused -->
     <item android:state_focused="true"
-          android:drawable="@drawable/ic_closed_caption_white"/>
+          android:drawable="@drawable/ic_closed_caption_white_36dp"/>
     <!-- hovered -->
     <item android:state_hovered="true"
-          android:drawable="@drawable/ic_closed_caption_white"/>
+          android:drawable="@drawable/ic_closed_caption_white_36dp"/>
     <!-- activated -->
     <item android:state_enabled="true"
-          android:drawable="@drawable/ic_closed_caption_white"/>
+          android:drawable="@drawable/ic_closed_caption_white_36dp"/>
     <!-- deactivated -->
     <item android:state_enabled="false"
-          android:drawable="@drawable/ic_closed_caption_grey"/>
+          android:drawable="@drawable/ic_closed_caption_grey600_36dp"/>
     <!-- default -->
-    <item android:drawable="@drawable/ic_closed_caption_white"/>
+    <item android:drawable="@drawable/ic_closed_caption_white_36dp"/>
 </selector>

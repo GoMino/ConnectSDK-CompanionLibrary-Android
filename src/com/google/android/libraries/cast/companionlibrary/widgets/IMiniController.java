@@ -17,6 +17,7 @@
 package com.google.android.libraries.cast.companionlibrary.widgets;
 
 import com.google.android.gms.cast.MediaInfo;
+import com.google.android.gms.cast.MediaQueueItem;
 import com.google.android.gms.cast.MediaStatus;
 import com.google.android.libraries.cast.companionlibrary.widgets.MiniController.OnMiniControllerChangedListener;
 
@@ -77,5 +78,31 @@ public interface IMiniController {
      * or {@link MediaInfo#STREAM_TYPE_BUFFERED}
      */
     public void setStreamType(int streamType);
+
+    /**
+     * Sets the progress of stream.
+     */
+    public void setProgress(int progress, int duration);
+
+    /**
+     * Sets the visibility of the progress indicator
+     */
+    public void setProgressVisibility(boolean visible);
+
+    /**
+     * Sets whether the "upcoming" sub-component should be visible or not
+     */
+    public void setUpcomingVisibility(boolean visible);
+
+    /**
+     * Sets the upcoming item, which can be {@code null}.
+     */
+    public void setUpcomingItem(MediaQueueItem item);
+
+    /**
+     * Controls the visibility of the currently playing item.
+     */
+    public void setCurrentVisibility(boolean visible);
+
 
 }

@@ -30,18 +30,18 @@ public interface DataCastConsumer extends BaseCastConsumer {
      * session ID is returned. <code>wasLaunched</code> indicates if the application was launched or
      * joined.
      */
-    public void onApplicationConnected(ApplicationMetadata appMetadata,
+    void onApplicationConnected(ApplicationMetadata appMetadata,
             String applicationStatus, String sessionId, boolean wasLaunched);
 
     /**
      * Called when the current application has stopped
      */
-    public void onApplicationDisconnected(int errorCode);
+    void onApplicationDisconnected(int errorCode);
 
     /**
      * Called when an attempt to stop a receiver application has failed.
      */
-    public void onApplicationStopFailed(int errorCode);
+    void onApplicationStopFailed(int errorCode);
 
     /**
      * Called when an application launch has failed. Failure reason is captured in the
@@ -52,30 +52,30 @@ public interface DataCastConsumer extends BaseCastConsumer {
      * <li>6 : Application already running
      * </ul>
      */
-    public void onApplicationConnectionFailed(int errorCode);
+    void onApplicationConnectionFailed(int errorCode);
 
     /**
      * Called when application status changes. The argument is built by the receiver
      */
-    public void onApplicationStatusChanged(String appStatus);
+    void onApplicationStatusChanged(String appStatus);
 
     /**
      * Called when the device's volume is changed. Note not to mix that with the stream's volume
      */
-    public void onVolumeChanged(double value, boolean isMute);
+    void onVolumeChanged(double value, boolean isMute);
 
     /**
      * Called when a message is received from a given {@link CastDevice} for a given
      * <code>namespace</code>.
      */
-    public void onMessageReceived(CastDevice castDevice, String namespace, String message);
+    void onMessageReceived(CastDevice castDevice, String namespace, String message);
 
     /**
      * Called when there is an error sending a message.
      *
      * @param status The status of the result
      */
-    public void onMessageSendFailed(Status status);
+    void onMessageSendFailed(Status status);
 
     /**
      * Called when this callback is removed from the Cast object.
@@ -83,5 +83,5 @@ public interface DataCastConsumer extends BaseCastConsumer {
      * @param castDevice The castDevice from where the message originated.
      * @param namespace The associated namespace of the removed listener.
      */
-    public void onRemoved(CastDevice castDevice, String namespace);
+    void onRemoved(CastDevice castDevice, String namespace);
 }

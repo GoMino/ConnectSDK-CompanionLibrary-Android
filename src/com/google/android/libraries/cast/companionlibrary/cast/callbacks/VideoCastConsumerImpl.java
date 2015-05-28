@@ -17,8 +17,12 @@
 package com.google.android.libraries.cast.companionlibrary.cast.callbacks;
 
 import com.google.android.gms.cast.ApplicationMetadata;
+import com.google.android.gms.cast.MediaQueueItem;
 import com.google.android.gms.cast.TextTrackStyle;
 
+import android.view.View;
+
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -89,4 +93,31 @@ public class VideoCastConsumerImpl extends BaseCastConsumerImpl
     @Override
     public void onMediaLoadResult(int statusCode) {
     }
+
+    @Override
+    public void onMediaQueueUpdated(List<MediaQueueItem> queueItems, MediaQueueItem item,
+            int repeatMode, boolean shuffle) {
+    }
+
+    @Override
+    public void onRemoteMediaPreloadStatusUpdated(MediaQueueItem item) {
+    }
+
+    @Override
+    public void onRemoteMediaPlayerQueueStatusUpdated(List<MediaQueueItem> queueItems,
+            MediaQueueItem item, int repeatMode, boolean shuffle) {
+    }
+
+    @Override
+    public void onUpcomingPlayClicked(View v, MediaQueueItem item) {
+    }
+
+    @Override
+    public void onUpcomingStopClicked(View view, MediaQueueItem upcomingItem) {
+    }
+
+    @Override
+    public void onMediaQueueOperationResult(int operationId, int statusCode) {
+    }
+
 }

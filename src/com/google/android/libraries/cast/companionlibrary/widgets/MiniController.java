@@ -17,6 +17,8 @@
 package com.google.android.libraries.cast.companionlibrary.widgets;
 
 import com.google.android.gms.cast.MediaInfo;
+import com.google.android.gms.cast.MediaMetadata;
+import com.google.android.gms.cast.MediaQueueItem;
 import com.google.android.gms.cast.MediaStatus;
 import com.google.android.libraries.cast.companionlibrary.R;
 import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
@@ -25,12 +27,14 @@ import com.google.android.libraries.cast.companionlibrary.cast.exceptions.NoConn
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.OnFailedListener;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
 import com.google.android.libraries.cast.companionlibrary.utils.FetchBitmapTask;
+import com.google.android.libraries.cast.companionlibrary.utils.Utils;
 
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Handler;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -58,6 +62,7 @@ import android.widget.TextView;
 public class MiniController extends RelativeLayout implements IMiniController {
 
     public static final int UNDEFINED_STATUS_CODE = -1;
+    private Handler mHandler;
     protected ImageView mIcon;
     protected TextView mTitle;
     protected TextView mSubTitle;
@@ -67,10 +72,19 @@ public class MiniController extends RelativeLayout implements IMiniController {
     private Uri mIconUri;
     private Drawable mPauseDrawable;
     private Drawable mPlayDrawable;
-    private View mContainer;
     private int mStreamType = MediaInfo.STREAM_TYPE_BUFFERED;
     private Drawable mStopDrawable;
     private FetchBitmapTask mFetchBitmapTask;
+    private ProgressBar mProgressBar;
+    private ImageView mUpcomingIcon;
+    private TextView mUpcomingTitle;
+    private View mUpcomingContainer;
+    private View mUpcomingPlay;
+    private View mUpcomingStop;
+    private Uri mUpcomingIconUri;
+    private FetchBitmapTask mFetchUpcomingBitmapTask;
+    private View mMainContainer;
+    private MediaQueueItem mUpcomingItem;
 
     public MiniController(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -79,12 +93,14 @@ public class MiniController extends RelativeLayout implements IMiniController {
         mPauseDrawable = getResources().getDrawable(R.drawable.ic_mini_controller_pause);
         mPlayDrawable = getResources().getDrawable(R.drawable.ic_mini_controller_play);
         mStopDrawable = getResources().getDrawable(R.drawable.ic_mini_controller_stop);
+        mHandler = new Handler();
         loadViews();
         setUpCallbacks();
     }
 
     /**
-     * Sets the listener that should be notified when a relevant event is fired from this component.
+     * Sets the listener that should be notified when a relevant event is fired from this
+     * component.
      * Clients can register the {@link VideoCastManager} instance to be the default listener so it
      * can control the remote media playback.
      */
@@ -107,7 +123,59 @@ public class MiniController extends RelativeLayout implements IMiniController {
 
     @Override
     public void setStreamType(int streamType) {
-        this.mStreamType = streamType;
+        mStreamType = streamType;
+    }
+
+    @Override
+    public void setProgress(final int progress, final int duration) {
+        // for live streams, we do not attempt to update the progress bar
+        if (mStreamType == MediaInfo.STREAM_TYPE_LIVE || mProgressBar == null) {
+            return;
+        }
+        mHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                mProgressBar.setMax(duration);
+                mProgressBar.setProgress(progress);
+            }
+        });
+    }
+
+    @Override
+    public void setProgressVisibility(boolean visible) {
+        if (mProgressBar == null) {
+            return;
+        }
+        mProgressBar.setVisibility(
+                visible && (mStreamType != MediaInfo.STREAM_TYPE_LIVE) ? View.VISIBLE
+                        : View.INVISIBLE);
+    }
+
+    @Override
+    public void setUpcomingVisibility(boolean visible) {
+        mUpcomingContainer.setVisibility(visible ? View.VISIBLE : View.GONE);
+        setProgressVisibility(!visible);
+    }
+
+    @Override
+    public void setUpcomingItem(MediaQueueItem item) {
+        mUpcomingItem = item;
+        if (item != null) {
+            MediaInfo mediaInfo = item.getMedia();
+            if (mediaInfo != null) {
+                MediaMetadata metadata = mediaInfo.getMetadata();
+                setUpcomingTitle(metadata.getString(MediaMetadata.KEY_TITLE));
+                setUpcomingIcon(Utils.getImageUri(mediaInfo, 0));
+            }
+        } else {
+            setUpcomingTitle("");
+            setUpcomingIcon((Uri) null);
+        }
+    }
+
+    @Override
+    public void setCurrentVisibility(boolean visible) {
+        mMainContainer.setVisibility(visible ? View.VISIBLE : View.GONE);
     }
 
     private void setUpCallbacks() {
@@ -134,7 +202,7 @@ public class MiniController extends RelativeLayout implements IMiniController {
             }
         });
 
-        mContainer.setOnClickListener(new OnClickListener() {
+        mMainContainer.setOnClickListener(new OnClickListener() {
 
             @Override
             public void onClick(View v) {
@@ -150,6 +218,24 @@ public class MiniController extends RelativeLayout implements IMiniController {
 
             }
         });
+
+        mUpcomingPlay.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mListener != null) {
+                    mListener.onUpcomingPlayClicked(v, mUpcomingItem);
+                }
+            }
+        });
+
+        mUpcomingStop.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mListener != null) {
+                    mListener.onUpcomingStopClicked(v, mUpcomingItem);
+                }
+            }
+        });
     }
 
     public MiniController(Context context) {
@@ -160,6 +246,10 @@ public class MiniController extends RelativeLayout implements IMiniController {
     @Override
     public final void setIcon(Bitmap bm) {
         mIcon.setImageBitmap(bm);
+    }
+
+    private void setUpcomingIcon(Bitmap bm) {
+        mUpcomingIcon.setImageBitmap(bm);
     }
 
     @Override
@@ -261,7 +351,13 @@ public class MiniController extends RelativeLayout implements IMiniController {
         mSubTitle = (TextView) findViewById(R.id.subtitle_view);
         mPlayPause = (ImageView) findViewById(R.id.play_pause);
         mLoading = (ProgressBar) findViewById(R.id.loading_view);
-        mContainer = findViewById(R.id.bigContainer);
+        mMainContainer = findViewById(R.id.container_current);
+        mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
+        mUpcomingIcon = (ImageView) findViewById(R.id.icon_view_upcoming);
+        mUpcomingTitle = (TextView) findViewById(R.id.title_view_upcoming);
+        mUpcomingContainer = findViewById(R.id.container_upcoming);
+        mUpcomingPlay = findViewById(R.id.play_upcoming);
+        mUpcomingStop = findViewById(R.id.stop_upcoming);
     }
 
     private void setLoadingVisibility(boolean show) {
@@ -279,6 +375,36 @@ public class MiniController extends RelativeLayout implements IMiniController {
         }
     }
 
+    private void setUpcomingIcon(Uri uri) {
+        if (mUpcomingIconUri != null && mUpcomingIconUri.equals(uri)) {
+            return;
+        }
+
+        mUpcomingIconUri = uri;
+        if (mFetchUpcomingBitmapTask != null) {
+            mFetchUpcomingBitmapTask.cancel(true);
+        }
+        mFetchUpcomingBitmapTask = new FetchBitmapTask() {
+            @Override
+            protected void onPostExecute(Bitmap bitmap) {
+                if (bitmap == null) {
+                    bitmap = BitmapFactory.decodeResource(getResources(),
+                            R.drawable.album_art_placeholder);
+                }
+                setUpcomingIcon(bitmap);
+                if (this == mFetchUpcomingBitmapTask) {
+                    mFetchUpcomingBitmapTask = null;
+                }
+            }
+        };
+
+        mFetchUpcomingBitmapTask.execute(uri);
+    }
+
+    private void setUpcomingTitle(String title) {
+        mUpcomingTitle.setText(title);
+    }
+
     /**
      * The interface for a listener that will be called when user interacts with the
      * {@link MiniController}, like clicking on the play/pause button, etc.
@@ -292,7 +418,7 @@ public class MiniController extends RelativeLayout implements IMiniController {
          * @throws NoConnectionException
          * @throws CastException
          */
-        public void onPlayPauseClicked(View v) throws CastException,
+        void onPlayPauseClicked(View v) throws CastException,
                 TransientNetworkDisconnectionException, NoConnectionException;
 
         /**
@@ -301,9 +427,18 @@ public class MiniController extends RelativeLayout implements IMiniController {
          * @throws NoConnectionException
          * @throws TransientNetworkDisconnectionException
          */
-        public void onTargetActivityInvoked(Context context)
+        void onTargetActivityInvoked(Context context)
                 throws TransientNetworkDisconnectionException, NoConnectionException;
 
-    }
+        /**
+         * Is called when the "play" button in the upcoming area is clicked.
+         */
+        void onUpcomingPlayClicked(View v, MediaQueueItem upcomingItem);
 
+        /**
+         * Is called when the "stop" button in the upcoming area is clicked.
+         */
+        void onUpcomingStopClicked(View view, MediaQueueItem upcomingItem);
+
+    }
 }

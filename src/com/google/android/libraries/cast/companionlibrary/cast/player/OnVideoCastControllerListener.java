@@ -33,17 +33,17 @@ public interface OnVideoCastControllerListener extends OnTracksSelectedListener 
     /**
      * Called when seeking is stopped by user.
      */
-    public void onStopTrackingTouch(SeekBar seekBar);
+    void onStopTrackingTouch(SeekBar seekBar);
 
     /**
      * Called when seeking starts by user
      */
-    public void onStartTrackingTouch(SeekBar seekBar);
+    void onStartTrackingTouch(SeekBar seekBar);
 
     /**
      * Called while seeking is happening by the user
      */
-    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser);
+    void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser);
 
     /**
      * Notification that user has clicked on the Play/Pause button
@@ -52,12 +52,30 @@ public interface OnVideoCastControllerListener extends OnTracksSelectedListener 
      * @throws NoConnectionException
      * @throws CastException
      */
-    public void onPlayPauseClicked(View v) throws CastException,
+    void onPlayPauseClicked(View v) throws CastException,
             TransientNetworkDisconnectionException, NoConnectionException;
 
     /**
      * Called when a configuration change happens (for example device is rotated)
      */
-    public void onConfigurationChanged();
+    void onConfigurationChanged();
+
+    /**
+     * Called when user clicks on the Skip Next button
+     *
+     * @throws TransientNetworkDisconnectionException
+     * @throws NoConnectionException
+     */
+    void onSkipNextClicked(View v) throws TransientNetworkDisconnectionException,
+            NoConnectionException;
+
+    /**
+     * Called when user clicks on the Skip Previous button
+     *
+     * @throws TransientNetworkDisconnectionException
+     * @throws NoConnectionException
+     */
+    void onSkipPreviousClicked(View v)
+            throws TransientNetworkDisconnectionException, NoConnectionException;
 
 }

@@ -15,8 +15,8 @@
   -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.google.android.libraries.cast.companionlibrary"
-    android:versionCode="16"
-    android:versionName="2.0.2" >
+    android:versionCode="17"
+    android:versionName="2.1" >
 
     <uses-sdk
         android:minSdkVersion="10"

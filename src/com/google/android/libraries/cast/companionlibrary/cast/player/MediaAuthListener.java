@@ -39,7 +39,7 @@ public interface MediaAuthListener {
      * @param startPoint The position in video to start the playback at (in milliseconds)
      * @param customData Optional {@link org.json.JSONObject}
      */
-    public void onAuthResult(MediaAuthStatus status, MediaInfo info, String message,
+    void onAuthResult(MediaAuthStatus status, MediaInfo info, String message,
             int startPoint, JSONObject customData);
 
     /**
@@ -49,6 +49,6 @@ public interface MediaAuthListener {
      * @param failureMessage The message stating the reason for failure. This message should be
      * localized.
      */
-    public void onAuthFailure(String failureMessage);
+    void onAuthFailure(String failureMessage);
 
 }

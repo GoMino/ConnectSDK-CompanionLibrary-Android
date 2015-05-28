@@ -20,6 +20,7 @@ import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.
 
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaMetadata;
+import com.google.android.gms.cast.MediaQueueItem;
 import com.google.android.gms.cast.MediaTrack;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
@@ -71,6 +72,10 @@ public final class Utils {
     private static final String KEY_TRACKS_DATA = "track-data";
     public static final boolean IS_KITKAT_OR_ABOVE =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
+    public static final boolean IS_LOLLIPOP_OR_ABOVE =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
+    public static final boolean IS_ICS_OR_ABOVE =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH;
 
     private Utils() {
     }
@@ -115,13 +120,13 @@ public final class Utils {
 
     /**
      * Returns the {@code Uri} address of an image for the {@link MediaInfo} at the given
-     * level. Level should be a number between 0 and {@code n - 1} where {@code n} is the
+     * index. Index should be a number between 0 and {@code n - 1} where {@code n} is the
      * number of images for that given item.
      */
-    public static Uri getImageUri(MediaInfo info, int level) {
+    public static Uri getImageUri(MediaInfo info, int index) {
         MediaMetadata mediaMetadata = info.getMetadata();
-        if (mediaMetadata != null && mediaMetadata.getImages().size() > level) {
-            return mediaMetadata.getImages().get(level).getUrl();
+        if (mediaMetadata != null && mediaMetadata.getImages().size() > index) {
+            return mediaMetadata.getImages().get(index).getUrl();
         }
         return null;
     }
@@ -342,5 +347,50 @@ public final class Utils {
     public static int convertDpToPixel(Context context, float dp) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp,
                 context.getResources().getDisplayMetrics());
+    }
+
+    /**
+     * Given a list of queue items, this method recreates an identical list of items except that the
+     * {@code itemId} of each item is erased, in effect preparing the list to be reloaded on the
+     * receiver.
+     */
+    public static MediaQueueItem[] rebuildQueue(List<MediaQueueItem> items) {
+        if (items == null || items.isEmpty()) {
+            return null;
+        }
+        MediaQueueItem[] rebuiltQueue = new MediaQueueItem[items.size()];
+        for (int i = 0; i < items.size(); i++) {
+            rebuiltQueue[i] =rebuildQueueItem(items.get(i));
+        }
+
+        return rebuiltQueue;
+    }
+
+    /**
+     * Given a list of queue items, and a new item, this method recreates an identical list of items
+     * from the queue, except that the {@code itemId} of each item is erased, in effect preparing
+     * the list to be reloaded. Then, it appends the new item to teh end of the rebuilt list and
+     * returns the result.
+     */
+    public static MediaQueueItem[] rebuildQueueAndAppend(List<MediaQueueItem> items,
+            MediaQueueItem currentItem) {
+        if (items == null || items.isEmpty()) {
+            return new MediaQueueItem[]{currentItem};
+        }
+        MediaQueueItem[] rebuiltQueue = new MediaQueueItem[items.size() + 1];
+        for (int i = 0; i < items.size(); i++) {
+            rebuiltQueue[i] = rebuildQueueItem(items.get(i));
+        }
+        rebuiltQueue[items.size()] = currentItem;
+
+        return rebuiltQueue;
+    }
+
+    /**
+     * Given a queue item, it returns an identical item except that the {@code itemId} has been
+     * cleared.
+     */
+    public static MediaQueueItem rebuildQueueItem(MediaQueueItem item) {
+        return new MediaQueueItem.Builder(item).clearItemId().build();
     }
 }

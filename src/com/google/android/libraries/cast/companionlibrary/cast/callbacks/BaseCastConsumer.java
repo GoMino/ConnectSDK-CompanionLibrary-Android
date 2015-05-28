@@ -30,7 +30,7 @@ public interface BaseCastConsumer extends OnFailedListener {
     /**
      * Called when connection is established
      */
-    public void onConnected();
+    void onConnected();
 
     /**
      * Called when the client is temporarily in a disconnected state. This can happen if there is a
@@ -41,22 +41,22 @@ public interface BaseCastConsumer extends OnFailedListener {
      *
      * @param cause The reason for the disconnection. Defined by constants CAUSE_*.
      */
-    public void onConnectionSuspended(int cause);
+    void onConnectionSuspended(int cause);
 
     /**
      * Called when a device is disconnected
      */
-    public void onDisconnected();
+    void onDisconnected();
 
     /**
      * Called when an error happens while connecting to a device.
      */
-    public void onConnectionFailed(ConnectionResult result);
+    void onConnectionFailed(ConnectionResult result);
 
     /**
      * Called when the MediaRouterCallback detects a non-default route.
      */
-    public void onCastDeviceDetected(RouteInfo info);
+    void onCastDeviceDetected(RouteInfo info);
 
     /**
      * Called when the number of cast devices present on the network changes from 0 to a positive
@@ -66,28 +66,28 @@ public interface BaseCastConsumer extends OnFailedListener {
      * @param castPresent set to <code>true</code> if at least one device becomes available,
      * <code>false</code> otherwise
      */
-    public void onCastAvailabilityChanged(boolean castPresent);
+    void onCastAvailabilityChanged(boolean castPresent);
 
     /**
      * Called after reconnection is established following a temporary disconnection, say, due to
      * network issues.
      */
-    public void onConnectivityRecovered();
+    void onConnectivityRecovered();
 
     /**
      * Called when visibility of the application has changed.
      */
-    public void onUiVisibilityChanged(boolean visible);
+    void onUiVisibilityChanged(boolean visible);
 
     /**
      * Called when the status of reconnection changes.
      * @param status
      */
-    public void onReconnectionStatusChanged(int status);
+    void onReconnectionStatusChanged(int status);
 
     /**
      * Called when a device is selected/unselected.
      * @param device
      */
-    public void onDeviceSelected(CastDevice device);
+    void onDeviceSelected(CastDevice device);
 }

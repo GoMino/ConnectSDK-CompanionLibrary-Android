@@ -27,4 +27,10 @@
     <color name="ccl_cast_activity_line2_text_color">#E5AAAAAA</color>
     <color name="ccl_cast_activity_background_color">#000000</color>
     <color name="ccl_cast_activity_text_color">#FFFFFF</color>
+
+    <color name="ccl_blue">#4285f4</color>
+    <color name="ccl_grey600">#555753</color>
+    <color name="ccl_mini_upcoming_background">#03A9F4</color>
+    <color name="ccl_mini_main_background">#FFFFFF</color>
+    <color name="ccl_mini_upcoming_upnext_color">#eeff41</color>
 </resources>

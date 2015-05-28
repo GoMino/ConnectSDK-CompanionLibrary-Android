@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <!--
   Copyright 2015 Google Inc. All rights reserved.
 
@@ -21,7 +22,8 @@
     -->
     <dimen name="ccl_mini_controller_font_size_line1">15sp</dimen>
     <dimen name="ccl_mini_controller_font_size_line2">13sp</dimen>
-    <dimen name="ccl_mini_controller_icon_width">124dp</dimen>
-    <dimen name="ccl_mini_controller_icon_height">70dp</dimen>
+    <dimen name="ccl_mini_controller_icon_width">64dp</dimen>
+    <dimen name="ccl_mini_controller_icon_height">64dp</dimen>
+    <dimen name="ccl_mini_upcoming_play_margin">16dp</dimen>
 
 </resources>
