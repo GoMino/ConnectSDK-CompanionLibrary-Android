@@ -29,7 +29,9 @@ See LICENSE
 Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl/TPLDxj)
 
 ## Change List
+
 2.1
+
  * Added Queue related APIs for handling autoplay and queue
  * Added "stop" button to notification and lockscreen for live streams in Lollipop and above
  * Expanded callbacks in VideoCastConsumer interface to provide feedback on success of queue related API calls
@@ -37,6 +39,7 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
   The visibility of these new buttons can be set through VideoCastManager.setNextPreviousVisibilityPolicy(policy)
  * The MiniController now has a modified UI with an additional item for showing an upcoming media item from the queue.
  * Addressed some issues
+
 2.0.2
 
  * Addressing issues #171, #174
