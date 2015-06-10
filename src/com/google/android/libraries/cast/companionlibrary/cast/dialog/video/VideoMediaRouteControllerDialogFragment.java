@@ -31,8 +31,7 @@ public class VideoMediaRouteControllerDialogFragment extends MediaRouteControlle
             Context context, Bundle savedInstanceState) {
         VideoMediaRouteControllerDialog customControllerDialog
                 = new VideoMediaRouteControllerDialog(context);
-        // If you need to compile against support libraries v21, uncomment the following line
-        // customControllerDialog.setVolumeControlEnabled(false);
+        customControllerDialog.setVolumeControlEnabled(false);
         return customControllerDialog;
     }
 }

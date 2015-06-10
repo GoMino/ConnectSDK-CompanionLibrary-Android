@@ -2834,7 +2834,8 @@ public class VideoCastManager extends BaseCastManager
         @Override
         public void run() {
             int currentPos;
-            if (mState == MediaStatus.PLAYER_STATE_BUFFERING || !isConnected()) {
+            if (mState == MediaStatus.PLAYER_STATE_BUFFERING || !isConnected()
+                    || mRemoteMediaPlayer == null) {
                 return;
             }
             try {
@@ -2861,7 +2862,7 @@ public class VideoCastManager extends BaseCastManager
     }
 
     /**
-     * Sets teh policy to be used for the visibility of skip forward/backward on the {@link
+     * Sets the policy to be used for the visibility of skip forward/backward on the {@link
      * VideoCastControllerActivity}. Note that the new policy is enforced the next time that
      * activity is opened and does not apply to the currently runnig one, if any.
      *
