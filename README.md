@@ -30,6 +30,11 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
 
 ## Change List
 
+2.1.1
+
+ * Now th MediaRouter support library added back the support foer the volume on the cast dialog, so CCL is hiding that again.
+ * Some typo fixes.
+
 2.1
 
  * Added Queue related APIs for handling autoplay and queue
