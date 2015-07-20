@@ -30,6 +30,14 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
 
 ## Change List
 
+2.2
+
+ * Removed a duplicate callback (onRemoteMediaPlayerQueueStatusUpdated()) as it was a duplicate of
+ onMediaQueueUpdated(). If your code is currently using onRemoteMediaPlayerQueueStatusUpdated(), please replace that
+ with onMediaQueueUpdated() which has an identical signature.
+ * Fixed issues #185, #189 and #190. For #189, a new set of resource aliases are introduced which should make
+ replacing those resources with your own simpler.
+
 2.1.1
 
  * Now the MediaRouter support library added back the support for the volume on the cast dialog, so CCL is hiding that again.

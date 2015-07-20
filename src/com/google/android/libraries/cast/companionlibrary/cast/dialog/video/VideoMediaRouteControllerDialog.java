@@ -106,9 +106,12 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
 
             };
             mCastManager.addVideoCastConsumer(mCastConsumerImpl);
-            mPauseDrawable = context.getResources().getDrawable(R.drawable.ic_av_pause_sm_dark);
-            mPlayDrawable = context.getResources().getDrawable(R.drawable.ic_av_play_sm_dark);
-            mStopDrawable = context.getResources().getDrawable(R.drawable.ic_av_stop_sm_dark);
+            mPauseDrawable = context.getResources()
+                    .getDrawable(R.drawable.ic_media_route_controller_pause);
+            mPlayDrawable = context.getResources()
+                    .getDrawable(R.drawable.ic_media_route_controller_play);
+            mStopDrawable = context.getResources()
+                    .getDrawable(R.drawable.ic_media_route_controller_stop);
         } catch (IllegalStateException e) {
             LOGE(TAG, "Failed to update the content of dialog", e);
         }

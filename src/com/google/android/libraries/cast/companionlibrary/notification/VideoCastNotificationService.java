@@ -27,8 +27,7 @@ import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
 import com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumerImpl;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.CastException;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.NoConnectionException;
-import com.google.android.libraries.cast.companionlibrary.cast.exceptions
-        .TransientNetworkDisconnectionException;
+import com.google.android.libraries.cast.companionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
 import com.google.android.libraries.cast.companionlibrary.cast.player.VideoCastControllerActivity;
 import com.google.android.libraries.cast.companionlibrary.utils.FetchBitmapTask;
 import com.google.android.libraries.cast.companionlibrary.utils.LogUtils;
@@ -43,15 +42,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.media.session.MediaSession;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
-import android.support.v4.media.MediaMetadataCompat;
-import android.support.v4.media.session.MediaSessionCompat;
 import android.util.Log;
 import android.widget.RemoteViews;
 
@@ -196,7 +192,7 @@ public class VideoCastNotificationService extends Service {
                         | TransientNetworkDisconnectionException e) {
                     LOGE(TAG, "Failed to set notification for " + info.toString(), e);
                 }
-                if (mVisible) {
+                if (mVisible && (mNotification != null)) {
                     startForeground(NOTIFICATION_ID, mNotification);
                 }
                 if (this == mBitmapDecoderTask) {
@@ -369,9 +365,9 @@ public class VideoCastNotificationService extends Service {
 
         int pauseOrStopResourceId = 0;
         if (info.getStreamType() == MediaInfo.STREAM_TYPE_LIVE) {
-            pauseOrStopResourceId = R.drawable.ic_stop_white_48dp;
+            pauseOrStopResourceId = R.drawable.ic_notification_stop_48dp;
         } else {
-            pauseOrStopResourceId = R.drawable.ic_pause_white_48dp;
+            pauseOrStopResourceId = R.drawable.ic_notification_pause_48dp;
         }
 
         mNotification = new Notification.Builder(this)
@@ -381,9 +377,9 @@ public class VideoCastNotificationService extends Service {
                 .setContentIntent(contentPendingIntent)
                 .setLargeIcon(bitmap)
                 .addAction(isPlaying ? pauseOrStopResourceId
-                                : R.drawable.ic_play_arrow_white_48dp,
+                                : R.drawable.ic_notification_play_48dp,
                         getString(R.string.ccl_pause), playbackPendingIntent)
-                .addAction(R.drawable.ic_clear_white_24dp, getString(R.string.ccl_disconnect),
+                .addAction(R.drawable.ic_notification_disconnect_24dp, getString(R.string.ccl_disconnect),
                         stopPendingIntent)
                 .setStyle(new Notification.MediaStyle().setShowActionsInCompactView(0, 1))
                 .setOngoing(true)
@@ -408,13 +404,13 @@ public class VideoCastNotificationService extends Service {
 
         if (isPlaying) {
             if (info.getStreamType() == MediaInfo.STREAM_TYPE_LIVE) {
-                rv.setImageViewResource(R.id.play_pause, R.drawable.ic_av_stop_sm_dark);
+                rv.setImageViewResource(R.id.play_pause, R.drawable.ic_notification_stop_24dp);
             } else {
-                rv.setImageViewResource(R.id.play_pause, R.drawable.ic_av_pause_sm_dark);
+                rv.setImageViewResource(R.id.play_pause, R.drawable.ic_notification_pause_24dp);
             }
 
         } else {
-            rv.setImageViewResource(R.id.play_pause, R.drawable.ic_av_play_sm_dark);
+            rv.setImageViewResource(R.id.play_pause, R.drawable.ic_notification_play_24dp);
         }
     }
 
