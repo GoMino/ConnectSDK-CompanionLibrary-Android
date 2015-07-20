@@ -144,9 +144,6 @@ public interface VideoCastConsumer extends BaseCastConsumer {
      */
     void onRemoteMediaPreloadStatusUpdated(MediaQueueItem item);
 
-    void onRemoteMediaPlayerQueueStatusUpdated(List<MediaQueueItem> queueItems,
-            MediaQueueItem item, int repeatMode, boolean shuffle);
-
     void onUpcomingPlayClicked(View v, MediaQueueItem item);
 
     void onUpcomingStopClicked(View view, MediaQueueItem upcomingItem);

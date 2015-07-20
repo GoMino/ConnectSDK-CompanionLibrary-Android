@@ -1837,19 +1837,10 @@ public class VideoCastManager extends BaseCastManager
                                 int repeatMode = mMediaStatus.getQueueRepeatMode();
                                 boolean shuffle = false;
                                 onQueueUpdated(queueItems, item, repeatMode, shuffle);
-                                VideoCastManager.this
-                                        .onRemoteMediaPlayerQueueStatusUpdated(
-                                                queueItems, item,
-                                                repeatMode, shuffle);
                             } else {
                                 onQueueUpdated(null, null,
                                         MediaStatus.REPEAT_MODE_REPEAT_OFF,
                                         false);
-                                VideoCastManager.this
-                                        .onRemoteMediaPlayerQueueStatusUpdated(null,
-                                                null,
-                                                MediaStatus.REPEAT_MODE_REPEAT_OFF,
-                                                false);
                             }
                         }
                     });
@@ -2139,6 +2130,9 @@ public class VideoCastManager extends BaseCastManager
         return mPreLoadingItem;
     }
 
+    /*
+    * This is called by onQueueStatusUpdated() of RemoteMediaPlayer
+    */
     private void onQueueUpdated(List<MediaQueueItem> queueItems, MediaQueueItem item, int repeatMode,
             boolean shuffle) {
         LOGD(TAG, "onQueueUpdated() reached");
@@ -2169,19 +2163,6 @@ public class VideoCastManager extends BaseCastManager
             updateLockScreenImage(getRemoteMediaInformation());
         } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
             LOGE(TAG, "Failed to update lock screen metadata due to a network issue", e);
-        }
-    }
-
-    /*
-     * This is called by onQueueStatusUpdated() of RemoteMediaPlayer
-     */
-    public void onRemoteMediaPlayerQueueStatusUpdated(List<MediaQueueItem> queueItems,
-            MediaQueueItem item, int repeatMode, boolean shuffle) {
-        LOGD(TAG, "onRemoteMediaPlayerQueueStatusUpdated() reached");
-        LOGD(TAG, String.format("Queue Items size: %d, Item: %s, Repeat Mode: %d, Shuffle: %s",
-                queueItems == null ? 0 : queueItems.size(), item, repeatMode, shuffle));
-        for (VideoCastConsumer consumer : mVideoConsumers) {
-            consumer.onRemoteMediaPlayerQueueStatusUpdated(queueItems, item, repeatMode, shuffle);
         }
     }
 
@@ -2528,10 +2509,10 @@ public class VideoCastManager extends BaseCastManager
      * {@code dispatchEvent} and call this method:
      * <pre>
      public boolean dispatchKeyEvent(KeyEvent event) {
-        if (mCastManager.onDispatchVolumeKeyEvent(event, VOLUME_DELTA)) {
+         if (mCastManager.onDispatchVolumeKeyEvent(event, VOLUME_DELTA)) {
             return true;
-        }
-        return super.dispatchKeyEvent(event);
+         }
+         return super.dispatchKeyEvent(event);
      }
      * </pre>
      * @param event The dispatched event.

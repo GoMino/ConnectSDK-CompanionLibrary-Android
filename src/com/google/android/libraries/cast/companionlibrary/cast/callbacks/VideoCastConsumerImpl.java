@@ -104,11 +104,6 @@ public class VideoCastConsumerImpl extends BaseCastConsumerImpl
     }
 
     @Override
-    public void onRemoteMediaPlayerQueueStatusUpdated(List<MediaQueueItem> queueItems,
-            MediaQueueItem item, int repeatMode, boolean shuffle) {
-    }
-
-    @Override
     public void onUpcomingPlayClicked(View v, MediaQueueItem item) {
     }
 
