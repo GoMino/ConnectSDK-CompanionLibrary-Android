@@ -470,12 +470,6 @@ public class VideoCastControllerFragment extends Fragment implements
                             mCastController.closeActivity();
                         }
                         break;
-                    case MediaStatus.IDLE_REASON_INTERRUPTED:
-                        if (mMediaStatus.getLoadingItemId() == MediaQueueItem.INVALID_ITEM_ID) {
-                            // we have reached the end of queue
-                            mCastController.closeActivity();
-                        }
-                        break;
                     case MediaStatus.IDLE_REASON_CANCELED:
                         try {
                             if (mCastManager.isRemoteStreamLive()) {
