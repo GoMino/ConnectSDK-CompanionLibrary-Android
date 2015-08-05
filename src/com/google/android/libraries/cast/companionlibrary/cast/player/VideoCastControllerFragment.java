@@ -522,7 +522,6 @@ public class VideoCastControllerFragment extends Fragment implements
             }
             mMediaStatus = mCastManager.getMediaStatus();
             mCastManager.addVideoCastConsumer(mCastConsumer);
-            mCastManager.incrementUiCounter();
             if (!mIsFresh) {
                 updatePlayerStatus();
                 // updating metadata in case another client has changed it and we are resuming the
@@ -533,6 +532,8 @@ public class VideoCastControllerFragment extends Fragment implements
             }
         } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
             LOGE(TAG, "Failed to get media information or status of media playback", e);
+        } finally {
+            mCastManager.incrementUiCounter();
         }
     }
 
