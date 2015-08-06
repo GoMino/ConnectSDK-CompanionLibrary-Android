@@ -19,6 +19,8 @@ package com.google.android.libraries.cast.companionlibrary.cast.reconnection;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
 
+import com.connectsdk.service.capability.listeners.ResponseListener;
+import com.connectsdk.service.command.ServiceCommandError;
 import com.google.android.libraries.cast.companionlibrary.cast.BaseCastManager;
 import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.NoConnectionException;
@@ -202,24 +204,37 @@ public class ReconnectionService extends Service {
             // on the media (since media may have been paused) and reset teh time left
             long timeLeft = 0;
             try {
-                timeLeft = mCastManager.isRemoteStreamLive() ? 0
-                        : mCastManager.getMediaTimeRemaining();
+                //timeLeft =
+                if(mCastManager.isRemoteStreamLive())
+                    timeLeft = 0;
+                else
+                    mCastManager.getMediaTimeRemaining(new ResponseListener<Long>() {
+                        @Override
+                        public void onSuccess(Long time) {
+                            if (time < EPSILON_MS) {
+                                // no time left
+                                stopSelf();
+                            } else {
+                                // lets reset the counter
+                                mCastManager.getPreferenceAccessor().saveLongToPreference(
+                                        BaseCastManager.PREFS_KEY_MEDIA_END,
+                                        time + SystemClock.elapsedRealtime());
+                                LOGD(TAG, "handleTermination(): resetting the timer");
+                                setUpEndTimer();
+                            }
+                        }
+
+                        @Override
+                        public void onError(ServiceCommandError serviceCommandError) {
+
+                        }
+                    });
 
             } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
                 LOGE(TAG, "Failed to calculate the time left for media due to lack of connectivity",
                         e);
             }
-            if (timeLeft < EPSILON_MS) {
-                // no time left
-                stopSelf();
-            } else {
-                // lets reset the counter
-                mCastManager.getPreferenceAccessor().saveLongToPreference(
-                        BaseCastManager.PREFS_KEY_MEDIA_END,
-                        timeLeft + SystemClock.elapsedRealtime());
-                LOGD(TAG, "handleTermination(): resetting the timer");
-                setUpEndTimer();
-            }
+
 
         }
     }

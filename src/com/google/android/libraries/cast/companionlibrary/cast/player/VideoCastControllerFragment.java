@@ -19,12 +19,15 @@ package com.google.android.libraries.cast.companionlibrary.cast.player;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
 
-import com.google.android.gms.cast.MediaInfo;
-import com.google.android.gms.cast.MediaMetadata;
-import com.google.android.gms.cast.MediaQueueItem;
-import com.google.android.gms.cast.MediaStatus;
-import com.google.android.gms.cast.MediaTrack;
-import com.google.android.gms.cast.RemoteMediaPlayer;
+//import com.google.android.gms.cast.MediaInfo;
+//import com.google.android.gms.cast.MediaMetadata;
+//import com.google.android.gms.cast.MediaQueueItem;
+//import com.google.android.gms.cast.MediaStatus;
+//import com.google.android.gms.cast.MediaTrack;
+//import com.google.android.gms.cast.RemoteMediaPlayer;
+import com.connectsdk.core.MediaInfo;
+import com.connectsdk.service.capability.MediaControl;
+import com.connectsdk.service.command.ServiceCommandError;
 import com.google.android.libraries.cast.companionlibrary.R;
 import com.google.android.libraries.cast.companionlibrary.cast.MediaQueue;
 import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
@@ -93,7 +96,7 @@ public class VideoCastControllerFragment extends Fragment implements
     private UrlAndBitmap mUrlAndBitmap;
     private static boolean sDialogCanceled = false;
     private boolean mIsFresh = true;
-    private MediaStatus mMediaStatus;
+    private MediaControl mMediaStatus;
 
     private enum OverallState {
         AUTHORIZING, PLAYBACK, UNKNOWN
@@ -247,11 +250,10 @@ public class VideoCastControllerFragment extends Fragment implements
         @Override
         public void onFailed(int resourceId, int statusCode) {
             LOGD(TAG, "onFailed(): " + getString(resourceId) + ", status code: " + statusCode);
-            if (statusCode == RemoteMediaPlayer.STATUS_FAILED
-                    || statusCode == RemoteMediaPlayer.STATUS_TIMED_OUT) {
+            //if (statusCode == RemoteMediaPlayer.STATUS_FAILED || statusCode == RemoteMediaPlayer.STATUS_TIMED_OUT) {
                 Utils.showToast(getActivity(), resourceId);
                 mCastController.closeActivity();
-            }
+            //}
         }
 
         @Override
@@ -259,18 +261,18 @@ public class VideoCastControllerFragment extends Fragment implements
             updatePlayerStatus();
         }
 
-        @Override
-        public void onMediaQueueUpdated(List<MediaQueueItem> queueItems, MediaQueueItem item,
-                int repeatMode, boolean shuffle) {
-
-            int size = 0;
-            int position = 0;
-            if (queueItems != null) {
-                size = queueItems.size();
-                position = queueItems.indexOf(item);
-            }
-            mCastController.onQueueItemsUpdated(size, position);
-        }
+//        @Override
+//        public void onMediaQueueUpdated(List<MediaQueueItem> queueItems, MediaQueueItem item,
+//                int repeatMode, boolean shuffle) {
+//
+//            int size = 0;
+//            int position = 0;
+//            if (queueItems != null) {
+//                size = queueItems.size();
+//                position = queueItems.indexOf(item);
+//            }
+//            mCastController.onQueueItemsUpdated(size, position);
+//        }
 
         @Override
         public void onConnectionSuspended(int cause) {
@@ -293,22 +295,54 @@ public class VideoCastControllerFragment extends Fragment implements
                 @Override
                 public void run() {
                     int currentPos;
-                    if (mPlaybackState == MediaStatus.PLAYER_STATE_BUFFERING) {
+                    if (mPlaybackState == MediaControl.PLAYER_STATE_BUFFERING) {
                         return;
                     }
                     if (!mCastManager.isConnected()) {
                         return;
                     }
                     try {
-                        int duration = (int) mCastManager.getMediaDuration();
-                        if (duration > 0) {
-                            try {
-                                currentPos = (int) mCastManager.getCurrentMediaPosition();
-                                mCastController.updateSeekbar(currentPos, duration);
-                            } catch (Exception e) {
-                                LOGE(TAG, "Failed to get current media position", e);
+//                        int duration = (int) mCastManager.getMediaDuration();
+//                        if (duration > 0) {
+//                            try {
+//                                currentPos = (int) mCastManager.getCurrentMediaPosition();
+//                                mCastController.updateSeekbar(currentPos, duration);
+//                            } catch (Exception e) {
+//                                LOGE(TAG, "Failed to get current media position", e);
+//                            }
+//                        }
+
+                        mCastManager.getMediaDuration(new MediaControl.DurationListener() {
+                            @Override
+                            public void onSuccess(Long duration) {
+                                final int mediaDuration = duration.intValue();
+                                if (mediaDuration > 0) {
+                                    try {
+                                        mCastManager.getCurrentMediaPosition(new MediaControl.PositionListener() {
+                                            @Override
+                                            public void onSuccess(Long position) {
+                                                final int currentPos = position.intValue();
+                                                mCastController.updateSeekbar(currentPos, mediaDuration);
+                                            }
+
+                                            @Override
+                                            public void onError(ServiceCommandError serviceCommandError) {
+                                                LOGE(TAG, "Failed to get current media position", serviceCommandError);
+                                            }
+                                        });
+                                    } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
+                                        LOGE(TAG, "Failed to get current media position", e);
+                                    }
+
+                                }
                             }
-                        }
+
+                            @Override
+                            public void onError(ServiceCommandError serviceCommandError) {
+                                LOGE(TAG, "Failed to get current media position", serviceCommandError);
+                            }
+                        });
+
                     } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
                         LOGE(TAG, "Failed to update the progress bar due to network issues", e);
                     }
@@ -332,18 +366,19 @@ public class VideoCastControllerFragment extends Fragment implements
         mSelectedMedia = mediaInfo;
         updateClosedCaptionState();
         try {
-            mCastController.setStreamType(mSelectedMedia.getStreamType());
+            //mCastController.setStreamType(mSelectedMedia.getStreamType());
+            mCastController.setStreamType(1);
             if (shouldStartPlayback) {
                 // need to start remote playback
-                mPlaybackState = MediaStatus.PLAYER_STATE_BUFFERING;
+                mPlaybackState = MediaControl.PLAYER_STATE_BUFFERING;
                 mCastController.setPlaybackStatus(mPlaybackState);
                 mCastManager.loadMedia(mSelectedMedia, true, startPoint, customData);
             } else {
                 // we don't change the status of remote playback
                 if (mCastManager.isRemoteMediaPlaying()) {
-                    mPlaybackState = MediaStatus.PLAYER_STATE_PLAYING;
+                    mPlaybackState = MediaControl.PLAYER_STATE_PLAYING;
                 } else {
-                    mPlaybackState = MediaStatus.PLAYER_STATE_PAUSED;
+                    mPlaybackState = MediaControl.PLAYER_STATE_PAUSED;
                 }
                 mCastController.setPlaybackStatus(mPlaybackState);
             }
@@ -368,9 +403,9 @@ public class VideoCastControllerFragment extends Fragment implements
         if (mCastManager.isFeatureEnabled(VideoCastManager.FEATURE_CAPTIONS_PREFERENCE)
                 && mSelectedMedia != null
                 && mCastManager.getTracksPreferenceManager().isCaptionEnabled()) {
-            List<MediaTrack> tracks = mSelectedMedia.getMediaTracks();
-            state = tracks == null || tracks.isEmpty() ? VideoCastController.CC_DISABLED
-                    : VideoCastController.CC_ENABLED;
+//            List<MediaTrack> tracks = mSelectedMedia.getMediaTracks();
+//            state = tracks == null || tracks.isEmpty() ? VideoCastController.CC_DISABLED : VideoCastController.CC_ENABLED;
+            state = VideoCastController.CC_DISABLED;
         }
         mCastController.setClosedCaptionState(state);
     }
@@ -421,11 +456,10 @@ public class VideoCastControllerFragment extends Fragment implements
         if (mSelectedMedia == null) {
             return;
         }
-        MediaMetadata mm = mSelectedMedia.getMetadata();
-        mCastController.setTitle(mm.getString(MediaMetadata.KEY_TITLE) != null
-                ? mm.getString(MediaMetadata.KEY_TITLE) : "");
-        boolean isLive = mSelectedMedia.getStreamType() == MediaInfo.STREAM_TYPE_LIVE;
-        mCastController.adjustControllersForLiveStream(isLive);
+        //MediaMetadata mm = mSelectedMedia.getMetadata();
+        mCastController.setTitle(mSelectedMedia.getTitle() != null ? mSelectedMedia.getTitle() : "");
+        //boolean isLive = mSelectedMedia.getStreamType() == MediaInfo.STREAM_TYPE_LIVE;
+        //mCastController.adjustControllersForLiveStream(isLive);
     }
 
     private void updatePlayerStatus() {
@@ -434,57 +468,58 @@ public class VideoCastControllerFragment extends Fragment implements
         if (mSelectedMedia == null) {
             return;
         }
-        mCastController.setStreamType(mSelectedMedia.getStreamType());
-        if (mediaStatus == MediaStatus.PLAYER_STATE_BUFFERING) {
+        //mCastController.setStreamType(mSelectedMedia.getStreamType());
+        mCastController.setStreamType(1);
+        if (mediaStatus == MediaControl.PLAYER_STATE_BUFFERING) {
             mCastController.setSubTitle(getString(R.string.ccl_loading));
         } else {
             mCastController.setSubTitle(getString(R.string.ccl_casting_to_device,
                     mCastManager.getDeviceName()));
         }
         switch (mediaStatus) {
-            case MediaStatus.PLAYER_STATE_PLAYING:
+            case MediaControl.PLAYER_STATE_PLAYING:
                 mIsFresh = false;
-                if (mPlaybackState != MediaStatus.PLAYER_STATE_PLAYING) {
-                    mPlaybackState = MediaStatus.PLAYER_STATE_PLAYING;
+                if (mPlaybackState != MediaControl.PLAYER_STATE_PLAYING) {
+                    mPlaybackState = MediaControl.PLAYER_STATE_PLAYING;
                     mCastController.setPlaybackStatus(mPlaybackState);
                 }
                 break;
-            case MediaStatus.PLAYER_STATE_PAUSED:
+            case MediaControl.PLAYER_STATE_PAUSED:
                 mIsFresh = false;
-                if (mPlaybackState != MediaStatus.PLAYER_STATE_PAUSED) {
-                    mPlaybackState = MediaStatus.PLAYER_STATE_PAUSED;
+                if (mPlaybackState != MediaControl.PLAYER_STATE_PAUSED) {
+                    mPlaybackState = MediaControl.PLAYER_STATE_PAUSED;
                     mCastController.setPlaybackStatus(mPlaybackState);
                 }
                 break;
-            case MediaStatus.PLAYER_STATE_BUFFERING:
+            case MediaControl.PLAYER_STATE_BUFFERING:
                 mIsFresh = false;
-                if (mPlaybackState != MediaStatus.PLAYER_STATE_BUFFERING) {
-                    mPlaybackState = MediaStatus.PLAYER_STATE_BUFFERING;
+                if (mPlaybackState != MediaControl.PLAYER_STATE_BUFFERING) {
+                    mPlaybackState = MediaControl.PLAYER_STATE_BUFFERING;
                     mCastController.setPlaybackStatus(mPlaybackState);
                 }
                 break;
-            case MediaStatus.PLAYER_STATE_IDLE:
-                switch (mCastManager.getIdleReason()) {
-                    case MediaStatus.IDLE_REASON_FINISHED:
-                        if (!mIsFresh && mMediaStatus.getLoadingItemId() == MediaQueueItem.INVALID_ITEM_ID) {
+            case MediaControl.PLAYER_STATE_IDLE:
+//                switch (mCastManager.getIdleReason()) {
+//                    case MediaStatus.IDLE_REASON_FINISHED:
+//                        if (!mIsFresh && mMediaStatus.getLoadingItemId() == MediaQueueItem.INVALID_ITEM_ID) {
                             mCastController.closeActivity();
-                        }
-                        break;
-                    case MediaStatus.IDLE_REASON_CANCELED:
-                        try {
-                            if (mCastManager.isRemoteStreamLive()) {
-                                if (mPlaybackState != MediaStatus.PLAYER_STATE_IDLE) {
-                                    mPlaybackState = MediaStatus.PLAYER_STATE_IDLE;
-                                    mCastController.setPlaybackStatus(mPlaybackState);
-                                }
-                            }
-                        } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
-                            LOGD(TAG, "Failed to determine if stream is live", e);
-                        }
-                        break;
-                    default:
-                        break;
-                }
+//                        }
+//                        break;
+//                    case MediaStatus.IDLE_REASON_CANCELED:
+//                        try {
+//                            if (mCastManager.isRemoteStreamLive()) {
+//                                if (mPlaybackState != MediaStatus.PLAYER_STATE_IDLE) {
+//                                    mPlaybackState = MediaStatus.PLAYER_STATE_IDLE;
+//                                    mCastController.setPlaybackStatus(mPlaybackState);
+//                                }
+//                            }
+//                        } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
+//                            LOGD(TAG, "Failed to determine if stream is live", e);
+//                        }
+//                        break;
+//                    default:
+//                        break;
+//                }
                 break;
 
             default:
@@ -506,15 +541,14 @@ public class VideoCastControllerFragment extends Fragment implements
         try {
             if (mCastManager.isRemoteMediaPaused() || mCastManager.isRemoteMediaPlaying()) {
                 if (mCastManager.getRemoteMediaInformation() != null
-                        && mSelectedMedia.getContentId()
-                        .equals(mCastManager.getRemoteMediaInformation().getContentId())) {
+                        && mSelectedMedia.getUrl().equals(mCastManager.getRemoteMediaInformation().getUrl())) {
                     mIsFresh = false;
                 }
             }
             if (!mCastManager.isConnecting()) {
                 boolean shouldFinish = !mCastManager.isConnected()
-                        || (mCastManager.getPlaybackStatus() == MediaStatus.PLAYER_STATE_IDLE
-                        && mCastManager.getIdleReason() == MediaStatus.IDLE_REASON_FINISHED);
+                        || (mCastManager.getPlaybackStatus() == MediaControl.PLAYER_STATE_IDLE);
+                        //&& mCastManager.getIdleReason() == MediaStatus.IDLE_REASON_FINISHED);
                 if (shouldFinish && !mIsFresh) {
                     mCastController.closeActivity();
                     return;
@@ -565,8 +599,7 @@ public class VideoCastControllerFragment extends Fragment implements
             mImageAsyncTask.cancel(true);
         }
         if (uri == null) {
-            mCastController.setImage(BitmapFactory.decodeResource(getActivity().getResources(),
-                    R.drawable.album_art_placeholder_large));
+            mCastController.setImage(BitmapFactory.decodeResource(getActivity().getResources(), R.drawable.album_art_placeholder_large));
             return;
         }
         if (mUrlAndBitmap != null && mUrlAndBitmap.isMatch(uri)) {
@@ -653,11 +686,11 @@ public class VideoCastControllerFragment extends Fragment implements
     @Override
     public void onStopTrackingTouch(SeekBar seekBar) {
         try {
-            if (mPlaybackState == MediaStatus.PLAYER_STATE_PLAYING) {
-                mPlaybackState = MediaStatus.PLAYER_STATE_BUFFERING;
+            if (mPlaybackState == MediaControl.PLAYER_STATE_PLAYING) {
+                mPlaybackState = MediaControl.PLAYER_STATE_BUFFERING;
                 mCastController.setPlaybackStatus(mPlaybackState);
                 mCastManager.play(seekBar.getProgress());
-            } else if (mPlaybackState == MediaStatus.PLAYER_STATE_PAUSED) {
+            } else if (mPlaybackState == MediaControl.PLAYER_STATE_PAUSED) {
                 mCastManager.seek(seekBar.getProgress());
             }
             restartTrickplayTimer();
@@ -686,23 +719,23 @@ public class VideoCastControllerFragment extends Fragment implements
     private void togglePlayback() throws CastException, TransientNetworkDisconnectionException,
             NoConnectionException {
         switch (mPlaybackState) {
-            case MediaStatus.PLAYER_STATE_PAUSED:
+            case MediaControl.PLAYER_STATE_PAUSED:
                 mCastManager.play();
-                mPlaybackState = MediaStatus.PLAYER_STATE_BUFFERING;
+                mPlaybackState = MediaControl.PLAYER_STATE_BUFFERING;
                 restartTrickplayTimer();
                 break;
-            case MediaStatus.PLAYER_STATE_PLAYING:
+            case MediaControl.PLAYER_STATE_PLAYING:
                 mCastManager.pause();
-                mPlaybackState = MediaStatus.PLAYER_STATE_BUFFERING;
+                mPlaybackState = MediaControl.PLAYER_STATE_BUFFERING;
                 break;
-            case MediaStatus.PLAYER_STATE_IDLE:
-                if ((mSelectedMedia.getStreamType() == MediaInfo.STREAM_TYPE_LIVE)
-                        && (mCastManager.getIdleReason() == MediaStatus.IDLE_REASON_CANCELED)) {
-                    mCastManager.play();
-                } else {
+            case MediaControl.PLAYER_STATE_IDLE:
+//                if ((mSelectedMedia.getStreamType() == MediaInfo.STREAM_TYPE_LIVE)
+//                        && (mCastManager.getIdleReason() == MediaStatus.IDLE_REASON_CANCELED)) {
+//                    mCastManager.play();
+//                } else {
                     mCastManager.loadMedia(mSelectedMedia, true, 0);
-                }
-                mPlaybackState = MediaStatus.PLAYER_STATE_BUFFERING;
+//                }
+                mPlaybackState = MediaControl.PLAYER_STATE_BUFFERING;
                 restartTrickplayTimer();
                 break;
             default:
@@ -776,23 +809,23 @@ public class VideoCastControllerFragment extends Fragment implements
 
     }
 
-    @Override
-    public void onTracksSelected(List<MediaTrack> tracks) {
-        long[] tracksArray;
-        if (tracks.isEmpty()) {
-            tracksArray = new long[]{};
-        } else {
-            tracksArray = new long[tracks.size()];
-            for (int i = 0; i < tracks.size(); i++) {
-                tracksArray[i] = tracks.get(i).getId();
-            }
-        }
-        mCastManager.setActiveTrackIds(tracksArray);
-        if (tracks.size() > 0) {
-            mCastManager.setTextTrackStyle(mCastManager.getTracksPreferenceManager()
-                    .getTextTrackStyle());
-        }
-    }
+//    @Override
+//    public void onTracksSelected(List<MediaTrack> tracks) {
+//        long[] tracksArray;
+//        if (tracks.isEmpty()) {
+//            tracksArray = new long[]{};
+//        } else {
+//            tracksArray = new long[tracks.size()];
+//            for (int i = 0; i < tracks.size(); i++) {
+//                tracksArray[i] = tracks.get(i).getId();
+//            }
+//        }
+//        mCastManager.setActiveTrackIds(tracksArray);
+//        if (tracks.size() > 0) {
+//            mCastManager.setTextTrackStyle(mCastManager.getTracksPreferenceManager()
+//                    .getTextTrackStyle());
+//        }
+//    }
 
     /*
      * A simple class that holds a URL and a bitmap, mainly used to cache the fetched image
@@ -865,13 +898,13 @@ public class VideoCastControllerFragment extends Fragment implements
     @Override
     public void onSkipNextClicked(View v)
             throws TransientNetworkDisconnectionException, NoConnectionException {
-        mCastManager.queueNext(null);
+        //mCastManager.queueNext(null);
     }
 
     @Override
     public void onSkipPreviousClicked(View v)
             throws TransientNetworkDisconnectionException, NoConnectionException {
-        mCastManager.queuePrev(null);
+        //mCastManager.queuePrev(null);
     }
 
 }

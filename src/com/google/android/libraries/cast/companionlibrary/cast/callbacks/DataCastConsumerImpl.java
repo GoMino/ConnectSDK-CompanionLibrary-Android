@@ -16,8 +16,10 @@
 
 package com.google.android.libraries.cast.companionlibrary.cast.callbacks;
 
-import com.google.android.gms.cast.ApplicationMetadata;
-import com.google.android.gms.cast.CastDevice;
+import com.connectsdk.device.ConnectableDevice;
+import com.connectsdk.service.sessions.WebAppSession;
+//import com.google.android.gms.cast.ApplicationMetadata;
+//import com.google.android.gms.cast.CastDevice;
 import com.google.android.gms.common.api.Status;
 
 /**
@@ -26,8 +28,7 @@ import com.google.android.gms.common.api.Status;
 public class DataCastConsumerImpl extends BaseCastConsumerImpl implements DataCastConsumer {
 
     @Override
-    public void onApplicationConnected(ApplicationMetadata appMetadata, String applicationStatus,
-            String sessionId, boolean wasLaunched) {
+    public void onApplicationConnected(WebAppSession webAppSession, WebAppSession.WebAppStatus status) {
     }
 
     @Override
@@ -51,7 +52,7 @@ public class DataCastConsumerImpl extends BaseCastConsumerImpl implements DataCa
     }
 
     @Override
-    public void onMessageReceived(CastDevice castDevice, String namespace, String message) {
+    public void onMessageReceived(ConnectableDevice castDevice, String namespace, String message) {
     }
 
     @Override
@@ -59,7 +60,7 @@ public class DataCastConsumerImpl extends BaseCastConsumerImpl implements DataCa
     }
 
     @Override
-    public void onRemoved(CastDevice castDevice, String namespace) {
+    public void onRemoved(ConnectableDevice castDevice, String namespace) {
     }
 
 }

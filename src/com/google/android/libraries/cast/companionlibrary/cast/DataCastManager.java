@@ -19,6 +19,7 @@ package com.google.android.libraries.cast.companionlibrary.cast;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
 
+import com.connectsdk.service.sessions.WebAppSession;
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
 import com.google.android.gms.cast.Cast.CastOptions.Builder;
@@ -96,12 +97,10 @@ public class DataCastManager extends BaseCastManager implements Cast.MessageRece
      * @param applicationId the application ID for your application
      * @param namespaces Namespaces to be set up for this class.
      */
-    public static synchronized DataCastManager initialize(Context context,
-            String applicationId, String... namespaces) {
+    public static synchronized DataCastManager initialize(Context context, String applicationId, String... namespaces) {
         if (sInstance == null) {
             LOGD(TAG, "New instance of DataCastManager is created");
-            if (ConnectionResult.SUCCESS != GooglePlayServicesUtil
-                    .isGooglePlayServicesAvailable(context)) {
+            if (ConnectionResult.SUCCESS != GooglePlayServicesUtil.isGooglePlayServicesAvailable(context)) {
                 String msg = "Couldn't find the appropriate version of Google Play Services";
                 LOGE(TAG, msg);
                 throw new RuntimeException(msg);
@@ -157,13 +156,13 @@ public class DataCastManager extends BaseCastManager implements Cast.MessageRece
             LOGD(TAG, "Ignoring to add a namespace that is already added.");
             return false;
         }
-        try {
-            Cast.CastApi.setMessageReceivedCallbacks(mApiClient, namespace, this);
-            mNamespaceList.add(namespace);
-            return true;
-        } catch (IOException | IllegalStateException e) {
-            LOGE(TAG, String.format("addNamespace(%s)", namespace), e);
-        }
+//        try {
+//            Cast.CastApi.setMessageReceivedCallbacks(mApiClient, namespace, this);
+//            mNamespaceList.add(namespace);
+//            return true;
+//        } catch (IOException | IllegalStateException e) {
+//            LOGE(TAG, String.format("addNamespace(%s)", namespace), e);
+//        }
         return false;
     }
 
@@ -185,13 +184,13 @@ public class DataCastManager extends BaseCastManager implements Cast.MessageRece
             LOGD(TAG, "Ignoring to remove a namespace that is not registered.");
             return false;
         }
-        try {
-            Cast.CastApi.removeMessageReceivedCallbacks(mApiClient, namespace);
-            mNamespaceList.remove(namespace);
-            return true;
-        } catch (IOException | IllegalStateException e) {
-            LOGE(TAG, String.format("removeNamespace(%s)", namespace), e);
-        }
+//        try {
+//            Cast.CastApi.removeMessageReceivedCallbacks(mApiClient, namespace);
+//            mNamespaceList.remove(namespace);
+//            return true;
+//        } catch (IOException | IllegalStateException e) {
+//            LOGE(TAG, String.format("removeNamespace(%s)", namespace), e);
+//        }
         return false;
 
     }
@@ -211,16 +210,18 @@ public class DataCastManager extends BaseCastManager implements Cast.MessageRece
         if (TextUtils.isEmpty(namespace)) {
             throw new IllegalArgumentException("namespace cannot be empty");
         }
-        Cast.CastApi.sendMessage(mApiClient, namespace, message).
-                setResultCallback(new ResultCallback<Status>() {
 
-                    @Override
-                    public void onResult(Status result) {
-                        if (!result.isSuccess()) {
-                            DataCastManager.this.onMessageSendFailed(result);
-                        }
-                    }
-                });
+        LOGE(TAG, "sendDataMessage not yet implemented");
+//        Cast.CastApi.sendMessage(mApiClient, namespace, message).
+//                setResultCallback(new ResultCallback<Status>() {
+//
+//                    @Override
+//                    public void onResult(Status result) {
+//                        if (!result.isSuccess()) {
+//                            DataCastManager.this.onMessageSendFailed(result);
+//                        }
+//                    }
+//                });
     }
 
     @Override
@@ -228,37 +229,35 @@ public class DataCastManager extends BaseCastManager implements Cast.MessageRece
         detachDataChannels();
     }
 
-    @Override
-    protected Builder getCastOptionBuilder(CastDevice device) {
+//    @Override
+//    protected Builder getCastOptionBuilder(CastDevice device) {
+//        Builder builder = Cast.CastOptions.builder(mSelectedCastDevice, new CastListener());
+//        if (isFeatureEnabled(FEATURE_DEBUGGING)) {
+//            builder.setVerboseLoggingEnabled(true);
+//        }
+//        return builder;
+//    }
 
-        Builder builder = Cast.CastOptions.builder(
-                mSelectedCastDevice, new CastListener());
-        if (isFeatureEnabled(FEATURE_DEBUGGING)) {
-            builder.setVerboseLoggingEnabled(true);
-        }
-        return builder;
-    }
-
-    class CastListener extends Cast.Listener {
-
-        /*
-         * (non-Javadoc)
-         * @see com.google.android.gms.cast.Cast.Listener#onApplicationDisconnected (int)
-         */
-        @Override
-        public void onApplicationDisconnected(int statusCode) {
-            DataCastManager.this.onApplicationDisconnected(statusCode);
-        }
-
-        /*
-         * (non-Javadoc)
-         * @see com.google.android.gms.cast.Cast.Listener#onApplicationStatusChanged ()
-         */
-        @Override
-        public void onApplicationStatusChanged() {
-            DataCastManager.this.onApplicationStatusChanged();
-        }
-    }
+//    class CastListener extends Cast.Listener {
+//
+//        /*
+//         * (non-Javadoc)
+//         * @see com.google.android.gms.cast.Cast.Listener#onApplicationDisconnected (int)
+//         */
+//        @Override
+//        public void onApplicationDisconnected(int statusCode) {
+//            DataCastManager.this.onApplicationDisconnected(statusCode);
+//        }
+//
+//        /*
+//         * (non-Javadoc)
+//         * @see com.google.android.gms.cast.Cast.Listener#onApplicationStatusChanged ()
+//         */
+//        @Override
+//        public void onApplicationStatusChanged() {
+//            DataCastManager.this.onApplicationStatusChanged();
+//        }
+//    }
 
     @Override
     protected MediaRouteDialogFactory getMediaRouteDialogFactory() {
@@ -266,12 +265,11 @@ public class DataCastManager extends BaseCastManager implements Cast.MessageRece
     }
 
     @Override
-    public void onApplicationConnected(ApplicationMetadata appMetadata, String applicationStatus,
-            String sessionId, boolean wasLaunched) {
-        LOGD(TAG, "onApplicationConnected() reached with sessionId: " + sessionId);
+    public void onApplicationConnected(WebAppSession webAppSession, WebAppSession.WebAppStatus status) {
+        LOGD(TAG, "onApplicationConnected() reached with sessionId: " + webAppSession.launchSession.getSessionId());
 
         // saving session for future retrieval; we only save the last session info
-        mPreferenceAccessor.saveStringToPreference(PREFS_KEY_SESSION_ID, sessionId);
+        mPreferenceAccessor.saveStringToPreference(PREFS_KEY_SESSION_ID, webAppSession.launchSession.getSessionId());
         if (mReconnectionStatus == RECONNECTION_STATUS_IN_PROGRESS) {
             // we have tried to reconnect and successfully launched the app, so
             // it is time to select the route and make the cast icon happy :-)
@@ -301,10 +299,9 @@ public class DataCastManager extends BaseCastManager implements Cast.MessageRece
         // registering namespaces, if any
         try {
             attachDataChannels();
-            mSessionId = sessionId;
+            mSessionId = webAppSession.launchSession.getSessionId();
             for (DataCastConsumer consumer : mDataConsumers) {
-                consumer.onApplicationConnected(appMetadata, applicationStatus, sessionId,
-                        wasLaunched);
+                consumer.onApplicationConnected(webAppSession, status);
             }
         } catch (IllegalStateException | IOException e) {
             LOGE(TAG, "Failed to attach namespaces", e);
@@ -324,9 +321,9 @@ public class DataCastManager extends BaseCastManager implements Cast.MessageRece
      */
     private void attachDataChannels() throws IllegalStateException, IOException {
         checkConnectivity();
-        for (String namespace : mNamespaceList) {
-            Cast.CastApi.setMessageReceivedCallbacks(mApiClient, namespace, this);
-        }
+//        for (String namespace : mNamespaceList) {
+//            Cast.CastApi.setMessageReceivedCallbacks(mApiClient, namespace, this);
+//        }
     }
 
     /*
@@ -337,16 +334,16 @@ public class DataCastManager extends BaseCastManager implements Cast.MessageRece
      * possibly transient loss of network
      */
     private void detachDataChannels() {
-        if (mApiClient == null) {
+        if (mSelectedCastDevice == null) {
             return;
         }
-        for (String namespace : mNamespaceList) {
-            try {
-                Cast.CastApi.removeMessageReceivedCallbacks(mApiClient, namespace);
-            } catch (IOException | IllegalArgumentException e) {
-                LOGE(TAG, "detachDataChannels() Failed to remove namespace: " + namespace, e);
-            }
-        }
+//        for (String namespace : mNamespaceList) {
+//            try {
+//                Cast.CastApi.removeMessageReceivedCallbacks(mApiClient, namespace);
+//            } catch (IOException | IllegalArgumentException e) {
+//                LOGE(TAG, "detachDataChannels() Failed to remove namespace: " + namespace, e);
+//            }
+//        }
     }
 
     @Override
@@ -368,22 +365,21 @@ public class DataCastManager extends BaseCastManager implements Cast.MessageRece
 
     }
 
-    public void onApplicationStatusChanged() {
-        String appStatus;
-        if (!isConnected()) {
-            return;
-        }
-        try {
-            appStatus = Cast.CastApi.getApplicationStatus(mApiClient);
-            LOGD(TAG, "onApplicationStatusChanged() reached: " + appStatus);
-            for (DataCastConsumer consumer : mDataConsumers) {
-                consumer.onApplicationStatusChanged(appStatus);
-            }
-        } catch (IllegalStateException e) {
-            LOGE(TAG, "onApplicationStatusChanged(): Failed", e);
-        }
-
-    }
+//    public void onApplicationStatusChanged() {
+//        String appStatus;
+//        if (!isConnected()) {
+//            return;
+//        }
+//        try {
+//            appStatus = Cast.CastApi.getApplicationStatus(mApiClient);
+//            LOGD(TAG, "onApplicationStatusChanged() reached: " + appStatus);
+//            for (DataCastConsumer consumer : mDataConsumers) {
+//                consumer.onApplicationStatusChanged(appStatus);
+//            }
+//        } catch (IllegalStateException e) {
+//            LOGE(TAG, "onApplicationStatusChanged(): Failed", e);
+//        }
+//    }
 
     @Override
     public void onApplicationStopFailed(int errorCode) {
@@ -394,9 +390,9 @@ public class DataCastManager extends BaseCastManager implements Cast.MessageRece
 
     @Override
     public void onMessageReceived(CastDevice castDevice, String namespace, String message) {
-        for (DataCastConsumer consumer : mDataConsumers) {
-            consumer.onMessageReceived(castDevice, namespace, message);
-        }
+//        for (DataCastConsumer consumer : mDataConsumers) {
+//            consumer.onMessageReceived(castDevice, namespace, message);
+//        }
     }
 
     public void onMessageSendFailed(Status result) {

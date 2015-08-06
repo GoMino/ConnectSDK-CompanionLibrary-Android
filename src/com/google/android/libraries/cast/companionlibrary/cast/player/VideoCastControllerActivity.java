@@ -19,9 +19,10 @@ package com.google.android.libraries.cast.companionlibrary.cast.player;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
 
-import com.google.android.gms.cast.MediaInfo;
-import com.google.android.gms.cast.MediaMetadata;
-import com.google.android.gms.cast.MediaStatus;
+//import com.google.android.gms.cast.MediaInfo;
+//import com.google.android.gms.cast.MediaMetadata;
+//import com.google.android.gms.cast.MediaStatus;
+import com.connectsdk.service.capability.MediaControl;
 import com.google.android.libraries.cast.companionlibrary.R;
 import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.NoConnectionException;
@@ -118,7 +119,7 @@ public class VideoCastControllerActivity extends ActionBarActivity implements
         }
 
         Bundle mediaWrapper = extras.getBundle(VideoCastManager.EXTRA_MEDIA);
-        String title = mediaWrapper.getString(MediaMetadata.KEY_TITLE);
+        String title = mediaWrapper.getString(Utils.KEY_TITLE);
         setUpActionBar(title);
 
         FragmentManager fm = getSupportFragmentManager();
@@ -287,8 +288,7 @@ public class VideoCastControllerActivity extends ActionBarActivity implements
         transaction.addToBackStack(null);
 
         // Create and show the dialog.
-        TracksChooserDialog dialogFragment = TracksChooserDialog
-                .newInstance(mCastManager.getRemoteMediaInformation());
+        TracksChooserDialog dialogFragment = TracksChooserDialog.newInstance(mCastManager.getRemoteMediaInformation());
         dialogFragment.show(transaction, DIALOG_TAG);
     }
 
@@ -381,20 +381,20 @@ public class VideoCastControllerActivity extends ActionBarActivity implements
     public void setPlaybackStatus(int state) {
         LOGD(TAG, "setPlaybackStatus(): state = " + state);
         switch (state) {
-            case MediaStatus.PLAYER_STATE_PLAYING:
+            case MediaControl.PLAYER_STATE_PLAYING:
                 mLoading.setVisibility(View.INVISIBLE);
                 mPlaybackControls.setVisibility(View.VISIBLE);
-                if (mStreamType == MediaInfo.STREAM_TYPE_LIVE) {
-                    mPlayPause.setImageDrawable(mStopDrawable);
-                } else {
+//                if (mStreamType == MediaInfo.STREAM_TYPE_LIVE) {
+//                    mPlayPause.setImageDrawable(mStopDrawable);
+//                } else {
                     mPlayPause.setImageDrawable(mPauseDrawable);
-                }
+//                }
 
                 mLine2.setText(getString(R.string.ccl_casting_to_device,
                         mCastManager.getDeviceName()));
                 mControllers.setVisibility(View.VISIBLE);
                 break;
-            case MediaStatus.PLAYER_STATE_PAUSED:
+            case MediaControl.PLAYER_STATE_PAUSED:
                 mControllers.setVisibility(View.VISIBLE);
                 mLoading.setVisibility(View.INVISIBLE);
                 mPlaybackControls.setVisibility(View.VISIBLE);
@@ -402,14 +402,14 @@ public class VideoCastControllerActivity extends ActionBarActivity implements
                 mLine2.setText(getString(R.string.ccl_casting_to_device,
                         mCastManager.getDeviceName()));
                 break;
-            case MediaStatus.PLAYER_STATE_IDLE:
+            case MediaControl.PLAYER_STATE_IDLE:
                 mLoading.setVisibility(View.INVISIBLE);
                 mPlayPause.setImageDrawable(mPlayDrawable);
                 mPlaybackControls.setVisibility(View.VISIBLE);
                 mLine2.setText(getString(R.string.ccl_casting_to_device,
                         mCastManager.getDeviceName()));
                 break;
-            case MediaStatus.PLAYER_STATE_BUFFERING:
+            case MediaControl.PLAYER_STATE_BUFFERING:
                 mPlaybackControls.setVisibility(View.INVISIBLE);
                 mLoading.setVisibility(View.VISIBLE);
                 mLine2.setText(getString(R.string.ccl_loading));
@@ -463,9 +463,9 @@ public class VideoCastControllerActivity extends ActionBarActivity implements
     @Override
     public void updateControllersStatus(boolean enabled) {
         mControllers.setVisibility(enabled ? View.VISIBLE : View.INVISIBLE);
-        if (enabled) {
-            adjustControllersForLiveStream(mStreamType == MediaInfo.STREAM_TYPE_LIVE);
-        }
+//        if (enabled) {
+//            adjustControllersForLiveStream(mStreamType == MediaInfo.STREAM_TYPE_LIVE);
+//        }
     }
 
     @Override

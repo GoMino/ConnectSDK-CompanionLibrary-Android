@@ -19,25 +19,39 @@ package com.google.android.libraries.cast.companionlibrary.cast;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
 
-import com.google.android.gms.cast.ApplicationMetadata;
-import com.google.android.gms.cast.Cast;
-import com.google.android.gms.cast.Cast.CastOptions.Builder;
-import com.google.android.gms.cast.Cast.MessageReceivedCallback;
-import com.google.android.gms.cast.CastDevice;
+import com.connectsdk.core.ImageInfo;
+import com.connectsdk.core.MediaInfo;
+import com.connectsdk.device.ConnectableDevice;
+import com.connectsdk.service.DeviceService;
+import com.connectsdk.service.capability.MediaControl;
+import com.connectsdk.service.capability.MediaPlayer;
+import com.connectsdk.service.capability.VolumeControl;
+import com.connectsdk.service.capability.listeners.ResponseListener;
+import com.connectsdk.service.command.ServiceCommandError;
+import com.connectsdk.service.command.URLServiceSubscription;
+import com.connectsdk.service.sessions.WebAppSession;
+//import com.google.android.gms.cast.ApplicationMetadata;
+//import com.google.android.gms.cast.Cast;
+//import com.google.android.gms.cast.Cast.CastOptions.Builder;
+//import com.google.android.gms.cast.Cast.MessageReceivedCallback;
+//import com.google.android.gms.cast.CastDevice;
+//import com.google.android.gms.cast.CastStatusCodes;
+//import com.google.android.gms.cast.MediaInfo;
+//import com.google.android.gms.cast.MediaMetadata;
+//import com.google.android.gms.cast.MediaQueueItem;
+//import com.google.android.gms.cast.MediaStatus;
+//import com.google.android.gms.cast.MediaTrack;
+//import com.google.android.gms.cast.RemoteMediaPlayer;
+//import com.google.android.gms.cast.RemoteMediaPlayer.MediaChannelResult;
+//import com.google.android.gms.cast.TextTrackStyle;
+//import com.google.android.gms.common.ConnectionResult;
+//import com.google.android.gms.common.GooglePlayServicesUtil;
+//import com.google.android.gms.common.api.ResultCallback;
+//import com.google.android.gms.common.api.Status;
+//import com.google.android.gms.common.images.WebImage;
 import com.google.android.gms.cast.CastStatusCodes;
-import com.google.android.gms.cast.MediaInfo;
-import com.google.android.gms.cast.MediaMetadata;
-import com.google.android.gms.cast.MediaQueueItem;
-import com.google.android.gms.cast.MediaStatus;
-import com.google.android.gms.cast.MediaTrack;
-import com.google.android.gms.cast.RemoteMediaPlayer;
-import com.google.android.gms.cast.RemoteMediaPlayer.MediaChannelResult;
-import com.google.android.gms.cast.TextTrackStyle;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
-import com.google.android.gms.common.api.ResultCallback;
-import com.google.android.gms.common.api.Status;
-import com.google.android.gms.common.images.WebImage;
 import com.google.android.libraries.cast.companionlibrary.R;
 import com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumer;
 import com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumerImpl;
@@ -84,6 +98,7 @@ import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.accessibility.CaptioningManager;
+import android.widget.MediaController;
 
 import org.json.JSONObject;
 
@@ -97,6 +112,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -135,8 +151,7 @@ import java.util.concurrent.TimeUnit;
  * update/activate their Google Play Services library. To learn more about this library, please read
  * the documentation that is distributed as part of this library.
  */
-public class VideoCastManager extends BaseCastManager
-        implements OnMiniControllerChangedListener, OnFailedListener {
+public class VideoCastManager extends BaseCastManager implements OnMiniControllerChangedListener, OnFailedListener {
 
     private static final String TAG = LogUtils.makeLogTag(VideoCastManager.class);
 
@@ -154,11 +169,11 @@ public class VideoCastManager extends BaseCastManager
     private TracksPreferenceManager mTrackManager;
     private ComponentName mMediaEventReceiver;
     private MediaQueue mMediaQueue;
-    private MediaStatus mMediaStatus;
+    private MediaControl mMediaStatus;
     private Timer mProgressTimer;
     private UpdateProgressTask mProgressTask;
-    private int mNextPreviousVisibilityPolicy
-            = VideoCastController.NEXT_PREV_VISIBILITY_POLICY_DISABLED;
+    private int mNextPreviousVisibilityPolicy = VideoCastController.NEXT_PREV_VISIBILITY_POLICY_DISABLED;
+
 
     /**
      * Volume can be controlled at two different layers, one is at the "stream" level and one at
@@ -173,23 +188,23 @@ public class VideoCastManager extends BaseCastManager
 
     private static VideoCastManager sInstance;
     private Class<?> mTargetActivity;
-    private final Set<IMiniController> mMiniControllers = Collections
-            .synchronizedSet(new HashSet<IMiniController>());
+    private final Set<IMiniController> mMiniControllers = Collections.synchronizedSet(new HashSet<IMiniController>());
     private AudioManager mAudioManager;
     private ComponentName mMediaButtonReceiverComponent;
-    private RemoteMediaPlayer mRemoteMediaPlayer;
+    private MediaPlayer mRemoteMediaPlayer;
     private RemoteControlClientCompat mRemoteControlClientCompat;
     private VolumeType mVolumeType = VolumeType.DEVICE;
-    private int mState = MediaStatus.PLAYER_STATE_IDLE;
+    private int mState = MediaControl.PLAYER_STATE_IDLE;
     private int mIdleReason;
     private String mDataNamespace;
-    private Cast.MessageReceivedCallback mDataChannel;
+    //private Cast.MessageReceivedCallback mDataChannel;
     private final Set<VideoCastConsumer> mVideoConsumers = new CopyOnWriteArraySet<>();
-    private final Set<OnTracksSelectedListener> mTracksSelectedListeners =
-            new CopyOnWriteArraySet<>();
+    private final Set<OnTracksSelectedListener> mTracksSelectedListeners = new CopyOnWriteArraySet<>();
     private MediaAuthService mAuthService;
     private long mLiveStreamDuration = DEFAULT_LIVE_STREAM_DURATION_MS;
-    private MediaQueueItem mPreLoadingItem;
+    private MediaInfo mCurrentMediaInfo;
+    private MediaControl.PlayStateStatus mCurrentPlayStateStatus;
+    //private MediaQueueItem mPreLoadingItem;
 
     public static final int QUEUE_OPERATION_LOAD = 1;
     public static final int QUEUE_OPERATION_INSERT_ITEMS = 2;
@@ -220,8 +235,7 @@ public class VideoCastManager extends BaseCastManager
     private VideoCastManager() {
     }
 
-    protected VideoCastManager(Context context, String applicationId, Class<?> targetActivity,
-            String dataNamespace) {
+    protected VideoCastManager(Context context, String applicationId, Class<?> targetActivity, String dataNamespace) {
         super(context, applicationId);
         LOGD(TAG, "VideoCastManager is instantiated");
         mDataNamespace = dataNamespace;
@@ -240,15 +254,13 @@ public class VideoCastManager extends BaseCastManager
         mMediaButtonReceiverComponent = new ComponentName(mContext, VideoIntentReceiver.class);
     }
 
-    public static synchronized VideoCastManager initialize(Context context,
-            String applicationId, Class<?> targetActivity, String dataNamespace) {
+    public static synchronized VideoCastManager initialize(Context context, String applicationId, Class<?> targetActivity, String dataNamespace) {
         if (sInstance == null) {
             LOGD(TAG, "New instance of VideoCastManager is created");
-            if (ConnectionResult.SUCCESS != GooglePlayServicesUtil
-                    .isGooglePlayServicesAvailable(context)) {
-                String msg = "Couldn't find the appropriate version of Google Play Services";
-                LOGE(TAG, msg);
-            }
+//            if (ConnectionResult.SUCCESS != GooglePlayServicesUtil.isGooglePlayServicesAvailable(context)) {
+//                String msg = "Couldn't find the appropriate version of Google Play Services";
+//                LOGE(TAG, msg);
+//            }
             sInstance = new VideoCastManager(context, applicationId, targetActivity, dataNamespace);
             sInstance.restartProgressTimer();
         }
@@ -285,20 +297,35 @@ public class VideoCastManager extends BaseCastManager
      * @throws TransientNetworkDisconnectionException
      * @throws NoConnectionException
      */
-    private void updateMiniController(IMiniController controller)
+    private void updateMiniController(final IMiniController controller)
             throws TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
         checkRemoteMediaPlayerAvailable();
-        if (mRemoteMediaPlayer.getStreamDuration() > 0 || isRemoteStreamLive()) {
-            MediaInfo mediaInfo = getRemoteMediaInformation();
-            MediaMetadata mm = mediaInfo.getMetadata();
-            controller.setStreamType(mediaInfo.getStreamType());
-            controller.setPlaybackStatus(mState, mIdleReason);
-            controller.setSubtitle(mContext.getResources().getString(R.string.ccl_casting_to_device,
-                    mDeviceName));
-            controller.setTitle(mm.getString(MediaMetadata.KEY_TITLE));
-            controller.setIcon(Utils.getImageUri(mediaInfo, 0));
-        }
+        getMediaDuration(new MediaControl.DurationListener() {
+            @Override
+            public void onSuccess(Long duration) {
+                try {
+                    if ( duration> 0 || isRemoteStreamLive()) {
+                        MediaInfo mediaInfo = getRemoteMediaInformation();
+                        //MediaMetadata mm = mediaInfo.getMetadata();
+                        //controller.setStreamType(mediaInfo.getStreamType());
+                        controller.setPlaybackStatus(mState, mIdleReason);
+                        controller.setSubtitle(mContext.getResources().getString(R.string.ccl_casting_to_device, mDeviceName));
+                        controller.setTitle(mediaInfo.getTitle());
+                        controller.setIcon(Utils.getImageUri(mediaInfo, 0));
+                    }
+                } catch (TransientNetworkDisconnectionException e) {
+                    e.printStackTrace();
+                } catch (NoConnectionException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onError(ServiceCommandError serviceCommandError) {
+
+            }
+        });
     }
 
     /*
@@ -328,12 +355,12 @@ public class VideoCastManager extends BaseCastManager
     public void onPlayPauseClicked(View v) throws CastException,
             TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
-        if (mState == MediaStatus.PLAYER_STATE_PLAYING) {
+        if (mState == MediaControl.PLAYER_STATE_PLAYING) {
             pause();
         } else {
             boolean isLive = isRemoteStreamLive();
-            if ((mState == MediaStatus.PLAYER_STATE_PAUSED && !isLive)
-                    || (mState == MediaStatus.PLAYER_STATE_IDLE && isLive)) {
+            if ((mState == MediaControl.PLAYER_STATE_PAUSED && !isLive)
+                    || (mState == MediaControl.PLAYER_STATE_IDLE && isLive)) {
                 play();
             }
         }
@@ -352,19 +379,19 @@ public class VideoCastManager extends BaseCastManager
         context.startActivity(intent);
     }
 
-    @Override
-    public void onUpcomingPlayClicked(View view, MediaQueueItem upcomingItem) {
-        for (VideoCastConsumer consumer : mVideoConsumers) {
-            consumer.onUpcomingPlayClicked(view, upcomingItem);
-        }
-    }
-
-    @Override
-    public void onUpcomingStopClicked(View view, MediaQueueItem upcomingItem) {
-        for (VideoCastConsumer consumer : mVideoConsumers) {
-            consumer.onUpcomingStopClicked(view, upcomingItem);
-        }
-    }
+//    @Override
+//    public void onUpcomingPlayClicked(View view, MediaQueueItem upcomingItem) {
+//        for (VideoCastConsumer consumer : mVideoConsumers) {
+//            consumer.onUpcomingPlayClicked(view, upcomingItem);
+//        }
+//    }
+//
+//    @Override
+//    public void onUpcomingStopClicked(View view, MediaQueueItem upcomingItem) {
+//        for (VideoCastConsumer consumer : mVideoConsumers) {
+//            consumer.onUpcomingStopClicked(view, upcomingItem);
+//        }
+//    }
 
     /**
      * Updates the visibility of the mini controllers. In most cases, clients do not need to use
@@ -381,14 +408,14 @@ public class VideoCastManager extends BaseCastManager
         }
     }
 
-    public void updateMiniControllersVisibilityForUpcoming(MediaQueueItem item) {
-        synchronized (mMiniControllers) {
-            for (IMiniController controller : mMiniControllers) {
-                controller.setUpcomingItem(item);
-                controller.setUpcomingVisibility(item != null);
-            }
-        }
-    }
+//    public void updateMiniControllersVisibilityForUpcoming(MediaQueueItem item) {
+//        synchronized (mMiniControllers) {
+//            for (IMiniController controller : mMiniControllers) {
+//                controller.setUpcomingItem(item);
+//                controller.setUpcomingVisibility(item != null);
+//            }
+//        }
+//    }
 
     /**
      * Sets an internal flag that is used to disambiguate the two cases that the
@@ -461,10 +488,8 @@ public class VideoCastManager extends BaseCastManager
      * @param position Starting point, in milliseconds,  of the media playback
      * @param shouldStart Indicates if the remote playback should start after launching the new page
      */
-    public void startVideoCastControllerActivity(Context context,
-            MediaInfo mediaInfo, int position, boolean shouldStart) {
-        startVideoCastControllerActivity(context, Utils.mediaInfoToBundle(mediaInfo), position,
-                shouldStart);
+    public void startVideoCastControllerActivity(Context context, MediaInfo mediaInfo, int position, boolean shouldStart) {
+        startVideoCastControllerActivity(context, Utils.mediaInfoToBundle(mediaInfo), position, shouldStart);
     }
 
     /**
@@ -494,11 +519,11 @@ public class VideoCastManager extends BaseCastManager
     }
 
     /**
-     * Returns the active {@link RemoteMediaPlayer} instance. Since there are a number of media
+     * Returns the active {@link MediaPlayer} instance. Since there are a number of media
      * control APIs that this library do not provide a wrapper for, client applications can call
-     * those methods directly after obtaining an instance of the active {@link RemoteMediaPlayer}.
+     * those methods directly after obtaining an instance of the active {@link MediaPlayer}.
      */
-    public final RemoteMediaPlayer getRemoteMediaPlayer() {
+    public final MediaPlayer getRemoteMediaPlayer() {
         return mRemoteMediaPlayer;
     }
 
@@ -512,7 +537,8 @@ public class VideoCastManager extends BaseCastManager
             NoConnectionException {
         checkConnectivity();
         MediaInfo info = getRemoteMediaInformation();
-        return (info != null) && (info.getStreamType() == MediaInfo.STREAM_TYPE_LIVE);
+        //return (info != null) && (info.getStreamType() == MediaInfo.STREAM_TYPE_LIVE);
+        return false;
     }
 
     /**
@@ -525,12 +551,12 @@ public class VideoCastManager extends BaseCastManager
     public boolean shouldRemoteUiBeVisible(int state, int idleReason)
             throws TransientNetworkDisconnectionException, NoConnectionException {
         switch (state) {
-            case MediaStatus.PLAYER_STATE_PLAYING:
-            case MediaStatus.PLAYER_STATE_PAUSED:
-            case MediaStatus.PLAYER_STATE_BUFFERING:
+            case MediaControl.PLAYER_STATE_PLAYING:
+            case MediaControl.PLAYER_STATE_PAUSED:
+            case MediaControl.PLAYER_STATE_BUFFERING:
                 return true;
-            case MediaStatus.PLAYER_STATE_IDLE:
-                return isRemoteStreamLive() && (idleReason == MediaStatus.IDLE_REASON_CANCELED);
+            case MediaControl.PLAYER_STATE_IDLE:
+                return isRemoteStreamLive() /*&& (idleReason == MediaControl.IDLE_REASON_CANCELED)*/;
             default:
         }
         return false;
@@ -540,7 +566,7 @@ public class VideoCastManager extends BaseCastManager
      * A simple check to make sure mRemoteMediaPlayer is not null
      */
     private void checkRemoteMediaPlayerAvailable() throws NoConnectionException {
-        if (mRemoteMediaPlayer == null) {
+        if (mRemoteMediaPlayer == null || mMediaStatus==null) {
             throw new NoConnectionException();
         }
     }
@@ -565,11 +591,12 @@ public class VideoCastManager extends BaseCastManager
     public String getRemoteMediaUrl() throws TransientNetworkDisconnectionException,
             NoConnectionException {
         checkConnectivity();
-        if (mRemoteMediaPlayer != null && mRemoteMediaPlayer.getMediaInfo() != null) {
-            MediaInfo info = mRemoteMediaPlayer.getMediaInfo();
-            mRemoteMediaPlayer.getMediaStatus().getPlayerState();
-            return info.getContentId();
-        }
+//        if (mRemoteMediaPlayer != null && mRemoteMediaPlayer.getMediaInfo() != null) {
+//            MediaInfo info = mRemoteMediaPlayer.getMediaInfo();
+//            mRemoteMediaPlayer.getMediaStatus().getPlayerState();
+//            return info.getUrl();
+//        }
+        getRemoteMediaInformation().getUrl();
         throw new NoConnectionException();
     }
 
@@ -582,8 +609,8 @@ public class VideoCastManager extends BaseCastManager
     public boolean isRemoteMediaPlaying() throws TransientNetworkDisconnectionException,
             NoConnectionException {
         checkConnectivity();
-        return mState == MediaStatus.PLAYER_STATE_BUFFERING
-                || mState == MediaStatus.PLAYER_STATE_PLAYING;
+        return mState == MediaControl.PLAYER_STATE_BUFFERING
+                || mState == MediaControl.PLAYER_STATE_PLAYING;
     }
 
     /**
@@ -595,7 +622,7 @@ public class VideoCastManager extends BaseCastManager
     public boolean isRemoteMediaPaused() throws TransientNetworkDisconnectionException,
             NoConnectionException {
         checkConnectivity();
-        return mState == MediaStatus.PLAYER_STATE_PAUSED;
+        return mState == MediaControl.PLAYER_STATE_PAUSED;
     }
 
     /**
@@ -618,11 +645,10 @@ public class VideoCastManager extends BaseCastManager
      * @throws TransientNetworkDisconnectionException If framework is still trying to recover from
      * a possibly transient loss of network
      */
-    public MediaInfo getRemoteMediaInformation() throws TransientNetworkDisconnectionException,
-            NoConnectionException {
+    public MediaInfo getRemoteMediaInformation() throws TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
         checkRemoteMediaPlayerAvailable();
-        return mRemoteMediaPlayer.getMediaInfo();
+        return mCurrentMediaInfo;
     }
 
     /**
@@ -632,13 +658,13 @@ public class VideoCastManager extends BaseCastManager
      * @throws TransientNetworkDisconnectionException If framework is still trying to recover from
      * a possibly transient loss of network
      */
-    public double getVolume() throws TransientNetworkDisconnectionException, NoConnectionException {
+    public void getVolume(VolumeControl.VolumeListener listener) throws TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
-        if (mVolumeType == VolumeType.STREAM) {
-            checkRemoteMediaPlayerAvailable();
-            return mRemoteMediaPlayer.getMediaStatus().getStreamVolume();
-        }
-        return getDeviceVolume();
+//        if (mVolumeType == VolumeType.STREAM) {
+//            checkRemoteMediaPlayerAvailable();
+//            return mRemoteMediaPlayer.getMediaStatus().getStreamVolume();
+//        }
+        getDeviceVolume(listener);
     }
 
     /**
@@ -660,23 +686,23 @@ public class VideoCastManager extends BaseCastManager
         } else if (volume < 0) {
             volume = 0.0;
         }
-        if (mVolumeType == VolumeType.STREAM) {
-            checkRemoteMediaPlayerAvailable();
-            mRemoteMediaPlayer.setStreamVolume(mApiClient, volume).setResultCallback(
-                    new ResultCallback<RemoteMediaPlayer.MediaChannelResult>() {
-
-                        @Override
-                        public void onResult(MediaChannelResult result) {
-                            if (!result.getStatus().isSuccess()) {
-                                onFailed(R.string.ccl_failed_setting_volume,
-                                        result.getStatus().getStatusCode());
-                            }
-                        }
-                    }
-            );
-        } else {
+//        if (mVolumeType == VolumeType.STREAM) {
+//            checkRemoteMediaPlayerAvailable();
+//            mRemoteMediaPlayer.setStreamVolume(mApiClient, volume).setResultCallback(
+//                    new ResultCallback<RemoteMediaPlayer.MediaChannelResult>() {
+//
+//                        @Override
+//                        public void onResult(MediaChannelResult result) {
+//                            if (!result.getStatus().isSuccess()) {
+//                                onFailed(R.string.ccl_failed_setting_volume,
+//                                        result.getStatus().getStatusCode());
+//                            }
+//                        }
+//                    }
+//            );
+//        } else {
             setDeviceVolume(volume);
-        }
+//        }
     }
 
     /**
@@ -688,16 +714,34 @@ public class VideoCastManager extends BaseCastManager
      * a possibly transient loss of network
      * @throws CastException
      */
-    public void adjustVolume(double delta) throws CastException,
+    public void adjustVolume(final double delta) throws CastException,
             TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
-        double vol = getVolume() + delta;
-        if (vol > 1) {
-            vol = 1;
-        } else if (vol < 0) {
-            vol = 0;
-        }
-        setVolume(vol);
+        getVolume(new VolumeControl.VolumeListener() {
+            @Override
+            public void onSuccess(Float volume) {
+                double vol = volume + delta;
+                if (vol > 1) {
+                    vol = 1;
+                } else if (vol < 0) {
+                    vol = 0;
+                }
+                try {
+                    setVolume(vol);
+                } catch (CastException e) {
+                    e.printStackTrace();
+                } catch (TransientNetworkDisconnectionException e) {
+                    e.printStackTrace();
+                } catch (NoConnectionException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onError(ServiceCommandError serviceCommandError) {
+
+            }
+        });
     }
 
     /**
@@ -717,14 +761,14 @@ public class VideoCastManager extends BaseCastManager
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
      */
-    public boolean isMute() throws TransientNetworkDisconnectionException, NoConnectionException {
+    public void isMute(VolumeControl.MuteListener listener) throws TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
-        if (mVolumeType == VolumeType.STREAM) {
-            checkRemoteMediaPlayerAvailable();
-            return mRemoteMediaPlayer.getMediaStatus().isMute();
-        } else {
-            return isDeviceMute();
-        }
+//        if (mVolumeType == VolumeType.STREAM) {
+//            checkRemoteMediaPlayerAvailable();
+//            return mRemoteMediaPlayer.getMediaStatus().isMute();
+//        } else {
+            isDeviceMute(listener);
+//        }
     }
 
     /**
@@ -738,12 +782,12 @@ public class VideoCastManager extends BaseCastManager
     public void setMute(boolean mute) throws CastException, TransientNetworkDisconnectionException,
             NoConnectionException {
         checkConnectivity();
-        if (mVolumeType == VolumeType.STREAM) {
-            checkRemoteMediaPlayerAvailable();
-            mRemoteMediaPlayer.setStreamMute(mApiClient, mute);
-        } else {
+//        if (mVolumeType == VolumeType.STREAM) {
+//            checkRemoteMediaPlayerAvailable();
+//            mRemoteMediaPlayer.setStreamMute(mApiClient, mute);
+//        } else {
             setDeviceMute(mute);
-        }
+//        }
     }
 
     /**
@@ -752,12 +796,13 @@ public class VideoCastManager extends BaseCastManager
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
      */
-    public long getMediaDuration() throws TransientNetworkDisconnectionException,
-            NoConnectionException {
+    public void getMediaDuration(MediaControl.DurationListener listener) throws TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
         checkRemoteMediaPlayerAvailable();
-        return mRemoteMediaPlayer.getStreamDuration();
+        //return mRemoteMediaPlayer.getStreamDuration();
+        mMediaStatus.getDuration(listener);
     }
+
 
     /**
      * Returns the time left (in milliseconds) of the current media. If there is no
@@ -766,14 +811,45 @@ public class VideoCastManager extends BaseCastManager
      * @throws TransientNetworkDisconnectionException
      * @throws NoConnectionException
      */
-    public long getMediaTimeRemaining()
-            throws TransientNetworkDisconnectionException, NoConnectionException {
+    public void getMediaTimeRemaining(final ResponseListener<Long> listener) throws TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
         if (mRemoteMediaPlayer == null) {
-            return -1;
+            //return -1;
+            listener.onError(new ServiceCommandError(-1, "connect to remote media player first"));
         }
-        return isRemoteStreamLive() ? mLiveStreamDuration : mRemoteMediaPlayer.getStreamDuration()
-                - mRemoteMediaPlayer.getApproximateStreamPosition();
+        if(isRemoteStreamLive()) {
+            //return mLiveStreamDuration;
+            listener.onSuccess(mLiveStreamDuration);
+        } else {
+            //return getMediaDuration() - getCurrentMediaPosition();
+            getMediaDuration(new MediaControl.DurationListener() {
+                @Override
+                public void onSuccess(Long duration) {
+                    final long mediaDuration = duration;
+                    try {
+                        getCurrentMediaPosition(new MediaControl.PositionListener() {
+                            @Override
+                            public void onSuccess(Long position) {
+                                final long mediaPosition = position;
+                                listener.onSuccess(mediaDuration - mediaPosition);
+                            }
+
+                            @Override
+                            public void onError(ServiceCommandError serviceCommandError) {
+                                listener.onError(serviceCommandError);
+                            }
+                        });
+                    } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                @Override
+                public void onError(ServiceCommandError serviceCommandError) {
+                    listener.onError(serviceCommandError);
+                }
+            });
+        }
     }
 
     /**
@@ -782,11 +858,43 @@ public class VideoCastManager extends BaseCastManager
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
      */
-    public long getCurrentMediaPosition() throws TransientNetworkDisconnectionException,
-            NoConnectionException {
+    public long getCurrentMediaPosition() throws TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
         checkRemoteMediaPlayerAvailable();
-        return mRemoteMediaPlayer.getApproximateStreamPosition();
+        //return mRemoteMediaPlayer.getApproximateStreamPosition();
+
+        final Long[] result = new Long[1];
+        result[0] = -1l;
+        final CountDownLatch positionLatch = new CountDownLatch(1);
+        try {
+
+            mMediaStatus.getPosition(new MediaControl.PositionListener() {
+                @Override
+                public void onSuccess(Long duration) {
+                    result[0] = duration;
+                    positionLatch.countDown();
+                }
+
+                @Override
+                public void onError(ServiceCommandError serviceCommandError) {
+                    positionLatch.countDown();
+                }
+            });
+            positionLatch.await();
+
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        return result[0];
+    }
+
+    public void getCurrentMediaPosition(MediaControl.PositionListener listener) throws TransientNetworkDisconnectionException, NoConnectionException {
+        checkConnectivity();
+        checkRemoteMediaPlayerAvailable();
+        //return mRemoteMediaPlayer.getApproximateStreamPosition();
+        mMediaStatus.getPosition(listener);
     }
 
     /*
@@ -839,41 +947,61 @@ public class VideoCastManager extends BaseCastManager
         stopNotificationService();
     }
 
-    private void onApplicationStatusChanged() {
-        if (!isConnected()) {
-            return;
-        }
-        try {
-            String appStatus = Cast.CastApi.getApplicationStatus(mApiClient);
-            LOGD(TAG, "onApplicationStatusChanged() reached: " + appStatus);
-            for (VideoCastConsumer consumer : mVideoConsumers) {
-                consumer.onApplicationStatusChanged(appStatus);
-            }
-        } catch (IllegalStateException e) {
-            LOGE(TAG, "onApplicationStatusChanged()", e);
-        }
-    }
+//    private void onApplicationStatusChanged() {
+//        if (!isConnected()) {
+//            return;
+//        }
+//        try {
+//            String appStatus = Cast.CastApi.getApplicationStatus(mApiClient);
+//            LOGD(TAG, "onApplicationStatusChanged() reached: " + appStatus);
+//            for (VideoCastConsumer consumer : mVideoConsumers) {
+//                consumer.onApplicationStatusChanged(appStatus);
+//            }
+//        } catch (IllegalStateException e) {
+//            LOGE(TAG, "onApplicationStatusChanged()", e);
+//        }
+//    }
 
     private void onVolumeChanged() {
         LOGD(TAG, "onVolumeChanged() reached");
         double volume;
         try {
-            volume = getVolume();
-            boolean isMute = isMute();
-            for (VideoCastConsumer consumer : mVideoConsumers) {
-                consumer.onVolumeChanged(volume, isMute);
-            }
+            getVolume(new VolumeControl.VolumeListener() {
+                @Override
+                public void onSuccess(final Float volume) {
+                    try {
+                        isMute(new VolumeControl.MuteListener() {
+                            @Override
+                            public void onSuccess(Boolean isMute) {
+                                for (VideoCastConsumer consumer : mVideoConsumers) {
+                                    consumer.onVolumeChanged(volume, isMute);
+                                }
+                            }
+
+                            @Override
+                            public void onError(ServiceCommandError serviceCommandError) {
+
+                            }
+                        });
+                    } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                @Override
+                public void onError(ServiceCommandError serviceCommandError) {
+                    LOGE(TAG, "Failed to get volume", serviceCommandError);
+                }
+            });
+
         } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
             LOGE(TAG, "Failed to get volume", e);
         }
-
     }
 
     @Override
-    protected void onApplicationConnected(ApplicationMetadata appMetadata,
-            String applicationStatus, String sessionId, boolean wasLaunched) {
-        LOGD(TAG, "onApplicationConnected() reached with sessionId: " + sessionId
-                + ", and mReconnectionStatus=" + mReconnectionStatus);
+    protected void onApplicationConnected(WebAppSession webAppSession, WebAppSession.WebAppStatus status) {
+        LOGD(TAG, "onApplicationConnected() reached with sessionId: " + webAppSession.launchSession.getSessionId() + ", and mReconnectionStatus=" + mReconnectionStatus);
 
         if (mReconnectionStatus == RECONNECTION_STATUS_IN_PROGRESS) {
             // we have tried to reconnect and successfully launched the app, so
@@ -894,25 +1022,28 @@ public class VideoCastManager extends BaseCastManager
         }
         startNotificationService();
         try {
-            attachDataChannel();
+            mMediaStatus = webAppSession.getMediaControl();
+            mSessionId =  webAppSession.launchSession.getSessionId();
+
+            //attachDataChannel();
             attachMediaChannel();
-            mSessionId = sessionId;
+
+
             // saving device for future retrieval; we only save the last session info
             mPreferenceAccessor.saveStringToPreference(PREFS_KEY_SESSION_ID, mSessionId);
-            mRemoteMediaPlayer.requestStatus(mApiClient).
-                    setResultCallback(new ResultCallback<RemoteMediaPlayer.MediaChannelResult>() {
-
-                        @Override
-                        public void onResult(MediaChannelResult result) {
-                            if (!result.getStatus().isSuccess()) {
-                                onFailed(R.string.ccl_failed_status_request,
-                                        result.getStatus().getStatusCode());
-                            }
-
-                        }
-                    });
+//            mRemoteMediaPlayer.requestStatus(mApiClient).
+//                    setResultCallback(new ResultCallback<RemoteMediaPlayer.MediaChannelResult>() {
+//
+//                        @Override
+//                        public void onResult(MediaChannelResult result) {
+//                            if (!result.getStatus().isSuccess()) {
+//                                onFailed(R.string.ccl_failed_status_request, result.getStatus().getStatusCode());
+//                            }
+//
+//                        }
+//                    });
             for (VideoCastConsumer consumer : mVideoConsumers) {
-                consumer.onApplicationConnected(appMetadata, mSessionId, wasLaunched);
+                consumer.onApplicationConnected(webAppSession, status);
             }
         } catch (TransientNetworkDisconnectionException e) {
             LOGE(TAG, "Failed to attach media/data channel due to network issues", e);
@@ -932,7 +1063,7 @@ public class VideoCastManager extends BaseCastManager
     @Override
     public void onConnectivityRecovered() {
         reattachMediaChannel();
-        reattachDataChannel();
+        //reattachDataChannel();
         super.onConnectivityRecovered();
     }
 
@@ -1026,16 +1157,32 @@ public class VideoCastManager extends BaseCastManager
             throw new NoConnectionException();
         }
 
-        mRemoteMediaPlayer.load(mApiClient, media, autoPlay, position, activeTracks, customData)
-                .setResultCallback(new ResultCallback<RemoteMediaPlayer.MediaChannelResult>() {
+        //MediaPlayer player = mSelectedCastDevice.getCapability(MediaPlayer.class);
+//        mRemoteMediaPlayer.load(mApiClient, media, autoPlay, position, activeTracks, customData)
+//                .setResultCallback(new ResultCallback<RemoteMediaPlayer.MediaChannelResult>() {
+//
+//                    @Override
+//                    public void onResult(MediaChannelResult result) {
+//                        for (VideoCastConsumer consumer : mVideoConsumers) {
+//                            consumer.onMediaLoadResult(result.getStatus().getStatusCode());
+//                        }
+//                    }
+//                });
 
-                    @Override
-                    public void onResult(MediaChannelResult result) {
-                        for (VideoCastConsumer consumer : mVideoConsumers) {
-                            consumer.onMediaLoadResult(result.getStatus().getStatusCode());
-                        }
-                    }
-                });
+        mRemoteMediaPlayer.playMedia(media, false, new MediaPlayer.LaunchListener() {
+            @Override
+            public void onSuccess(MediaPlayer.MediaLaunchObject mediaLaunchObject) {
+                LOGD(TAG, "cast success");
+                for (VideoCastConsumer consumer : mVideoConsumers) {
+                    consumer.onMediaLoadResult(CastStatusCodes.SUCCESS);
+                }
+            }
+
+            @Override
+            public void onError(ServiceCommandError serviceCommandError) {
+                LOGE(TAG, "cast failure code" + serviceCommandError.getCode());
+            }
+        });
     }
     /**
      * Loads and optionally starts playback of a new queue of media items.
@@ -1063,31 +1210,31 @@ public class VideoCastManager extends BaseCastManager
      * @throws TransientNetworkDisconnectionException
      * @throws NoConnectionException
      */
-    public void queueLoad(final MediaQueueItem[] items, final int startIndex, final int repeatMode,
-            final JSONObject customData)
-            throws TransientNetworkDisconnectionException, NoConnectionException {
-        LOGD(TAG, "queueLoad");
-        checkConnectivity();
-        if (items == null || items.length == 0) {
-            return;
-        }
-        if (mRemoteMediaPlayer == null) {
-            LOGE(TAG, "Trying to queue one or more videos with no active media session");
-            throw new NoConnectionException();
-        }
-        mRemoteMediaPlayer
-                .queueLoad(mApiClient, items, startIndex, repeatMode, customData)
-                .setResultCallback(new ResultCallback<MediaChannelResult>() {
-
-                    @Override
-                    public void onResult(MediaChannelResult result) {
-                        for (VideoCastConsumer consumer : mVideoConsumers) {
-                            consumer.onMediaQueueOperationResult(QUEUE_OPERATION_LOAD,
-                                    result.getStatus().getStatusCode());
-                        }
-                    }
-                });
-    }
+//    public void queueLoad(final MediaQueueItem[] items, final int startIndex, final int repeatMode,
+//            final JSONObject customData)
+//            throws TransientNetworkDisconnectionException, NoConnectionException {
+//        LOGD(TAG, "queueLoad");
+//        checkConnectivity();
+//        if (items == null || items.length == 0) {
+//            return;
+//        }
+//        if (mRemoteMediaPlayer == null) {
+//            LOGE(TAG, "Trying to queue one or more videos with no active media session");
+//            throw new NoConnectionException();
+//        }
+//        mRemoteMediaPlayer
+//                .queueLoad(mApiClient, items, startIndex, repeatMode, customData)
+//                .setResultCallback(new ResultCallback<MediaChannelResult>() {
+//
+//                    @Override
+//                    public void onResult(MediaChannelResult result) {
+//                        for (VideoCastConsumer consumer : mVideoConsumers) {
+//                            consumer.onMediaQueueOperationResult(QUEUE_OPERATION_LOAD,
+//                                    result.getStatus().getStatusCode());
+//                        }
+//                    }
+//                });
+//    }
 
     /**
      * Inserts a list of new media items into the queue.
@@ -1106,33 +1253,33 @@ public class VideoCastManager extends BaseCastManager
      * @throws NoConnectionException
      * @throws IllegalArgumentException
      */
-    public void queueInsertItems(final MediaQueueItem[] itemsToInsert, final int insertBeforeItemId,
-            final JSONObject customData)
-            throws TransientNetworkDisconnectionException, NoConnectionException {
-        LOGD(TAG, "queueInsertItems");
-        checkConnectivity();
-        if (itemsToInsert == null || itemsToInsert.length == 0) {
-            throw new IllegalArgumentException("items cannot be empty or null");
-        }
-        if (mRemoteMediaPlayer == null) {
-            LOGE(TAG, "Trying to insert into queue with no active media session");
-            throw new NoConnectionException();
-        }
-        mRemoteMediaPlayer
-                .queueInsertItems(mApiClient, itemsToInsert, insertBeforeItemId, customData)
-                .setResultCallback(
-                        new ResultCallback<MediaChannelResult>() {
-
-                            @Override
-                            public void onResult(MediaChannelResult result) {
-                                for (VideoCastConsumer consumer : mVideoConsumers) {
-                                    consumer.onMediaQueueOperationResult(
-                                            QUEUE_OPERATION_INSERT_ITEMS,
-                                            result.getStatus().getStatusCode());
-                                }
-                            }
-                        });
-    }
+//    public void queueInsertItems(final MediaQueueItem[] itemsToInsert, final int insertBeforeItemId,
+//            final JSONObject customData)
+//            throws TransientNetworkDisconnectionException, NoConnectionException {
+//        LOGD(TAG, "queueInsertItems");
+//        checkConnectivity();
+//        if (itemsToInsert == null || itemsToInsert.length == 0) {
+//            throw new IllegalArgumentException("items cannot be empty or null");
+//        }
+//        if (mRemoteMediaPlayer == null) {
+//            LOGE(TAG, "Trying to insert into queue with no active media session");
+//            throw new NoConnectionException();
+//        }
+//        mRemoteMediaPlayer
+//                .queueInsertItems(mApiClient, itemsToInsert, insertBeforeItemId, customData)
+//                .setResultCallback(
+//                        new ResultCallback<MediaChannelResult>() {
+//
+//                            @Override
+//                            public void onResult(MediaChannelResult result) {
+//                                for (VideoCastConsumer consumer : mVideoConsumers) {
+//                                    consumer.onMediaQueueOperationResult(
+//                                            QUEUE_OPERATION_INSERT_ITEMS,
+//                                            result.getStatus().getStatusCode());
+//                                }
+//                            }
+//                        });
+//    }
 
     /**
      * Updates properties of a subset of the existing items in the media queue.
@@ -1148,28 +1295,28 @@ public class VideoCastManager extends BaseCastManager
      * @throws TransientNetworkDisconnectionException
      * @throws NoConnectionException
      */
-    public void queueUpdateItems(final MediaQueueItem[] itemsToUpdate, final JSONObject customData)
-            throws TransientNetworkDisconnectionException, NoConnectionException {
-        checkConnectivity();
-        if (mRemoteMediaPlayer == null) {
-            LOGE(TAG, "Trying to update the queue with no active media session");
-            throw new NoConnectionException();
-        }
-        mRemoteMediaPlayer
-                .queueUpdateItems(mApiClient, itemsToUpdate, customData).setResultCallback(
-                new ResultCallback<MediaChannelResult>() {
-
-                    @Override
-                    public void onResult(MediaChannelResult result) {
-                        LOGD(TAG, "queueUpdateItems() " + result.getStatus() + result.getStatus()
-                                .isSuccess());
-                        for (VideoCastConsumer consumer : mVideoConsumers) {
-                            consumer.onMediaQueueOperationResult(QUEUE_OPERATION_UPDATE_ITEMS,
-                                    result.getStatus().getStatusCode());
-                        }
-                    }
-                });
-    }
+//    public void queueUpdateItems(final MediaQueueItem[] itemsToUpdate, final JSONObject customData)
+//            throws TransientNetworkDisconnectionException, NoConnectionException {
+//        checkConnectivity();
+//        if (mRemoteMediaPlayer == null) {
+//            LOGE(TAG, "Trying to update the queue with no active media session");
+//            throw new NoConnectionException();
+//        }
+//        mRemoteMediaPlayer
+//                .queueUpdateItems(mApiClient, itemsToUpdate, customData).setResultCallback(
+//                new ResultCallback<MediaChannelResult>() {
+//
+//                    @Override
+//                    public void onResult(MediaChannelResult result) {
+//                        LOGD(TAG, "queueUpdateItems() " + result.getStatus() + result.getStatus()
+//                                .isSuccess());
+//                        for (VideoCastConsumer consumer : mVideoConsumers) {
+//                            consumer.onMediaQueueOperationResult(QUEUE_OPERATION_UPDATE_ITEMS,
+//                                    result.getStatus().getStatusCode());
+//                        }
+//                    }
+//                });
+//    }
 
     /**
      * Plays the item with {@code itemId} in the queue.
@@ -1184,30 +1331,30 @@ public class VideoCastManager extends BaseCastManager
      * @throws NoConnectionException
      * @throws IllegalArgumentException
      */
-    public void queueJumpToItem(int itemId, final JSONObject customData)
-            throws TransientNetworkDisconnectionException, NoConnectionException,
-            IllegalArgumentException {
-        checkConnectivity();
-        if (itemId == MediaQueueItem.INVALID_ITEM_ID) {
-            throw new IllegalArgumentException("itemId is not valid");
-        }
-        if (mRemoteMediaPlayer == null) {
-            LOGE(TAG, "Trying to jump in a queue with no active media session");
-            throw new NoConnectionException();
-        }
-        mRemoteMediaPlayer
-                .queueJumpToItem(mApiClient, itemId, customData).setResultCallback(
-                new ResultCallback<MediaChannelResult>() {
-
-                    @Override
-                    public void onResult(MediaChannelResult result) {
-                        for (VideoCastConsumer consumer : mVideoConsumers) {
-                            consumer.onMediaQueueOperationResult(QUEUE_OPERATION_JUMP,
-                                    result.getStatus().getStatusCode());
-                        }
-                    }
-                });
-    }
+//    public void queueJumpToItem(int itemId, final JSONObject customData)
+//            throws TransientNetworkDisconnectionException, NoConnectionException,
+//            IllegalArgumentException {
+//        checkConnectivity();
+//        if (itemId == MediaQueueItem.INVALID_ITEM_ID) {
+//            throw new IllegalArgumentException("itemId is not valid");
+//        }
+//        if (mRemoteMediaPlayer == null) {
+//            LOGE(TAG, "Trying to jump in a queue with no active media session");
+//            throw new NoConnectionException();
+//        }
+//        mRemoteMediaPlayer
+//                .queueJumpToItem(mApiClient, itemId, customData).setResultCallback(
+//                new ResultCallback<MediaChannelResult>() {
+//
+//                    @Override
+//                    public void onResult(MediaChannelResult result) {
+//                        for (VideoCastConsumer consumer : mVideoConsumers) {
+//                            consumer.onMediaQueueOperationResult(QUEUE_OPERATION_JUMP,
+//                                    result.getStatus().getStatusCode());
+//                        }
+//                    }
+//                });
+//    }
 
     /**
      * Removes a list of items from the queue. If the remaining queue is empty, the media session
@@ -1221,31 +1368,31 @@ public class VideoCastManager extends BaseCastManager
      * @throws NoConnectionException
      * @throws IllegalArgumentException
      */
-    public void queueRemoveItems(final int[] itemIdsToRemove, final JSONObject customData)
-            throws TransientNetworkDisconnectionException, NoConnectionException,
-            IllegalArgumentException {
-        LOGD(TAG, "queueRemoveItems");
-        checkConnectivity();
-        if (itemIdsToRemove == null || itemIdsToRemove.length == 0) {
-            throw new IllegalArgumentException("itemIds cannot be empty or null");
-        }
-        if (mRemoteMediaPlayer == null) {
-            LOGE(TAG, "Trying to remove items from queue with no active media session");
-            throw new NoConnectionException();
-        }
-        mRemoteMediaPlayer
-                .queueRemoveItems(mApiClient, itemIdsToRemove, customData).setResultCallback(
-                new ResultCallback<MediaChannelResult>() {
-
-                    @Override
-                    public void onResult(MediaChannelResult result) {
-                        for (VideoCastConsumer consumer : mVideoConsumers) {
-                            consumer.onMediaQueueOperationResult(QUEUE_OPERATION_REMOVE_ITEMS,
-                                    result.getStatus().getStatusCode());
-                        }
-                    }
-                });
-    }
+//    public void queueRemoveItems(final int[] itemIdsToRemove, final JSONObject customData)
+//            throws TransientNetworkDisconnectionException, NoConnectionException,
+//            IllegalArgumentException {
+//        LOGD(TAG, "queueRemoveItems");
+//        checkConnectivity();
+//        if (itemIdsToRemove == null || itemIdsToRemove.length == 0) {
+//            throw new IllegalArgumentException("itemIds cannot be empty or null");
+//        }
+//        if (mRemoteMediaPlayer == null) {
+//            LOGE(TAG, "Trying to remove items from queue with no active media session");
+//            throw new NoConnectionException();
+//        }
+//        mRemoteMediaPlayer
+//                .queueRemoveItems(mApiClient, itemIdsToRemove, customData).setResultCallback(
+//                new ResultCallback<MediaChannelResult>() {
+//
+//                    @Override
+//                    public void onResult(MediaChannelResult result) {
+//                        for (VideoCastConsumer consumer : mVideoConsumers) {
+//                            consumer.onMediaQueueOperationResult(QUEUE_OPERATION_REMOVE_ITEMS,
+//                                    result.getStatus().getStatusCode());
+//                        }
+//                    }
+//                });
+//    }
 
     /**
      * Removes the item with {@code itemId} from the queue.
@@ -1261,31 +1408,31 @@ public class VideoCastManager extends BaseCastManager
      * @throws NoConnectionException
      * @throws IllegalArgumentException
      */
-    public void queueRemoveItem(final int itemId, final JSONObject customData)
-            throws TransientNetworkDisconnectionException, NoConnectionException,
-            IllegalArgumentException {
-        LOGD(TAG, "queueRemoveItem");
-        checkConnectivity();
-        if (itemId == MediaQueueItem.INVALID_ITEM_ID) {
-            throw new IllegalArgumentException("itemId is invalid");
-        }
-        if (mRemoteMediaPlayer == null) {
-            LOGE(TAG, "Trying to remove an item from queue with no active media session");
-            throw new NoConnectionException();
-        }
-        mRemoteMediaPlayer
-                .queueRemoveItem(mApiClient, itemId, customData).setResultCallback(
-                new ResultCallback<MediaChannelResult>() {
-
-                    @Override
-                    public void onResult(MediaChannelResult result) {
-                        for (VideoCastConsumer consumer : mVideoConsumers) {
-                            consumer.onMediaQueueOperationResult(QUEUE_OPERATION_REMOVE_ITEM,
-                                    result.getStatus().getStatusCode());
-                        }
-                    }
-                });
-    }
+//    public void queueRemoveItem(final int itemId, final JSONObject customData)
+//            throws TransientNetworkDisconnectionException, NoConnectionException,
+//            IllegalArgumentException {
+//        LOGD(TAG, "queueRemoveItem");
+//        checkConnectivity();
+//        if (itemId == MediaQueueItem.INVALID_ITEM_ID) {
+//            throw new IllegalArgumentException("itemId is invalid");
+//        }
+//        if (mRemoteMediaPlayer == null) {
+//            LOGE(TAG, "Trying to remove an item from queue with no active media session");
+//            throw new NoConnectionException();
+//        }
+//        mRemoteMediaPlayer
+//                .queueRemoveItem(mApiClient, itemId, customData).setResultCallback(
+//                new ResultCallback<MediaChannelResult>() {
+//
+//                    @Override
+//                    public void onResult(MediaChannelResult result) {
+//                        for (VideoCastConsumer consumer : mVideoConsumers) {
+//                            consumer.onMediaQueueOperationResult(QUEUE_OPERATION_REMOVE_ITEM,
+//                                    result.getStatus().getStatusCode());
+//                        }
+//                    }
+//                });
+//    }
 
     /**
      * Reorder a list of media items in the queue.
@@ -1323,33 +1470,33 @@ public class VideoCastManager extends BaseCastManager
      * @throws TransientNetworkDisconnectionException
      * @throws NoConnectionException
      */
-    public void queueReorderItems(final int[] itemIdsToReorder, final int insertBeforeItemId,
-            final JSONObject customData)
-            throws TransientNetworkDisconnectionException, NoConnectionException,
-            IllegalArgumentException {
-        LOGD(TAG, "queueReorderItems");
-        checkConnectivity();
-        if (itemIdsToReorder == null || itemIdsToReorder.length == 0) {
-            throw new IllegalArgumentException("itemIdsToReorder cannot be empty or null");
-        }
-        if (mRemoteMediaPlayer == null) {
-            LOGE(TAG, "Trying to reorder items in a queue with no active media session");
-            throw new NoConnectionException();
-        }
-        mRemoteMediaPlayer
-                .queueReorderItems(mApiClient, itemIdsToReorder, insertBeforeItemId, customData)
-                .setResultCallback(
-                        new ResultCallback<MediaChannelResult>() {
-
-                            @Override
-                            public void onResult(MediaChannelResult result) {
-                                for (VideoCastConsumer consumer : mVideoConsumers) {
-                                    consumer.onMediaQueueOperationResult(QUEUE_OPERATION_REORDER,
-                                            result.getStatus().getStatusCode());
-                                }
-                            }
-                        });
-    }
+//    public void queueReorderItems(final int[] itemIdsToReorder, final int insertBeforeItemId,
+//            final JSONObject customData)
+//            throws TransientNetworkDisconnectionException, NoConnectionException,
+//            IllegalArgumentException {
+//        LOGD(TAG, "queueReorderItems");
+//        checkConnectivity();
+//        if (itemIdsToReorder == null || itemIdsToReorder.length == 0) {
+//            throw new IllegalArgumentException("itemIdsToReorder cannot be empty or null");
+//        }
+//        if (mRemoteMediaPlayer == null) {
+//            LOGE(TAG, "Trying to reorder items in a queue with no active media session");
+//            throw new NoConnectionException();
+//        }
+//        mRemoteMediaPlayer
+//                .queueReorderItems(mApiClient, itemIdsToReorder, insertBeforeItemId, customData)
+//                .setResultCallback(
+//                        new ResultCallback<MediaChannelResult>() {
+//
+//                            @Override
+//                            public void onResult(MediaChannelResult result) {
+//                                for (VideoCastConsumer consumer : mVideoConsumers) {
+//                                    consumer.onMediaQueueOperationResult(QUEUE_OPERATION_REORDER,
+//                                            result.getStatus().getStatusCode());
+//                                }
+//                            }
+//                        });
+//    }
 
     /**
      * Moves the item with {@code itemId} to a new position in the queue.
@@ -1368,22 +1515,22 @@ public class VideoCastManager extends BaseCastManager
      * @throws TransientNetworkDisconnectionException
      * @throws NoConnectionException
      */
-    public void queueMoveItemToNewIndex(int itemId, int newIndex, final JSONObject customData)
-            throws TransientNetworkDisconnectionException, NoConnectionException {
-        mRemoteMediaPlayer
-                .queueMoveItemToNewIndex(mApiClient, itemId, newIndex, customData)
-                .setResultCallback(
-                        new ResultCallback<MediaChannelResult>() {
-
-                            @Override
-                            public void onResult(MediaChannelResult result) {
-                                for (VideoCastConsumer consumer : mVideoConsumers) {
-                                    consumer.onMediaQueueOperationResult(QUEUE_OPERATION_MOVE,
-                                            result.getStatus().getStatusCode());;
-                                }
-                            }
-                        });
-    }
+//    public void queueMoveItemToNewIndex(int itemId, int newIndex, final JSONObject customData)
+//            throws TransientNetworkDisconnectionException, NoConnectionException {
+//        mRemoteMediaPlayer
+//                .queueMoveItemToNewIndex(mApiClient, itemId, newIndex, customData)
+//                .setResultCallback(
+//                        new ResultCallback<MediaChannelResult>() {
+//
+//                            @Override
+//                            public void onResult(MediaChannelResult result) {
+//                                for (VideoCastConsumer consumer : mVideoConsumers) {
+//                                    consumer.onMediaQueueOperationResult(QUEUE_OPERATION_MOVE,
+//                                            result.getStatus().getStatusCode());;
+//                                }
+//                            }
+//                        });
+//    }
 
     /**
      * Appends a new media item to the end of the queue.
@@ -1394,22 +1541,22 @@ public class VideoCastManager extends BaseCastManager
      * @throws TransientNetworkDisconnectionException
      * @throws NoConnectionException
      */
-    public void queueAppendItem(MediaQueueItem item, final JSONObject customData)
-            throws TransientNetworkDisconnectionException, NoConnectionException {
-        mRemoteMediaPlayer
-                .queueAppendItem(mApiClient, item, customData)
-                .setResultCallback(
-                        new ResultCallback<MediaChannelResult>() {
-
-                            @Override
-                            public void onResult(MediaChannelResult result) {
-                                for (VideoCastConsumer consumer : mVideoConsumers) {
-                                    consumer.onMediaQueueOperationResult(QUEUE_OPERATION_APPEND,
-                                            result.getStatus().getStatusCode());
-                                }
-                            }
-                        });
-    }
+//    public void queueAppendItem(MediaQueueItem item, final JSONObject customData)
+//            throws TransientNetworkDisconnectionException, NoConnectionException {
+//        mRemoteMediaPlayer
+//                .queueAppendItem(mApiClient, item, customData)
+//                .setResultCallback(
+//                        new ResultCallback<MediaChannelResult>() {
+//
+//                            @Override
+//                            public void onResult(MediaChannelResult result) {
+//                                for (VideoCastConsumer consumer : mVideoConsumers) {
+//                                    consumer.onMediaQueueOperationResult(QUEUE_OPERATION_APPEND,
+//                                            result.getStatus().getStatusCode());
+//                                }
+//                            }
+//                        });
+//    }
 
     /**
      * Jumps to the next item in the queue.
@@ -1419,26 +1566,26 @@ public class VideoCastManager extends BaseCastManager
      * @throws TransientNetworkDisconnectionException
      * @throws NoConnectionException
      */
-    public void queueNext(final JSONObject customData)
-            throws TransientNetworkDisconnectionException, NoConnectionException {
-        checkConnectivity();
-        if (mRemoteMediaPlayer == null) {
-            LOGE(TAG, "Trying to update the queue with no active media session");
-            throw new NoConnectionException();
-        }
-        mRemoteMediaPlayer
-                .queueNext(mApiClient, customData).setResultCallback(
-                new ResultCallback<MediaChannelResult>() {
-
-                    @Override
-                    public void onResult(MediaChannelResult result) {
-                        for (VideoCastConsumer consumer : mVideoConsumers) {
-                            consumer.onMediaQueueOperationResult(QUEUE_OPERATION_NEXT,
-                                    result.getStatus().getStatusCode());
-                        }
-                    }
-                });
-    }
+//    public void queueNext(final JSONObject customData)
+//            throws TransientNetworkDisconnectionException, NoConnectionException {
+//        checkConnectivity();
+//        if (mRemoteMediaPlayer == null) {
+//            LOGE(TAG, "Trying to update the queue with no active media session");
+//            throw new NoConnectionException();
+//        }
+//        mRemoteMediaPlayer
+//                .queueNext(mApiClient, customData).setResultCallback(
+//                new ResultCallback<MediaChannelResult>() {
+//
+//                    @Override
+//                    public void onResult(MediaChannelResult result) {
+//                        for (VideoCastConsumer consumer : mVideoConsumers) {
+//                            consumer.onMediaQueueOperationResult(QUEUE_OPERATION_NEXT,
+//                                    result.getStatus().getStatusCode());
+//                        }
+//                    }
+//                });
+//    }
 
     /**
      * Jumps to the previous item in the queue.
@@ -1448,26 +1595,26 @@ public class VideoCastManager extends BaseCastManager
      * @throws TransientNetworkDisconnectionException
      * @throws NoConnectionException
      */
-    public void queuePrev(final JSONObject customData)
-            throws TransientNetworkDisconnectionException, NoConnectionException {
-        checkConnectivity();
-        if (mRemoteMediaPlayer == null) {
-            LOGE(TAG, "Trying to update the queue with no active media session");
-            throw new NoConnectionException();
-        }
-        mRemoteMediaPlayer
-                .queuePrev(mApiClient, customData).setResultCallback(
-                new ResultCallback<MediaChannelResult>() {
-
-                    @Override
-                    public void onResult(MediaChannelResult result) {
-                        for (VideoCastConsumer consumer : mVideoConsumers) {
-                            consumer.onMediaQueueOperationResult(QUEUE_OPERATION_PREV,
-                                    result.getStatus().getStatusCode());
-                        }
-                    }
-                });
-    }
+//    public void queuePrev(final JSONObject customData)
+//            throws TransientNetworkDisconnectionException, NoConnectionException {
+//        checkConnectivity();
+//        if (mRemoteMediaPlayer == null) {
+//            LOGE(TAG, "Trying to update the queue with no active media session");
+//            throw new NoConnectionException();
+//        }
+//        mRemoteMediaPlayer
+//                .queuePrev(mApiClient, customData).setResultCallback(
+//                new ResultCallback<MediaChannelResult>() {
+//
+//                    @Override
+//                    public void onResult(MediaChannelResult result) {
+//                        for (VideoCastConsumer consumer : mVideoConsumers) {
+//                            consumer.onMediaQueueOperationResult(QUEUE_OPERATION_PREV,
+//                                    result.getStatus().getStatusCode());
+//                        }
+//                    }
+//                });
+//    }
 
     /**
      * Inserts an item in the queue and starts the playback of that newly inserted item. It is
@@ -1482,40 +1629,40 @@ public class VideoCastManager extends BaseCastManager
      * @throws NoConnectionException
      * @throws IllegalArgumentException
      */
-    public void queueInsertBeforeCurrentAndPlay(MediaQueueItem item, int insertBeforeItemId,
-            final JSONObject customData)
-            throws TransientNetworkDisconnectionException, NoConnectionException {
-        checkConnectivity();
-        if (mRemoteMediaPlayer == null) {
-            LOGE(TAG, "Trying to insert into queue with no active media session");
-            throw new NoConnectionException();
-        }
-        if (item == null || insertBeforeItemId == MediaQueueItem.INVALID_ITEM_ID) {
-            throw new IllegalArgumentException(
-                    "item cannot be empty or insertBeforeItemId cannot be invalid");
-        }
-        mRemoteMediaPlayer.queueInsertItems(mApiClient, new MediaQueueItem[]{item},
-                insertBeforeItemId, customData).setResultCallback(
-                new ResultCallback<MediaChannelResult>() {
-
-                    @Override
-                    public void onResult(MediaChannelResult result) {
-                        if (result.getStatus().isSuccess()) {
-
-                            try {
-                                queuePrev(customData);
-                            } catch (TransientNetworkDisconnectionException |
-                                    NoConnectionException e) {
-                                LOGE(TAG, "queuePrev() Failed to skip to previous", e);
-                            }
-                        }
-                        for (VideoCastConsumer consumer : mVideoConsumers) {
-                            consumer.onMediaQueueOperationResult(QUEUE_OPERATION_INSERT_ITEMS,
-                                    result.getStatus().getStatusCode());
-                        }
-                    }
-                });
-    }
+//    public void queueInsertBeforeCurrentAndPlay(MediaQueueItem item, int insertBeforeItemId,
+//            final JSONObject customData)
+//            throws TransientNetworkDisconnectionException, NoConnectionException {
+//        checkConnectivity();
+//        if (mRemoteMediaPlayer == null) {
+//            LOGE(TAG, "Trying to insert into queue with no active media session");
+//            throw new NoConnectionException();
+//        }
+//        if (item == null || insertBeforeItemId == MediaQueueItem.INVALID_ITEM_ID) {
+//            throw new IllegalArgumentException(
+//                    "item cannot be empty or insertBeforeItemId cannot be invalid");
+//        }
+//        mRemoteMediaPlayer.queueInsertItems(mApiClient, new MediaQueueItem[]{item},
+//                insertBeforeItemId, customData).setResultCallback(
+//                new ResultCallback<MediaChannelResult>() {
+//
+//                    @Override
+//                    public void onResult(MediaChannelResult result) {
+//                        if (result.getStatus().isSuccess()) {
+//
+//                            try {
+//                                queuePrev(customData);
+//                            } catch (TransientNetworkDisconnectionException |
+//                                    NoConnectionException e) {
+//                                LOGE(TAG, "queuePrev() Failed to skip to previous", e);
+//                            }
+//                        }
+//                        for (VideoCastConsumer consumer : mVideoConsumers) {
+//                            consumer.onMediaQueueOperationResult(QUEUE_OPERATION_INSERT_ITEMS,
+//                                    result.getStatus().getStatusCode());
+//                        }
+//                    }
+//                });
+//    }
 
     /**
      * Sets the repeat mode of the queue.
@@ -1526,29 +1673,29 @@ public class VideoCastManager extends BaseCastManager
      * @throws TransientNetworkDisconnectionException
      * @throws NoConnectionException
      */
-    public void queueSetRepeatMode(final int repeatMode, final JSONObject customData)
-            throws TransientNetworkDisconnectionException, NoConnectionException {
-        checkConnectivity();
-        if (mRemoteMediaPlayer == null) {
-            LOGE(TAG, "Trying to update the queue with no active media session");
-            throw new NoConnectionException();
-        }
-        mRemoteMediaPlayer
-                .queueSetRepeatMode(mApiClient, repeatMode, customData).setResultCallback(
-                new ResultCallback<MediaChannelResult>() {
-
-                    @Override
-                    public void onResult(MediaChannelResult result) {
-                        if (!result.getStatus().isSuccess()) {
-                            LOGD(TAG, "Failed with status: " + result.getStatus());
-                        }
-                        for (VideoCastConsumer consumer : mVideoConsumers) {
-                            consumer.onMediaQueueOperationResult(QUEUE_OPERATION_SET_REPEAT,
-                                    result.getStatus().getStatusCode());
-                        }
-                    }
-                });
-    }
+//    public void queueSetRepeatMode(final int repeatMode, final JSONObject customData)
+//            throws TransientNetworkDisconnectionException, NoConnectionException {
+//        checkConnectivity();
+//        if (mRemoteMediaPlayer == null) {
+//            LOGE(TAG, "Trying to update the queue with no active media session");
+//            throw new NoConnectionException();
+//        }
+//        mRemoteMediaPlayer
+//                .queueSetRepeatMode(mApiClient, repeatMode, customData).setResultCallback(
+//                new ResultCallback<MediaChannelResult>() {
+//
+//                    @Override
+//                    public void onResult(MediaChannelResult result) {
+//                        if (!result.getStatus().isSuccess()) {
+//                            LOGD(TAG, "Failed with status: " + result.getStatus());
+//                        }
+//                        for (VideoCastConsumer consumer : mVideoConsumers) {
+//                            consumer.onMediaQueueOperationResult(QUEUE_OPERATION_SET_REPEAT,
+//                                    result.getStatus().getStatusCode());
+//                        }
+//                    }
+//                });
+//    }
 
     /**
      * Plays the loaded media.
@@ -1557,8 +1704,7 @@ public class VideoCastManager extends BaseCastManager
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
      */
-    public void play(int position) throws TransientNetworkDisconnectionException,
-            NoConnectionException {
+    public void play(int position) throws TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
         LOGD(TAG, "attempting to play media at position " + position + " seconds");
         if (mRemoteMediaPlayer == null) {
@@ -1583,18 +1729,31 @@ public class VideoCastManager extends BaseCastManager
             LOGE(TAG, "Trying to play a video with no active media session");
             throw new NoConnectionException();
         }
-        mRemoteMediaPlayer.play(mApiClient, customData)
-                .setResultCallback(new ResultCallback<MediaChannelResult>() {
+//        mRemoteMediaPlayer.play(mApiClient, customData)
+//                .setResultCallback(new ResultCallback<MediaChannelResult>() {
+//
+//                    @Override
+//                    public void onResult(MediaChannelResult result) {
+//                        if (!result.getStatus().isSuccess()) {
+//                            onFailed(R.string.ccl_failed_to_play,
+//                                    result.getStatus().getStatusCode());
+//                        }
+//                    }
+//
+//                });
 
-                    @Override
-                    public void onResult(MediaChannelResult result) {
-                        if (!result.getStatus().isSuccess()) {
-                            onFailed(R.string.ccl_failed_to_play,
-                                    result.getStatus().getStatusCode());
-                        }
-                    }
+        mMediaStatus.play(new ResponseListener<Object>() {
 
-                });
+            @Override
+            public void onSuccess(Object o) {
+
+            }
+
+            @Override
+            public void onError(ServiceCommandError serviceCommandError) {
+                onFailed(R.string.ccl_failed_to_play, serviceCommandError.getCode());
+            }
+        });
     }
 
     /**
@@ -1624,19 +1783,32 @@ public class VideoCastManager extends BaseCastManager
             LOGE(TAG, "Trying to stop a stream with no active media session");
             throw new NoConnectionException();
         }
-        mRemoteMediaPlayer.stop(mApiClient, customData).setResultCallback(
-                new ResultCallback<MediaChannelResult>() {
+//        mRemoteMediaPlayer.stop(mApiClient, customData).setResultCallback(
+//                new ResultCallback<MediaChannelResult>() {
+//
+//                    @Override
+//                    public void onResult(MediaChannelResult result) {
+//                        if (!result.getStatus().isSuccess()) {
+//                            onFailed(R.string.ccl_failed_to_stop,
+//                                    result.getStatus().getStatusCode());
+//                        }
+//                    }
+//
+//                }
+//        );
 
-                    @Override
-                    public void onResult(MediaChannelResult result) {
-                        if (!result.getStatus().isSuccess()) {
-                            onFailed(R.string.ccl_failed_to_stop,
-                                    result.getStatus().getStatusCode());
-                        }
-                    }
+        mMediaStatus.stop(new ResponseListener<Object>() {
 
-                }
-        );
+            @Override
+            public void onSuccess(Object o) {
+
+            }
+
+            @Override
+            public void onError(ServiceCommandError serviceCommandError) {
+                onFailed(R.string.ccl_failed_to_stop, serviceCommandError.getCode());
+            }
+        });
     }
 
     /**
@@ -1678,18 +1850,31 @@ public class VideoCastManager extends BaseCastManager
             LOGE(TAG, "Trying to pause a video with no active media session");
             throw new NoConnectionException();
         }
-        mRemoteMediaPlayer.pause(mApiClient, customData)
-                .setResultCallback(new ResultCallback<MediaChannelResult>() {
+//        mRemoteMediaPlayer.pause(mApiClient, customData)
+//                .setResultCallback(new ResultCallback<MediaChannelResult>() {
+//
+//                    @Override
+//                    public void onResult(MediaChannelResult result) {
+//                        if (!result.getStatus().isSuccess()) {
+//                            onFailed(R.string.ccl_failed_to_pause,
+//                                    result.getStatus().getStatusCode());
+//                        }
+//                    }
+//
+//                });
 
-                    @Override
-                    public void onResult(MediaChannelResult result) {
-                        if (!result.getStatus().isSuccess()) {
-                            onFailed(R.string.ccl_failed_to_pause,
-                                    result.getStatus().getStatusCode());
-                        }
-                    }
+        mMediaStatus.pause(new ResponseListener<Object>() {
 
-                });
+            @Override
+            public void onSuccess(Object o) {
+                LOGD(TAG, "pause success");
+            }
+
+            @Override
+            public void onError(ServiceCommandError serviceCommandError) {
+                onFailed(R.string.ccl_failed_to_pause, serviceCommandError.getCode());
+            }
+        });
     }
 
     /**
@@ -1708,19 +1893,30 @@ public class VideoCastManager extends BaseCastManager
             LOGE(TAG, "Trying to seek a video with no active media session");
             throw new NoConnectionException();
         }
-        mRemoteMediaPlayer.seek(mApiClient,
-                position,
-                RemoteMediaPlayer.RESUME_STATE_UNCHANGED).
-                setResultCallback(new ResultCallback<MediaChannelResult>() {
+//        mRemoteMediaPlayer.seek(mApiClient,
+//                position,
+//                RemoteMediaPlayer.RESUME_STATE_UNCHANGED).
+//                setResultCallback(new ResultCallback<MediaChannelResult>() {
+//
+//                    @Override
+//                    public void onResult(MediaChannelResult result) {
+//                        if (!result.getStatus().isSuccess()) {
+//                            onFailed(R.string.ccl_failed_seek, result.getStatus().getStatusCode());
+//                        }
+//                    }
+//
+//                });
+        mMediaStatus.seek(position, new ResponseListener<Object>() {
+            @Override
+            public void onSuccess(Object o) {
 
-                    @Override
-                    public void onResult(MediaChannelResult result) {
-                        if (!result.getStatus().isSuccess()) {
-                            onFailed(R.string.ccl_failed_seek, result.getStatus().getStatusCode());
-                        }
-                    }
+            }
 
-                });
+            @Override
+            public void onError(ServiceCommandError serviceCommandError) {
+                onFailed(R.string.ccl_failed_seek, serviceCommandError.getCode());
+            }
+        });
     }
 
     /**
@@ -1730,28 +1926,47 @@ public class VideoCastManager extends BaseCastManager
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
      */
-    public void seekAndPlay(int position) throws TransientNetworkDisconnectionException,
-            NoConnectionException {
+    public void seekAndPlay(int position) throws TransientNetworkDisconnectionException, NoConnectionException {
         LOGD(TAG, "attempting to seek media");
         checkConnectivity();
         if (mRemoteMediaPlayer == null) {
             LOGE(TAG, "Trying to seekAndPlay a video with no active media session");
             throw new NoConnectionException();
         }
-        ResultCallback<MediaChannelResult> resultCallback =
-                new ResultCallback<MediaChannelResult>() {
+//        ResultCallback<MediaChannelResult> resultCallback =
+//                new ResultCallback<MediaChannelResult>() {
+//
+//                    @Override
+//                    public void onResult(MediaChannelResult result) {
+//                        if (!result.getStatus().isSuccess()) {
+//                            onFailed(R.string.ccl_failed_seek, result.getStatus().getStatusCode());
+//                        }
+//                    }
+//
+//                };
+//        mRemoteMediaPlayer.seek(mApiClient,
+//                position,
+//                RemoteMediaPlayer.RESUME_STATE_PLAY).setResultCallback(resultCallback);
 
-                    @Override
-                    public void onResult(MediaChannelResult result) {
-                        if (!result.getStatus().isSuccess()) {
-                            onFailed(R.string.ccl_failed_seek, result.getStatus().getStatusCode());
-                        }
-                    }
+        mMediaStatus.seek(position, new ResponseListener<Object>() {
+            @Override
+            public void onSuccess(Object o) {
+                try {
+                    play();
+                } catch (CastException e) {
+                    e.printStackTrace();
+                } catch (TransientNetworkDisconnectionException e) {
+                    e.printStackTrace();
+                } catch (NoConnectionException e) {
+                    e.printStackTrace();
+                }
+            }
 
-                };
-        mRemoteMediaPlayer.seek(mApiClient,
-                position,
-                RemoteMediaPlayer.RESUME_STATE_PLAY).setResultCallback(resultCallback);
+            @Override
+            public void onError(ServiceCommandError serviceCommandError) {
+                onFailed(R.string.ccl_failed_seek, serviceCommandError.getCode());
+            }
+        });
     }
 
     /**
@@ -1768,8 +1983,8 @@ public class VideoCastManager extends BaseCastManager
         if (isPlaying) {
             pause();
         } else {
-            if (mState == MediaStatus.PLAYER_STATE_IDLE
-                    && mIdleReason == MediaStatus.IDLE_REASON_FINISHED) {
+            if (mState == MediaControl.PLAYER_STATE_IDLE){
+                    //&& mIdleReason == MediaControl.IDLE_REASON_FINISHED) {
                 loadMedia(getRemoteMediaInformation(), true, 0);
             } else {
                 play();
@@ -1782,100 +1997,137 @@ public class VideoCastManager extends BaseCastManager
         LOGD(TAG, "attachMediaChannel()");
         checkConnectivity();
         if (mRemoteMediaPlayer == null) {
-            mRemoteMediaPlayer = new RemoteMediaPlayer();
 
-            mRemoteMediaPlayer.setOnStatusUpdatedListener(
-                    new RemoteMediaPlayer.OnStatusUpdatedListener() {
+//            mRemoteMediaPlayer = new RemoteMediaPlayer();
 
-                        @Override
-                        public void onStatusUpdated() {
-                            LOGD(TAG, "RemoteMediaPlayer::onStatusUpdated() is reached");
-                            VideoCastManager.this.onRemoteMediaPlayerStatusUpdated();
-                        }
-                    }
-            );
+//            mRemoteMediaPlayer.setOnStatusUpdatedListener(
+//                    new RemoteMediaPlayer.OnStatusUpdatedListener() {
+//
+//                        @Override
+//                        public void onStatusUpdated() {
+//                            LOGD(TAG, "RemoteMediaPlayer::onStatusUpdated() is reached");
+//                            VideoCastManager.this.onRemoteMediaPlayerStatusUpdated();
+//                        }
+//                    }
+//            );
 
-            mRemoteMediaPlayer.setOnPreloadStatusUpdatedListener(
-                    new RemoteMediaPlayer.OnPreloadStatusUpdatedListener() {
+//            mRemoteMediaPlayer.setOnPreloadStatusUpdatedListener(
+//                    new RemoteMediaPlayer.OnPreloadStatusUpdatedListener() {
+//
+//                        @Override
+//                        public void onPreloadStatusUpdated() {
+//                            LOGD(TAG,
+//                                    "[preload] RemoteMediaPlayer::onPreloadStatusUpdated() is "
+//                                            + "reached");
+//                            VideoCastManager.this.onRemoteMediaPreloadStatusUpdated();
+//                        }
+//                    });
 
-                        @Override
-                        public void onPreloadStatusUpdated() {
-                            LOGD(TAG,
-                                    "[preload] RemoteMediaPlayer::onPreloadStatusUpdated() is "
-                                            + "reached");
-                            VideoCastManager.this.onRemoteMediaPreloadStatusUpdated();
-                        }
-                    });
 
+//            mRemoteMediaPlayer.setOnMetadataUpdatedListener(
+//                    new RemoteMediaPlayer.OnMetadataUpdatedListener() {
+//                        @Override
+//                        public void onMetadataUpdated() {
+//                            LOGD(TAG, "RemoteMediaPlayer::onMetadataUpdated() is reached");
+//                            VideoCastManager.this.onRemoteMediaPlayerMetadataUpdated();
+//                        }
+//                    }
+//            );
 
-            mRemoteMediaPlayer.setOnMetadataUpdatedListener(
-                    new RemoteMediaPlayer.OnMetadataUpdatedListener() {
-                        @Override
-                        public void onMetadataUpdated() {
-                            LOGD(TAG, "RemoteMediaPlayer::onMetadataUpdated() is reached");
-                            VideoCastManager.this.onRemoteMediaPlayerMetadataUpdated();
-                        }
-                    }
-            );
+//            mRemoteMediaPlayer.setOnQueueStatusUpdatedListener(
+//                    new RemoteMediaPlayer.OnQueueStatusUpdatedListener() {
+//
+//                        @Override
+//                        public void onQueueStatusUpdated() {
+//                            LOGD(TAG,
+//                                    "RemoteMediaPlayer::onQueueStatusUpdated() is "
+//                                            + "reached");
+//                            mMediaStatus = mRemoteMediaPlayer.getMediaStatus();
+//                            if (mMediaStatus != null
+//                                    && mMediaStatus.getQueueItems() != null) {
+//                                List<MediaQueueItem> queueItems = mMediaStatus
+//                                        .getQueueItems();
+//                                int itemId = mMediaStatus.getCurrentItemId();
+//                                MediaQueueItem item = mMediaStatus
+//                                        .getQueueItemById(itemId);
+//                                int repeatMode = mMediaStatus.getQueueRepeatMode();
+//                                boolean shuffle = false;
+//                                onQueueUpdated(queueItems, item, repeatMode, shuffle);
+//                            } else {
+//                                onQueueUpdated(null, null,
+//                                        MediaStatus.REPEAT_MODE_REPEAT_OFF,
+//                                        false);
+//                            }
+//                        }
+//                    });
 
-            mRemoteMediaPlayer.setOnQueueStatusUpdatedListener(
-                    new RemoteMediaPlayer.OnQueueStatusUpdatedListener() {
+            mRemoteMediaPlayer = mSelectedCastDevice.getCapability(MediaPlayer.class);
 
-                        @Override
-                        public void onQueueStatusUpdated() {
-                            LOGD(TAG,
-                                    "RemoteMediaPlayer::onQueueStatusUpdated() is "
-                                            + "reached");
-                            mMediaStatus = mRemoteMediaPlayer.getMediaStatus();
-                            if (mMediaStatus != null
-                                    && mMediaStatus.getQueueItems() != null) {
-                                List<MediaQueueItem> queueItems = mMediaStatus
-                                        .getQueueItems();
-                                int itemId = mMediaStatus.getCurrentItemId();
-                                MediaQueueItem item = mMediaStatus
-                                        .getQueueItemById(itemId);
-                                int repeatMode = mMediaStatus.getQueueRepeatMode();
-                                boolean shuffle = false;
-                                onQueueUpdated(queueItems, item, repeatMode, shuffle);
-                            } else {
-                                onQueueUpdated(null, null,
-                                        MediaStatus.REPEAT_MODE_REPEAT_OFF,
-                                        false);
-                            }
-                        }
-                    });
+            mRemoteMediaPlayer.subscribeMediaInfo(new MediaPlayer.MediaInfoListener() {
+                @Override
+                public void onSuccess(MediaInfo mediaInfo) {
+                    LOGD(TAG, "RemoteMediaPlayer::onMetadataUpdated() is reached");
+                    mCurrentMediaInfo = mediaInfo;
+                    VideoCastManager.this.onRemoteMediaPlayerMetadataUpdated();
+                }
+
+                @Override
+                public void onError(ServiceCommandError serviceCommandError) {
+
+                }
+            });
+
+//            if(mMediaStatus.getMediaControl() instanceof DeviceService){
+//                DeviceService service = ((DeviceService)mMediaStatus.getMediaControl());
+//                URLServiceSubscription<MediaPlayer.MediaInfoListener> request = new URLServiceSubscription<MediaPlayer.MediaInfoListener>(service, "info", null, null);
+//                ((DeviceService)mMediaStatus.getMediaControl()).unsubscribe(request);
+//            }
+
+            mMediaStatus.subscribePlayState(new MediaControl.PlayStateListener() {
+                @Override
+                public void onSuccess(MediaControl.PlayStateStatus playStateStatus) {
+                    LOGD(TAG, "RemoteMediaPlayer::onStatusUpdated() is reached");
+                    mCurrentPlayStateStatus = playStateStatus;
+                    VideoCastManager.this.onRemoteMediaPlayerStatusUpdated();
+                }
+
+                @Override
+                public void onError(ServiceCommandError serviceCommandError) {
+
+                }
+            });
 
         }
-        try {
-            LOGD(TAG, "Registering MediaChannel namespace");
-            Cast.CastApi.setMessageReceivedCallbacks(mApiClient, mRemoteMediaPlayer.getNamespace(),
-                    mRemoteMediaPlayer);
-        } catch (IOException | IllegalStateException e) {
-            LOGE(TAG, "attachMediaChannel()", e);
-        }
+//        try {
+//            LOGD(TAG, "Registering MediaChannel namespace");
+//            Cast.CastApi.setMessageReceivedCallbacks(mApiClient, mRemoteMediaPlayer.getNamespace(),
+//                    mRemoteMediaPlayer);
+//        } catch (IOException | IllegalStateException e) {
+//            LOGE(TAG, "attachMediaChannel()", e);
+//        }
     }
 
     private void reattachMediaChannel() {
-        if (mRemoteMediaPlayer != null && mApiClient != null) {
-            try {
-                LOGD(TAG, "Registering MediaChannel namespace");
-                Cast.CastApi.setMessageReceivedCallbacks(mApiClient,
-                        mRemoteMediaPlayer.getNamespace(), mRemoteMediaPlayer);
-            } catch (IOException | IllegalStateException e) {
-                LOGE(TAG, "reattachMediaChannel()", e);
-            }
-        }
+//        if (mRemoteMediaPlayer != null && mApiClient != null) {
+//            try {
+//                LOGD(TAG, "Registering MediaChannel namespace");
+//                Cast.CastApi.setMessageReceivedCallbacks(mApiClient,
+//                        mRemoteMediaPlayer.getNamespace(), mRemoteMediaPlayer);
+//            } catch (IOException | IllegalStateException e) {
+//                LOGE(TAG, "reattachMediaChannel()", e);
+//            }
+//        }
     }
 
     private void detachMediaChannel() {
         LOGD(TAG, "trying to detach media channel");
         if (mRemoteMediaPlayer != null) {
-            try {
-                Cast.CastApi.removeMessageReceivedCallbacks(mApiClient,
-                        mRemoteMediaPlayer.getNamespace());
-            } catch (IOException | IllegalStateException e) {
-                LOGE(TAG, "detachMediaChannel()", e);
-            }
+//            try {
+//                Cast.CastApi.removeMessageReceivedCallbacks(mApiClient,
+//                        mRemoteMediaPlayer.getNamespace());
+//            } catch (IOException | IllegalStateException e) {
+//                LOGE(TAG, "detachMediaChannel()", e);
+//            }
             mRemoteMediaPlayer = null;
         }
     }
@@ -1897,10 +2149,10 @@ public class VideoCastManager extends BaseCastManager
     }
 
     /**
-     * Returns the latest retrieved value for the {@link MediaStatus}. This value is updated
+     * Returns the latest retrieved value for the {@link MediaControl}. This value is updated
      * whenever the onStatusUpdated callback is called.
      */
-    public final MediaStatus getMediaStatus() {
+    public final MediaControl getMediaStatus() {
         return mMediaStatus;
     }
 
@@ -1920,40 +2172,40 @@ public class VideoCastManager extends BaseCastManager
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
      */
-    private void attachDataChannel() throws TransientNetworkDisconnectionException,
-            NoConnectionException {
-        if (TextUtils.isEmpty(mDataNamespace)) {
-            return;
-        }
-        if (mDataChannel != null) {
-            return;
-        }
-        checkConnectivity();
-        mDataChannel = new MessageReceivedCallback() {
+//    private void attachDataChannel() throws TransientNetworkDisconnectionException,
+//            NoConnectionException {
+//        if (TextUtils.isEmpty(mDataNamespace)) {
+//            return;
+//        }
+//        if (mDataChannel != null) {
+//            return;
+//        }
+//        checkConnectivity();
+//        mDataChannel = new MessageReceivedCallback() {
+//
+//            @Override
+//            public void onMessageReceived(CastDevice castDevice, String namespace, String message) {
+//                for (VideoCastConsumer consumer : mVideoConsumers) {
+//                    consumer.onDataMessageReceived(message);
+//                }
+//            }
+//        };
+//        try {
+//            Cast.CastApi.setMessageReceivedCallbacks(mApiClient, mDataNamespace, mDataChannel);
+//        } catch (IOException | IllegalStateException e) {
+//            LOGE(TAG, "attachDataChannel()", e);
+//        }
+//    }
 
-            @Override
-            public void onMessageReceived(CastDevice castDevice, String namespace, String message) {
-                for (VideoCastConsumer consumer : mVideoConsumers) {
-                    consumer.onDataMessageReceived(message);
-                }
-            }
-        };
-        try {
-            Cast.CastApi.setMessageReceivedCallbacks(mApiClient, mDataNamespace, mDataChannel);
-        } catch (IOException | IllegalStateException e) {
-            LOGE(TAG, "attachDataChannel()", e);
-        }
-    }
-
-    private void reattachDataChannel() {
-        if (!TextUtils.isEmpty(mDataNamespace) && mDataChannel != null) {
-            try {
-                Cast.CastApi.setMessageReceivedCallbacks(mApiClient, mDataNamespace, mDataChannel);
-            } catch (IOException | IllegalStateException e) {
-                LOGE(TAG, "reattachDataChannel()", e);
-            }
-        }
-    }
+//    private void reattachDataChannel() {
+//        if (!TextUtils.isEmpty(mDataNamespace) && mDataChannel != null) {
+//            try {
+//                Cast.CastApi.setMessageReceivedCallbacks(mApiClient, mDataNamespace, mDataChannel);
+//            } catch (IOException | IllegalStateException e) {
+//                LOGE(TAG, "reattachDataChannel()", e);
+//            }
+//        }
+//    }
 
     private void onMessageSendFailed(int errorCode) {
         for (VideoCastConsumer consumer : mVideoConsumers) {
@@ -1973,182 +2225,245 @@ public class VideoCastManager extends BaseCastManager
      * @throws TransientNetworkDisconnectionException If framework is still trying to recover from
      * a possibly transient loss of network
      */
-    public void sendDataMessage(String message) throws TransientNetworkDisconnectionException,
-            NoConnectionException {
-        if (TextUtils.isEmpty(mDataNamespace)) {
-            throw new IllegalStateException("No Data Namespace is configured");
-        }
-        checkConnectivity();
-        Cast.CastApi.sendMessage(mApiClient, mDataNamespace, message)
-                .setResultCallback(new ResultCallback<Status>() {
-
-                    @Override
-                    public void onResult(Status result) {
-                        if (!result.isSuccess()) {
-                            VideoCastManager.this.onMessageSendFailed(result.getStatusCode());
-                        }
-                    }
-                });
-    }
+//    public void sendDataMessage(String message) throws TransientNetworkDisconnectionException,
+//            NoConnectionException {
+//        if (TextUtils.isEmpty(mDataNamespace)) {
+//            throw new IllegalStateException("No Data Namespace is configured");
+//        }
+//        checkConnectivity();
+//        Cast.CastApi.sendMessage(mApiClient, mDataNamespace, message)
+//                .setResultCallback(new ResultCallback<Status>() {
+//
+//                    @Override
+//                    public void onResult(Status result) {
+//                        if (!result.isSuccess()) {
+//                            VideoCastManager.this.onMessageSendFailed(result.getStatusCode());
+//                        }
+//                    }
+//                });
+//    }
 
     /**
      * Remove the custom data channel, if any. It returns <code>true</code> if it succeeds
      * otherwise if it encounters an error or if no connection exists or if no custom data channel
      * exists, then it returns <code>false</code>
      */
-    public boolean removeDataChannel() {
-        if (TextUtils.isEmpty(mDataNamespace)) {
-            return false;
-        }
-        try {
-            if (mApiClient != null) {
-                Cast.CastApi.removeMessageReceivedCallbacks(mApiClient, mDataNamespace);
-            }
-            mDataChannel = null;
-            mPreferenceAccessor.saveStringToPreference(PREFS_KEY_CAST_CUSTOM_DATA_NAMESPACE, null);
-            return true;
-        } catch (IOException | IllegalStateException e) {
-            LOGE(TAG, "removeDataChannel() failed to remove namespace " + mDataNamespace, e);
-        }
-        return false;
-
-    }
+//    public boolean removeDataChannel() {
+//        if (TextUtils.isEmpty(mDataNamespace)) {
+//            return false;
+//        }
+//        try {
+//            if (mApiClient != null) {
+//                Cast.CastApi.removeMessageReceivedCallbacks(mApiClient, mDataNamespace);
+//            }
+//            mDataChannel = null;
+//            mPreferenceAccessor.saveStringToPreference(PREFS_KEY_CAST_CUSTOM_DATA_NAMESPACE, null);
+//            return true;
+//        } catch (IOException | IllegalStateException e) {
+//            LOGE(TAG, "removeDataChannel() failed to remove namespace " + mDataNamespace, e);
+//        }
+//        return false;
+//
+//    }
 
     /*
      * This is called by onStatusUpdated() of the RemoteMediaPlayer
      */
     private void onRemoteMediaPlayerStatusUpdated() {
         LOGD(TAG, "onRemoteMediaPlayerStatusUpdated() reached");
-        if (mApiClient == null || mRemoteMediaPlayer == null
-                || mRemoteMediaPlayer.getMediaStatus() == null) {
+        if (mSelectedCastDevice == null || mRemoteMediaPlayer == null || mMediaStatus== null) {
             LOGD(TAG, "mApiClient or mRemoteMediaPlayer is null, so will not proceed");
             return;
         }
-        mMediaStatus = mRemoteMediaPlayer.getMediaStatus();
-        List<MediaQueueItem> queueItems = mMediaStatus.getQueueItems();
-        if (queueItems != null) {
-            int itemId = mMediaStatus.getCurrentItemId();
-            MediaQueueItem item = mMediaStatus.getQueueItemById(itemId);
-            int repeatMode = mMediaStatus.getQueueRepeatMode();
-            boolean shuffle = false; //mMediaStatus.isShuffleEnabled();
-            onQueueUpdated(queueItems, item, repeatMode, shuffle);
-        } else {
-            onQueueUpdated(null, null, MediaStatus.REPEAT_MODE_REPEAT_OFF, false);
-        }
-        int currentItemId = mMediaStatus.getCurrentItemId();
-        if (queueItems != null && !queueItems.isEmpty()) {
-            for (MediaQueueItem item : queueItems) {
-                LOGD(TAG, "[queue] Queue Item is: " + item.toJson());
-            }
-        }
-        mState = mMediaStatus.getPlayerState();
-        mIdleReason = mMediaStatus.getIdleReason();
-
-        try {
-            double volume = getVolume();
-            boolean isMute = isMute();
-            boolean makeUiHidden = false;
-            if (mState == MediaStatus.PLAYER_STATE_PLAYING) {
-                LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = playing");
-                updateRemoteControl(true);
-                long mediaDurationLeft = getMediaTimeRemaining();
-                startReconnectionService(mediaDurationLeft);
-                startNotificationService();
-            } else if (mState == MediaStatus.PLAYER_STATE_PAUSED) {
-                LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = paused");
-                updateRemoteControl(false);
-                startNotificationService();
-            } else if (mState == MediaStatus.PLAYER_STATE_IDLE) {
-                LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = idle");
-                updateRemoteControl(false);
-                switch (mIdleReason) {
-                    case MediaStatus.IDLE_REASON_FINISHED:
-                        removeRemoteControlClient();
-                        makeUiHidden = true;
-                        break;
-                    case MediaStatus.IDLE_REASON_ERROR:
-                        // something bad happened on the cast device
-                        LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): IDLE reason = ERROR");
-                        makeUiHidden = true;
-                        removeRemoteControlClient();
-                        onFailed(R.string.ccl_failed_receiver_player_error, NO_STATUS_CODE);
-                        break;
-                    case MediaStatus.IDLE_REASON_CANCELED:
-                        LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): IDLE reason = CANCELLED");
-                        makeUiHidden = !isRemoteStreamLive();
-                        break;
-                    case MediaStatus.IDLE_REASON_INTERRUPTED:
-                        if (mMediaStatus.getLoadingItemId() == MediaQueueItem.INVALID_ITEM_ID) {
-                            // we have reached the end of queue
-                            removeRemoteControlClient();
-                            makeUiHidden = true;
-                        }
-                        break;
+        //mMediaStatus = mRemoteMediaPlayer.getMediaStatus();
+//        List<MediaQueueItem> queueItems = mMediaStatus.getQueueItems();
+//        if (queueItems != null) {
+//            int itemId = mMediaStatus.getCurrentItemId();
+//            MediaQueueItem item = mMediaStatus.getQueueItemById(itemId);
+//            int repeatMode = mMediaStatus.getQueueRepeatMode();
+//            boolean shuffle = false; //mMediaStatus.isShuffleEnabled();
+//            onQueueUpdated(queueItems, item, repeatMode, shuffle);
+//        } else {
+//            onQueueUpdated(null, null, MediaStatus.REPEAT_MODE_REPEAT_OFF, false);
+//        }
+//        int currentItemId = mMediaStatus.getCurrentItemId();
+//        if (queueItems != null && !queueItems.isEmpty()) {
+//            for (MediaQueueItem item : queueItems) {
+//                LOGD(TAG, "[queue] Queue Item is: " + item.toJson());
+//            }
+//        }
+        mMediaStatus.getPlayState(new MediaControl.PlayStateListener() {
+            @Override
+            public void onSuccess(MediaControl.PlayStateStatus playStateStatus) {
+                switch(playStateStatus) {
+                    case Unknown:
                     default:
-                        LOGE(TAG, "onRemoteMediaPlayerStatusUpdated(): Unexpected Idle Reason "
-                                + mIdleReason);
+                        mState = 0;
+                        break;
+                    case Finished:
+                        mState = 1;
+                        break;
+                    case Playing:
+                        mState = 2;
+                        break;
+                    case Paused:
+                        mState = 3;
+                        break;
+                    case Buffering:
+                        mState = 4;
                 }
-                if (makeUiHidden) {
-                    stopReconnectionService();
+
+                //mIdleReason = mMediaStatus.getIdleReason();
+
+                try {
+                    getVolume(new VolumeControl.VolumeListener() {
+                        @Override
+                        public void onSuccess(final Float volume) {
+                            try {
+                                isMute(new VolumeControl.MuteListener(){
+                                    @Override
+                                    public void onSuccess(Boolean isMute) {
+                                        for (VideoCastConsumer consumer : mVideoConsumers) {
+                                            consumer.onRemoteMediaPlayerStatusUpdated();
+                                            consumer.onVolumeChanged(volume, isMute);
+                                        }
+                                    }
+
+                                    @Override
+                                    public void onError(ServiceCommandError serviceCommandError) {
+
+                                    }
+                                });
+                            } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                        @Override
+                        public void onError(ServiceCommandError serviceCommandError) {
+
+                        }
+                    });
+
+                    boolean makeUiHidden = false;
+                    if (mState == MediaControl.PLAYER_STATE_PLAYING) {
+                        LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = playing");
+                        updateRemoteControl(true);
+                        getMediaTimeRemaining(new ResponseListener<Long>() {
+                            @Override
+                            public void onSuccess(Long mediaDurationLeft) {
+                                startReconnectionService(mediaDurationLeft);
+                                startNotificationService();
+                            }
+
+                            @Override
+                            public void onError(ServiceCommandError serviceCommandError) {
+
+                            }
+                        });
+
+
+                    } else if (mState == MediaControl.PLAYER_STATE_PAUSED) {
+                        LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = paused");
+                        updateRemoteControl(false);
+                        startNotificationService();
+                    } else if (mState == MediaControl.PLAYER_STATE_IDLE) {
+                        LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = idle");
+                        updateRemoteControl(false);
+//                switch (mIdleReason) {
+//                    case MediaStatus.IDLE_REASON_FINISHED:
+                        removeRemoteControlClient();
+                        makeUiHidden = true;
+//                        break;
+//                    case MediaStatus.IDLE_REASON_ERROR:
+//                        // something bad happened on the cast device
+//                        LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): IDLE reason = ERROR");
+//                        makeUiHidden = true;
+//                        removeRemoteControlClient();
+//                        onFailed(R.string.ccl_failed_receiver_player_error, NO_STATUS_CODE);
+//                        break;
+//                    case MediaStatus.IDLE_REASON_CANCELED:
+//                        LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): IDLE reason = CANCELLED");
+//                        makeUiHidden = !isRemoteStreamLive();
+//                        break;
+//                    case MediaStatus.IDLE_REASON_INTERRUPTED:
+//                        if (mMediaStatus.getLoadingItemId() == MediaQueueItem.INVALID_ITEM_ID) {
+//                            // we have reached the end of queue
+//                            removeRemoteControlClient();
+//                            makeUiHidden = true;
+//                        }
+//                        break;
+//                    default:
+//                        LOGE(TAG, "onRemoteMediaPlayerStatusUpdated(): Unexpected Idle Reason " + mIdleReason);
+//                }
+                        if (makeUiHidden) {
+                            stopReconnectionService();
+                        }
+                    } else if (mState == MediaControl.PLAYER_STATE_BUFFERING) {
+                        LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = buffering");
+                    } else {
+                        LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = unknown");
+                        makeUiHidden = true;
+                    }
+                    if (makeUiHidden) {
+                        stopNotificationService();
+                    }
+                    updateMiniControllersVisibility(!makeUiHidden);
+                    updateMiniControllers();
+//                    for (VideoCastConsumer consumer : mVideoConsumers) {
+//                        consumer.onRemoteMediaPlayerStatusUpdated();
+//                        consumer.onVolumeChanged(volume, isMute);
+//                    }
+                } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
+                    LOGE(TAG, "Failed to get volume state due to network issues", e);
                 }
-            } else if (mState == MediaStatus.PLAYER_STATE_BUFFERING) {
-                LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = buffering");
-            } else {
-                LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = unknown");
-                makeUiHidden = true;
             }
-            if (makeUiHidden) {
-                stopNotificationService();
+
+            @Override
+            public void onError(ServiceCommandError serviceCommandError) {
+
             }
-            updateMiniControllersVisibility(!makeUiHidden);
-            updateMiniControllers();
-            for (VideoCastConsumer consumer : mVideoConsumers) {
-                consumer.onRemoteMediaPlayerStatusUpdated();
-                consumer.onVolumeChanged(volume, isMute);
-            }
-        } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
-            LOGE(TAG, "Failed to get volume state due to network issues", e);
-        }
+        });
 
     }
 
-    private void onRemoteMediaPreloadStatusUpdated() {
-        MediaQueueItem item = null;
-        mMediaStatus = mRemoteMediaPlayer.getMediaStatus();
-        if (mMediaStatus != null) {
-            item = mMediaStatus.getQueueItemById(mMediaStatus.getPreloadedItemId());
-        }
-        mPreLoadingItem = item;
-        updateMiniControllersVisibilityForUpcoming(item);
-        LOGD(TAG, "onRemoteMediaPreloadStatusUpdated() " + item);
-        for (VideoCastConsumer consumer : mVideoConsumers) {
-            consumer.onRemoteMediaPreloadStatusUpdated(item);
-        }
-    }
+//    private void onRemoteMediaPreloadStatusUpdated() {
+//        MediaQueueItem item = null;
+//        mMediaStatus = mRemoteMediaPlayer.getMediaStatus();
+//        if (mMediaStatus != null) {
+//            item = mMediaStatus.getQueueItemById(mMediaStatus.getPreloadedItemId());
+//        }
+//        mPreLoadingItem = item;
+//        updateMiniControllersVisibilityForUpcoming(item);
+//        LOGD(TAG, "onRemoteMediaPreloadStatusUpdated() " + item);
+//        for (VideoCastConsumer consumer : mVideoConsumers) {
+//            consumer.onRemoteMediaPreloadStatusUpdated(item);
+//        }
+//    }
 
-    public MediaQueueItem getPreLoadingItem() {
-        return mPreLoadingItem;
-    }
+//    public MediaQueueItem getPreLoadingItem() {
+//        return mPreLoadingItem;
+//    }
 
     /*
     * This is called by onQueueStatusUpdated() of RemoteMediaPlayer
     */
-    private void onQueueUpdated(List<MediaQueueItem> queueItems, MediaQueueItem item, int repeatMode,
-            boolean shuffle) {
-        LOGD(TAG, "onQueueUpdated() reached");
-        LOGD(TAG, String.format("Queue Items size: %d, Item: %s, Repeat Mode: %d, Shuffle: %s",
-                queueItems == null ? 0 : queueItems.size(), item, repeatMode, shuffle));
-        if (queueItems != null) {
-            mMediaQueue = new MediaQueue(new CopyOnWriteArrayList<>(queueItems), item, shuffle,
-                    repeatMode);
-        } else {
-            mMediaQueue = new MediaQueue(new CopyOnWriteArrayList<MediaQueueItem>(), null, false,
-                    MediaStatus.REPEAT_MODE_REPEAT_OFF);
-        }
-        for (VideoCastConsumer consumer : mVideoConsumers) {
-            consumer.onMediaQueueUpdated(queueItems, item, repeatMode, shuffle);
-        }
-    }
+//    private void onQueueUpdated(List<MediaQueueItem> queueItems, MediaQueueItem item, int repeatMode,
+//            boolean shuffle) {
+//        LOGD(TAG, "onQueueUpdated() reached");
+//        LOGD(TAG, String.format("Queue Items size: %d, Item: %s, Repeat Mode: %d, Shuffle: %s",
+//                queueItems == null ? 0 : queueItems.size(), item, repeatMode, shuffle));
+//        if (queueItems != null) {
+//            mMediaQueue = new MediaQueue(new CopyOnWriteArrayList<>(queueItems), item, shuffle,
+//                    repeatMode);
+//        } else {
+//            mMediaQueue = new MediaQueue(new CopyOnWriteArrayList<MediaQueueItem>(), null, false,
+//                    MediaStatus.REPEAT_MODE_REPEAT_OFF);
+//        }
+//        for (VideoCastConsumer consumer : mVideoConsumers) {
+//            consumer.onMediaQueueUpdated(queueItems, item, repeatMode, shuffle);
+//        }
+//    }
 
     /*
      * This is called by onMetadataUpdated() of RemoteMediaPlayer
@@ -2228,23 +2543,22 @@ public class VideoCastManager extends BaseCastManager
         }
         Uri imgUrl = null;
         Bitmap bm = null;
-        List<WebImage> images = video.getMetadata().getImages();
+        List<ImageInfo> images = video.getImages();
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN_MR2) {
             if (images.size() > 1) {
-                imgUrl = images.get(1).getUrl();
+                imgUrl = Uri.parse(images.get(1).getUrl());
             } else if (images.size() == 1) {
-                imgUrl = images.get(0).getUrl();
+                imgUrl = Uri.parse(images.get(0).getUrl());
             } else if (mContext != null) {
                 // we don't have a url for image so get a placeholder image from resources
                 bm = BitmapFactory.decodeResource(mContext.getResources(),
                         R.drawable.album_art_placeholder_large);
             }
         } else if (!images.isEmpty()) {
-            imgUrl = images.get(0).getUrl();
+            imgUrl = Uri.parse(images.get(0).getUrl());
         } else {
             // we don't have a url for image so get a placeholder image from resources
-            bm = BitmapFactory.decodeResource(mContext.getResources(),
-                    R.drawable.album_art_placeholder);
+            bm = BitmapFactory.decodeResource(mContext.getResources(), R.drawable.album_art_placeholder);
         }
         if (bm != null) {
             mRemoteControlClientCompat.editMetadata(false).putBitmap(
@@ -2306,16 +2620,12 @@ public class VideoCastManager extends BaseCastManager
             if (info == null) {
                 return;
             }
-            final MediaMetadata mm = info.getMetadata();
+            //final MediaMetadata mm = info.getMetadata();
 
             mRemoteControlClientCompat.editMetadata(false)
-                    .putString(MediaMetadataRetriever.METADATA_KEY_TITLE,
-                            mm.getString(MediaMetadata.KEY_TITLE))
-                    .putString(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST,
-                            mContext.getResources().getString(
-                                    R.string.ccl_casting_to_device, getDeviceName()))
-                    .putLong(MediaMetadataRetriever.METADATA_KEY_DURATION,
-                            info.getStreamDuration())
+                    .putString(MediaMetadataRetriever.METADATA_KEY_TITLE, info.getTitle())
+                    .putString(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST, mContext.getResources().getString(R.string.ccl_casting_to_device, getDeviceName()))
+                    .putLong(MediaMetadataRetriever.METADATA_KEY_DURATION, info.getDuration())
                     .apply();
         } catch (NotFoundException e) {
             LOGE(TAG, "Failed to update RCC due to resource not found", e);
@@ -2424,22 +2734,22 @@ public class VideoCastManager extends BaseCastManager
     protected void onDeviceUnselected() {
         stopNotificationService();
         detachMediaChannel();
-        removeDataChannel();
-        mState = MediaStatus.PLAYER_STATE_IDLE;
+        //removeDataChannel();
+        mState = MediaControl.PLAYER_STATE_IDLE;
     }
 
-    @Override
-    protected Builder getCastOptionBuilder(CastDevice device) {
-        Builder builder = Cast.CastOptions.builder(mSelectedCastDevice, new CastListener());
-        if (isFeatureEnabled(FEATURE_DEBUGGING)) {
-            builder.setVerboseLoggingEnabled(true);
-        }
-        return builder;
-    }
+//    @Override
+//    protected Builder getCastOptionBuilder(CastDevice device) {
+//        Builder builder = Cast.CastOptions.builder(mSelectedCastDevice, new CastListener());
+//        if (isFeatureEnabled(FEATURE_DEBUGGING)) {
+//            builder.setVerboseLoggingEnabled(true);
+//        }
+//        return builder;
+//    }
 
     @Override
-    public void onConnectionFailed(ConnectionResult result) {
-        super.onConnectionFailed(result);
+    public void onConnectionFailed(ConnectableDevice connectableDevice, ServiceCommandError serviceCommandError) {
+        super.onConnectionFailed(connectableDevice, serviceCommandError);
         updateRemoteControl(false);
         stopNotificationService();
     }
@@ -2452,7 +2762,7 @@ public class VideoCastManager extends BaseCastManager
         if (clearPersistedConnectionData && !mConnectionSuspended) {
             removeRemoteControlClient();
         }
-        mState = MediaStatus.PLAYER_STATE_IDLE;
+        mState = MediaControl.PLAYER_STATE_IDLE;
         mMediaQueue = null;
     }
 
@@ -2461,31 +2771,31 @@ public class VideoCastManager extends BaseCastManager
         return new VideoMediaRouteDialogFactory();
     }
 
-    class CastListener extends Cast.Listener {
-
-        /*
-         * (non-Javadoc)
-         * @see com.google.android.gms.cast.Cast.Listener#onApplicationDisconnected (int)
-         */
-        @Override
-        public void onApplicationDisconnected(int statusCode) {
-            VideoCastManager.this.onApplicationDisconnected(statusCode);
-        }
-
-        /*
-         * (non-Javadoc)
-         * @see com.google.android.gms.cast.Cast.Listener#onApplicationStatusChanged ()
-         */
-        @Override
-        public void onApplicationStatusChanged() {
-            VideoCastManager.this.onApplicationStatusChanged();
-        }
-
-        @Override
-        public void onVolumeChanged() {
-            VideoCastManager.this.onVolumeChanged();
-        }
-    }
+//    class CastListener extends Cast.Listener {
+//
+//        /*
+//         * (non-Javadoc)
+//         * @see com.google.android.gms.cast.Cast.Listener#onApplicationDisconnected (int)
+//         */
+//        @Override
+//        public void onApplicationDisconnected(int statusCode) {
+//            VideoCastManager.this.onApplicationDisconnected(statusCode);
+//        }
+//
+//        /*
+//         * (non-Javadoc)
+//         * @see com.google.android.gms.cast.Cast.Listener#onApplicationStatusChanged ()
+//         */
+//        @Override
+//        public void onApplicationStatusChanged() {
+//            VideoCastManager.this.onApplicationStatusChanged();
+//        }
+//
+//        @Override
+//        public void onVolumeChanged() {
+//            VideoCastManager.this.onVolumeChanged();
+//        }
+//    }
 
     @Override
     public void onFailed(int resourceId, int statusCode) {
@@ -2540,7 +2850,7 @@ public class VideoCastManager extends BaseCastManager
 
     private boolean changeVolume(double volumeIncrement, boolean isKeyDown) {
         if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
-                && getPlaybackStatus() == MediaStatus.PLAYER_STATE_PLAYING
+                && getPlaybackStatus() == MediaControl.PLAYER_STATE_PLAYING
                 && isFeatureEnabled(BaseCastManager.FEATURE_LOCKSCREEN)) {
             return false;
         }
@@ -2591,73 +2901,76 @@ public class VideoCastManager extends BaseCastManager
      * Sets the active tracks for the currently loaded media.
      */
     public void setActiveTrackIds(long[] trackIds) {
-        if (mRemoteMediaPlayer == null || mRemoteMediaPlayer.getMediaInfo() == null) {
-            return;
-        }
-        mRemoteMediaPlayer.setActiveMediaTracks(mApiClient, trackIds)
-                .setResultCallback(new ResultCallback<MediaChannelResult>() {
-                    @Override
-                    public void onResult(MediaChannelResult mediaChannelResult) {
-                        LOGD(TAG, "Setting track result was successful? "
-                                + mediaChannelResult.getStatus().isSuccess());
-                        if (!mediaChannelResult.getStatus().isSuccess()) {
-                            LOGD(TAG, "Failed since: " + mediaChannelResult.getStatus()
-                                    + " and status code:" + mediaChannelResult.getStatus()
-                                    .getStatusCode());
-                        }
-                    }
-                });
+        LOGE(TAG, "setActiveTrackIds not yet implemented");
+
+//        if (mRemoteMediaPlayer == null || mRemoteMediaPlayer.getMediaInfo() == null) {
+//            return;
+//        }
+//
+//        mRemoteMediaPlayer.setActiveMediaTracks(mApiClient, trackIds)
+//                .setResultCallback(new ResultCallback<MediaChannelResult>() {
+//                    @Override
+//                    public void onResult(MediaChannelResult mediaChannelResult) {
+//                        LOGD(TAG, "Setting track result was successful? "
+//                                + mediaChannelResult.getStatus().isSuccess());
+//                        if (!mediaChannelResult.getStatus().isSuccess()) {
+//                            LOGD(TAG, "Failed since: " + mediaChannelResult.getStatus()
+//                                    + " and status code:" + mediaChannelResult.getStatus()
+//                                    .getStatusCode());
+//                        }
+//                    }
+//                });
     }
 
     /**
      * Sets or updates the style of the Text Track.
      */
-    public void setTextTrackStyle(TextTrackStyle style) {
-        mRemoteMediaPlayer.setTextTrackStyle(mApiClient, style)
-                .setResultCallback(new ResultCallback<MediaChannelResult>() {
-                    @Override
-                    public void onResult(MediaChannelResult result) {
-                        if (!result.getStatus().isSuccess()) {
-                            onFailed(R.string.ccl_failed_to_set_track_style,
-                                    result.getStatus().getStatusCode());
-                        }
-                    }
-                });
-        for (VideoCastConsumer consumer : mVideoConsumers) {
-            try {
-                consumer.onTextTrackStyleChanged(style);
-            } catch (Exception e) {
-                LOGE(TAG, "onTextTrackStyleChanged(): Failed to inform " + consumer, e);
-            }
-        }
-    }
+//    public void setTextTrackStyle(TextTrackStyle style) {
+//        mRemoteMediaPlayer.setTextTrackStyle(mApiClient, style)
+//                .setResultCallback(new ResultCallback<MediaChannelResult>() {
+//                    @Override
+//                    public void onResult(MediaChannelResult result) {
+//                        if (!result.getStatus().isSuccess()) {
+//                            onFailed(R.string.ccl_failed_to_set_track_style,
+//                                    result.getStatus().getStatusCode());
+//                        }
+//                    }
+//                });
+//        for (VideoCastConsumer consumer : mVideoConsumers) {
+//            try {
+//                consumer.onTextTrackStyleChanged(style);
+//            } catch (Exception e) {
+//                LOGE(TAG, "onTextTrackStyleChanged(): Failed to inform " + consumer, e);
+//            }
+//        }
+//    }
 
     /**
      * Signals a change in the Text Track style. Clients should not call this directly.
      */
-    public void onTextTrackStyleChanged(TextTrackStyle style) {
-        LOGD(TAG, "onTextTrackStyleChanged() reached");
-        if (mRemoteMediaPlayer == null || mRemoteMediaPlayer.getMediaInfo() == null) {
-            return;
-        }
-        mRemoteMediaPlayer.setTextTrackStyle(mApiClient, style)
-                .setResultCallback(new ResultCallback<MediaChannelResult>() {
-                    @Override
-                    public void onResult(MediaChannelResult result) {
-                        if (!result.getStatus().isSuccess()) {
-                            onFailed(R.string.ccl_failed_to_set_track_style,
-                                    result.getStatus().getStatusCode());
-                        }
-                    }
-                });
-        for (VideoCastConsumer consumer : mVideoConsumers) {
-            try {
-                consumer.onTextTrackStyleChanged(style);
-            } catch (Exception e) {
-                LOGE(TAG, "onTextTrackStyleChanged(): Failed to inform " + consumer, e);
-            }
-        }
-    }
+//    public void onTextTrackStyleChanged(TextTrackStyle style) {
+//        LOGD(TAG, "onTextTrackStyleChanged() reached");
+//        if (mRemoteMediaPlayer == null || mRemoteMediaPlayer.getMediaInfo() == null) {
+//            return;
+//        }
+//        mRemoteMediaPlayer.setTextTrackStyle(mApiClient, style)
+//                .setResultCallback(new ResultCallback<MediaChannelResult>() {
+//                    @Override
+//                    public void onResult(MediaChannelResult result) {
+//                        if (!result.getStatus().isSuccess()) {
+//                            onFailed(R.string.ccl_failed_to_set_track_style,
+//                                    result.getStatus().getStatusCode());
+//                        }
+//                    }
+//                });
+//        for (VideoCastConsumer consumer : mVideoConsumers) {
+//            try {
+//                consumer.onTextTrackStyleChanged(style);
+//            } catch (Exception e) {
+//                LOGE(TAG, "onTextTrackStyleChanged(): Failed to inform " + consumer, e);
+//            }
+//        }
+//    }
 
     /**
      * Signals a change in the Text Track on/off state. Clients should not call this directly.
@@ -2696,14 +3009,13 @@ public class VideoCastManager extends BaseCastManager
                         }
 
                         @Override
-                        public void onUserStyleChanged(
-                                CaptioningManager.CaptionStyle userStyle) {
-                            onTextTrackStyleChanged(mTrackManager.getTextTrackStyle());
+                        public void onUserStyleChanged(CaptioningManager.CaptionStyle userStyle) {
+                            //onTextTrackStyleChanged(mTrackManager.getTextTrackStyle());
                         }
 
                         @Override
                         public void onFontScaleChanged(float fontScale) {
-                            onTextTrackStyleChanged(mTrackManager.getTextTrackStyle());
+                            //onTextTrackStyleChanged(mTrackManager.getTextTrackStyle());
                         }
 
                         @Override
@@ -2742,9 +3054,9 @@ public class VideoCastManager extends BaseCastManager
      * return <code>null</code>.
      */
     public long[] getActiveTrackIds() {
-        if (mRemoteMediaPlayer != null && mRemoteMediaPlayer.getMediaStatus() != null) {
-            return mRemoteMediaPlayer.getMediaStatus().getActiveTrackIds();
-        }
+//        if (mRemoteMediaPlayer != null && mRemoteMediaPlayer.getMediaStatus() != null) {
+//            return mRemoteMediaPlayer.getMediaStatus().getActiveTrackIds();
+//        }
         return null;
     }
 
@@ -2777,14 +3089,14 @@ public class VideoCastManager extends BaseCastManager
      *
      * @param tracks the set of active tracks. Must be {@code non-null} but can be an empty list.
      */
-    public void notifyTracksSelectedListeners(List<MediaTrack> tracks) {
-        if (tracks == null) {
-            throw new IllegalArgumentException("tracks must not be null");
-        }
-        for (OnTracksSelectedListener listener : mTracksSelectedListeners) {
-            listener.onTracksSelected(tracks);
-        }
-    }
+//    public void notifyTracksSelectedListeners(List<MediaTrack> tracks) {
+//        if (tracks == null) {
+//            throw new IllegalArgumentException("tracks must not be null");
+//        }
+//        for (OnTracksSelectedListener listener : mTracksSelectedListeners) {
+//            listener.onTracksSelected(tracks);
+//        }
+//    }
 
     public final MediaQueue getMediaQueue() {
         return mMediaQueue;
@@ -2814,17 +3126,48 @@ public class VideoCastManager extends BaseCastManager
 
         @Override
         public void run() {
-            int currentPos;
-            if (mState == MediaStatus.PLAYER_STATE_BUFFERING || !isConnected()
-                    || mRemoteMediaPlayer == null) {
+            //final int currentPos;
+            if (mState == MediaControl.PLAYER_STATE_BUFFERING || !isConnected() || mRemoteMediaPlayer == null) {
                 return;
             }
             try {
-                int duration = (int) getMediaDuration();
-                if (duration > 0) {
-                    currentPos = (int) getCurrentMediaPosition();
-                    updateProgress(currentPos, duration);
-                }
+//                int duration = (int) getMediaDuration();
+//                if (duration > 0) {
+//                    currentPos = (int) getCurrentMediaPosition();
+//                    updateProgress(currentPos, duration);
+//                }
+
+                getMediaDuration(new MediaControl.DurationListener() {
+                    @Override
+                    public void onSuccess(Long duration) {
+                        final int mediaDuration = duration.intValue();
+                        if (mediaDuration > 0) {
+                            try {
+                                getCurrentMediaPosition(new MediaControl.PositionListener() {
+                                    @Override
+                                    public void onSuccess(Long position) {
+                                        final int currentPos = position.intValue();
+                                        updateProgress(currentPos, mediaDuration);
+                                    }
+
+                                    @Override
+                                    public void onError(ServiceCommandError serviceCommandError) {
+                                        LOGE(TAG, "Failed to update the progress tracker due to network issues", serviceCommandError);
+                                    }
+                                });
+                            } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
+                                LOGE(TAG, "Failed to update the progress tracker due to network issues", e);
+                            }
+
+                        }
+                    }
+
+                    @Override
+                    public void onError(ServiceCommandError serviceCommandError) {
+                        LOGE(TAG, "Failed to update the progress tracker due to network issues", serviceCommandError);
+                    }
+                });
+
             } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
                 LOGE(TAG, "Failed to update the progress tracker due to network issues", e);
             }

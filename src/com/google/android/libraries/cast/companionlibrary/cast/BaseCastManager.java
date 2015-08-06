@@ -19,18 +19,31 @@ package com.google.android.libraries.cast.companionlibrary.cast;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
 
-import com.google.android.gms.cast.ApplicationMetadata;
-import com.google.android.gms.cast.Cast;
-import com.google.android.gms.cast.Cast.ApplicationConnectionResult;
-import com.google.android.gms.cast.CastDevice;
+//import com.google.android.gms.cast.ApplicationMetadata;
+//import com.google.android.gms.cast.Cast;
+//import com.google.android.gms.cast.Cast.ApplicationConnectionResult;
+//import com.google.android.gms.cast.CastDevice;
+import com.connectsdk.discovery.DiscoveryManagerListener;
+import com.connectsdk.route.provider.ConnectSDKMediaRouteProvider;
 import com.google.android.gms.cast.CastMediaControlIntent;
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
-import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
-import com.google.android.gms.common.api.ResultCallback;
-import com.google.android.gms.common.api.Status;
+//import com.google.android.gms.common.ConnectionResult;
+//import com.google.android.gms.common.api.GoogleApiClient;
+//import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
+//import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
+//import com.google.android.gms.common.api.ResultCallback;
+//import com.google.android.gms.common.api.Status;
 import com.google.android.libraries.cast.companionlibrary.R;
+
+import com.connectsdk.device.ConnectableDevice;
+import com.connectsdk.device.ConnectableDeviceListener;
+import com.connectsdk.discovery.DiscoveryManager;
+import com.connectsdk.service.DeviceService;
+import com.connectsdk.service.capability.VolumeControl;
+import com.connectsdk.service.capability.WebAppLauncher;
+import com.connectsdk.service.capability.listeners.ResponseListener;
+import com.connectsdk.service.command.ServiceCommandError;
+import com.connectsdk.service.sessions.WebAppSession;
+
 import com.google.android.libraries.cast.companionlibrary.cast.callbacks.BaseCastConsumer;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.CastException;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.NoConnectionException;
@@ -46,6 +59,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.media.RemoteControlClient;
+import android.net.nsd.NsdManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -66,13 +80,13 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * An abstract class that manages connectivity to a cast device. Subclasses are expected to extend
  * the functionality of this class based on their purpose.
  */
-public abstract class BaseCastManager
-        implements ConnectionCallbacks, OnConnectionFailedListener, OnFailedListener {
+public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnectionFailedListener,*/ DiscoveryManagerListener, ConnectableDeviceListener, OnFailedListener {
 
     private static final String TAG = LogUtils.makeLogTag(BaseCastManager.class);
 
@@ -113,7 +127,7 @@ public abstract class BaseCastManager
     protected MediaRouter mMediaRouter;
     protected MediaRouteSelector mMediaRouteSelector;
     protected CastMediaRouterCallback mMediaRouterCallback;
-    protected CastDevice mSelectedCastDevice;
+    protected ConnectableDevice mSelectedCastDevice;
     protected String mDeviceName;
     protected PreferenceAccessor mPreferenceAccessor;
 
@@ -123,13 +137,15 @@ public abstract class BaseCastManager
     protected int mReconnectionStatus = RECONNECTION_STATUS_INACTIVE;
     protected int mVisibilityCounter;
     protected boolean mUiVisible;
-    protected GoogleApiClient mApiClient;
+    //protected GoogleApiClient mApiClient;
     protected AsyncTask<Void, Integer, Boolean> mReconnectionTask;
     protected int mCapabilities;
     protected boolean mConnectionSuspended;
+    protected boolean isConnecting;
     protected String mSessionId;
     private Handler mUiVisibilityHandler;
     private RouteInfo mRouteInfo;
+    private ConnectSDKMediaRouteProvider mConnectSDKRouteProvider;
 
     protected BaseCastManager() {
     }
@@ -141,7 +157,7 @@ public abstract class BaseCastManager
      * @param device The Cast receiver device returned from the MediaRouteProvider. Should not be
      * {@code null}.
      */
-    protected abstract Cast.CastOptions.Builder getCastOptionBuilder(CastDevice device);
+//    protected abstract Cast.CastOptions.Builder getCastOptionBuilder(CastDevice device);
 
     /**
      * Subclasses can decide how the Cast Controller Dialog should be built. If this returns
@@ -153,8 +169,8 @@ public abstract class BaseCastManager
      * Subclasses should implement this to react appropriately to the successful launch of their
      * application. This is called when the application is successfully launched.
      */
-    protected abstract void onApplicationConnected(ApplicationMetadata applicationMetadata,
-            String applicationStatus, String sessionId, boolean wasLaunched);
+    //protected abstract void onApplicationConnected(ApplicationMetadata applicationMetadata, String applicationStatus, String sessionId, boolean wasLaunched);
+    protected abstract void onApplicationConnected(WebAppSession webAppSession, WebAppSession.WebAppStatus status);
 
     /**
      * Called when the launch of application has failed. Subclasses need to handle this by doing
@@ -178,8 +194,7 @@ public abstract class BaseCastManager
 
     protected BaseCastManager(Context context, String applicationId) {
         sCclVersion = context.getString(R.string.ccl_version);
-        LOGD(TAG, "BaseCastManager is instantiated\nVersion: " + sCclVersion
-                + "\nApplication ID: " + applicationId);
+        LOGD(TAG, "BaseCastManager is instantiated\nVersion: " + sCclVersion + "\nApplication ID: " + applicationId);
         mContext = context.getApplicationContext();
         mPreferenceAccessor = new PreferenceAccessor(mContext);
         mUiVisibilityHandler = new Handler(new UpdateUiVisibilityHandlerCallback());
@@ -187,24 +202,33 @@ public abstract class BaseCastManager
         mPreferenceAccessor.saveStringToPreference(PREFS_KEY_APPLICATION_ID, applicationId);
 
         mMediaRouter = MediaRouter.getInstance(mContext);
-        mMediaRouteSelector = new MediaRouteSelector.Builder().addControlCategory(
-                CastMediaControlIntent.categoryForCast(mApplicationId)).build();
+        mConnectSDKRouteProvider = new ConnectSDKMediaRouteProvider(context);
+        mMediaRouter.addProvider(mConnectSDKRouteProvider);
+        //mMediaRouteSelector = new MediaRouteSelector.Builder().addControlCategory(CastMediaControlIntent.categoryForCast(mApplicationId)).build();
+        mMediaRouteSelector = new MediaRouteSelector.Builder().addControlCategory(ConnectSDKMediaRouteProvider.CATEGORY_SAMPLE_ROUTE).build();
 
         mMediaRouterCallback = new CastMediaRouterCallback(this);
-        mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback,
-                MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
+        mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback, MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
+    }
+
+    public ConnectSDKMediaRouteProvider getRouteProvider(){
+        return mConnectSDKRouteProvider;
     }
 
     /**
-     * Called when a {@link CastDevice} is extracted from the {@link RouteInfo}. This is where all
+     * Called when a {@link ConnectableDevice} is extracted from the {@link RouteInfo}. This is where all
      * the fun starts!
      */
-    public final void onDeviceSelected(CastDevice device) {
+    public final void onDeviceSelected(ConnectableDevice device) {
         if (device == null) {
+            for (BaseCastConsumer consumer : mBaseCastConsumers) {
+                consumer.onDeviceUnselected(device);
+            }
             disconnectDevice(mDestroyOnDisconnect, true, false);
         } else {
             setDevice(device);
         }
+
         for (BaseCastConsumer consumer : mBaseCastConsumers) {
             consumer.onDeviceSelected(device);
         }
@@ -234,12 +258,14 @@ public abstract class BaseCastManager
      * @param setDefaultRoute If {@code true}, after disconnection, the selected route will be set
      * to the Default Route.
      */
-    public final void disconnectDevice(boolean stopAppOnExit, boolean clearPersistedConnectionData,
-            boolean setDefaultRoute) {
+    public final void disconnectDevice(boolean stopAppOnExit, boolean clearPersistedConnectionData, boolean setDefaultRoute) {
         LOGD(TAG, "disconnectDevice(" + clearPersistedConnectionData + "," + setDefaultRoute + ")");
         if (mSelectedCastDevice == null) {
             return;
         }
+
+        mSelectedCastDevice.disconnect();
+        mSelectedCastDevice.removeListener(this);
         mSelectedCastDevice = null;
         mDeviceName = null;
         LOGD(TAG, "mConnectionSuspended: " + mConnectionSuspended);
@@ -257,18 +283,18 @@ public abstract class BaseCastManager
         }
         onDisconnected(stopAppOnExit, clearPersistedConnectionData, setDefaultRoute);
         onDeviceUnselected();
-        if (mApiClient != null) {
-            // the following conditional clause is to get around a bug in play services
-            if (mApiClient.isConnected()) {
-                LOGD(TAG, "Trying to disconnect");
-                mApiClient.disconnect();
-            }
-            if ((mMediaRouter != null) && setDefaultRoute) {
-                LOGD(TAG, "disconnectDevice(): Setting route to default");
-                mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
-            }
-            mApiClient = null;
-        }
+//        if (mApiClient != null) {
+//            // the following conditional clause is to get around a bug in play services
+//            if (mApiClient.isConnected()) {
+//                LOGD(TAG, "Trying to disconnect");
+//                mApiClient.disconnect();
+//            }
+//            if ((mMediaRouter != null) && setDefaultRoute) {
+//                LOGD(TAG, "disconnectDevice(): Setting route to default");
+//                mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
+//            }
+//            mApiClient = null;
+//        }
         mSessionId = null;
     }
 
@@ -281,25 +307,29 @@ public abstract class BaseCastManager
         if (mSelectedCastDevice == null) {
             throw new CastException("No cast device has yet been selected");
         }
-        return mSelectedCastDevice.isOnLocalNetwork();
+        return mSelectedCastDevice.isConnectable();
     }
 
-    private void setDevice(CastDevice device) {
+    private void setDevice(ConnectableDevice device) {
         mSelectedCastDevice = device;
         mDeviceName = mSelectedCastDevice.getFriendlyName();
 
-        if (mApiClient == null) {
-            LOGD(TAG, "acquiring a connection to Google Play services for " + mSelectedCastDevice);
-            Cast.CastOptions.Builder apiOptionsBuilder = getCastOptionBuilder(mSelectedCastDevice);
-            mApiClient = new GoogleApiClient.Builder(mContext)
-                    .addApi(Cast.API, apiOptionsBuilder.build())
-                    .addConnectionCallbacks(this)
-                    .addOnConnectionFailedListener(this)
-                    .build();
-            mApiClient.connect();
-        } else if (!mApiClient.isConnected() && !mApiClient.isConnecting()) {
-            mApiClient.connect();
-        }
+//        if (mApiClient == null) {
+//            LOGD(TAG, "acquiring a connection to Google Play services for " + mSelectedCastDevice);
+//            Cast.CastOptions.Builder apiOptionsBuilder = getCastOptionBuilder(mSelectedCastDevice);
+//            mApiClient = new GoogleApiClient.Builder(mContext)
+//                    .addApi(Cast.API, apiOptionsBuilder.build())
+//                    .addConnectionCallbacks(this)
+//                    .addOnConnectionFailedListener(this)
+//                    .build();
+//            mApiClient.connect();
+//        } else if (!mApiClient.isConnected() && !mApiClient.isConnecting()) {
+//            mApiClient.connect();
+//        }
+
+        mSelectedCastDevice.addListener(this);
+        isConnecting = true;
+        mSelectedCastDevice.connect();
     }
 
     /**
@@ -325,8 +355,7 @@ public abstract class BaseCastManager
      */
     public final MenuItem addMediaRouterButton(Menu menu, int menuResourceId) {
         MenuItem mediaRouteMenuItem = menu.findItem(menuResourceId);
-        MediaRouteActionProvider mediaRouteActionProvider = (MediaRouteActionProvider)
-                MenuItemCompat.getActionProvider(mediaRouteMenuItem);
+        MediaRouteActionProvider mediaRouteActionProvider = (MediaRouteActionProvider) MenuItemCompat.getActionProvider(mediaRouteMenuItem);
         mediaRouteActionProvider.setRouteSelector(mMediaRouteSelector);
         if (getMediaRouteDialogFactory() != null) {
             mediaRouteActionProvider.setDialogFactory(getMediaRouteDialogFactory());
@@ -430,8 +459,9 @@ public abstract class BaseCastManager
      * .MediaRouter.Callback}
      */
     public final void startCastDiscovery() {
-        mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback,
-                MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
+        mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback, MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
+        DiscoveryManager.getInstance().addListener(this);
+        DiscoveryManager.getInstance().start();
     }
 
     /**
@@ -440,6 +470,8 @@ public abstract class BaseCastManager
      */
     public final void stopCastDiscovery() {
         mMediaRouter.removeCallback(mMediaRouterCallback);
+        DiscoveryManager.getInstance().removeListener(this);
+        DiscoveryManager.getInstance().stop();
     }
 
     /**
@@ -459,14 +491,14 @@ public abstract class BaseCastManager
      * @return <code>true</code> if connected, <code>false</code> otherwise.
      */
     public final boolean isConnected() {
-        return (mApiClient != null) && mApiClient.isConnected();
+        return (mSelectedCastDevice != null) && mSelectedCastDevice.isConnected();
     }
 
     /**
      * Returns <code>true</code> only if application is connecting to the Cast service.
      */
     public final boolean isConnecting() {
-        return (mApiClient != null) && mApiClient.isConnecting();
+        return (mSelectedCastDevice != null) && isConnecting;
     }
 
     /**
@@ -558,15 +590,20 @@ public abstract class BaseCastManager
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
      */
-    public final void setDeviceVolume(double volume) throws CastException,
-            TransientNetworkDisconnectionException, NoConnectionException {
+    public final void setDeviceVolume(double volume) throws CastException, TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
         try {
-            Cast.CastApi.setVolume(mApiClient, volume);
-        } catch (IOException e) {
-            throw new CastException("Failed to set volume", e);
+            //Cast.CastApi.setVolume(mApiClient, volume);
+            VolumeControl volumeControl = mSelectedCastDevice.getCapability(VolumeControl.class);
+            if(volumeControl!=null){
+                volumeControl.setVolume((float) volume, null);
+            }
+//        } catch (IOException e) {
+//            throw new CastException("Failed to set volume", e);
         } catch (IllegalStateException e) {
             throw new NoConnectionException("setDeviceVolume()", e);
+        }  catch (Exception e) {
+            throw new CastException("Failed to set volume", e);
         }
     }
 
@@ -576,11 +613,15 @@ public abstract class BaseCastManager
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
      */
-    public final double getDeviceVolume() throws TransientNetworkDisconnectionException,
-            NoConnectionException {
+    public void getDeviceVolume(VolumeControl.VolumeListener listener) throws TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
         try {
-            return Cast.CastApi.getVolume(mApiClient);
+            //return Cast.CastApi.getVolume(mApiClient);
+            VolumeControl volumeControl = mSelectedCastDevice.getCapability(VolumeControl.class);
+            if(volumeControl!=null) {
+
+                volumeControl.getVolume(listener);
+            }
         } catch (IllegalStateException e) {
             throw new NoConnectionException("getDeviceVolume()", e);
         }
@@ -593,13 +634,30 @@ public abstract class BaseCastManager
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
      */
-    public final void adjustDeviceVolume(double delta) throws CastException,
-            TransientNetworkDisconnectionException, NoConnectionException {
+    public final void adjustDeviceVolume(final double delta) throws CastException, TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
-        double vol = getDeviceVolume();
-        if (vol >= 0) {
-            setDeviceVolume(vol + delta);
-        }
+        getDeviceVolume(new VolumeControl.VolumeListener() {
+            @Override
+            public void onSuccess(Float volume) {
+                if (volume >= 0) {
+                    try {
+                        setDeviceVolume(volume + delta);
+                    } catch (CastException e) {
+                        e.printStackTrace();
+                    } catch (TransientNetworkDisconnectionException e) {
+                        e.printStackTrace();
+                    } catch (NoConnectionException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            @Override
+            public void onError(ServiceCommandError serviceCommandError) {
+
+            }
+        });
+
     }
 
     /**
@@ -609,11 +667,14 @@ public abstract class BaseCastManager
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
      */
-    public final boolean isDeviceMute() throws TransientNetworkDisconnectionException,
-            NoConnectionException {
+    public void isDeviceMute(VolumeControl.MuteListener listener) throws TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
         try {
-            return Cast.CastApi.isMute(mApiClient);
+            //return Cast.CastApi.isMute(mApiClient);
+            VolumeControl volumeControl = mSelectedCastDevice.getCapability(VolumeControl.class);
+            if(volumeControl!=null) {
+                volumeControl.getMute(listener);
+            }
         } catch (IllegalStateException e) {
             throw new NoConnectionException("isDeviceMute()", e);
         }
@@ -626,15 +687,20 @@ public abstract class BaseCastManager
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
      */
-    public final void setDeviceMute(boolean mute) throws CastException,
-            TransientNetworkDisconnectionException, NoConnectionException {
+    public final void setDeviceMute(boolean mute) throws CastException, TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
         try {
-            Cast.CastApi.setMute(mApiClient, mute);
-        } catch (IOException e) {
-            throw new CastException("setDeviceMute", e);
+            //Cast.CastApi.setMute(mApiClient, mute);
+            VolumeControl volumeControl = mSelectedCastDevice.getCapability(VolumeControl.class);
+            if(volumeControl!=null){
+                volumeControl.setMute(mute, null);
+            }
+//        } catch (IOException e) {
+//            throw new CastException("setDeviceMute", e);
         } catch (IllegalStateException e) {
             throw new NoConnectionException("setDeviceMute()", e);
+        } catch (Exception e) {
+            throw new CastException("setDeviceMute", e);
         }
     }
 
@@ -704,7 +770,11 @@ public abstract class BaseCastManager
             return;
         }
         setReconnectionStatus(RECONNECTION_STATUS_IN_PROGRESS);
-        CastDevice device = CastDevice.getFromBundle(theRoute.getExtras());
+
+        //ConnectableDevice device = ConnectableDevice.getFromBundle(theRoute.getExtras());
+        //String deviceId = theRoute.getExtras().getString(ConnectableDevice.KEY_ID);
+        //ConnectableDevice device = DiscoveryManager.getInstance().getConnectableDeviceStore().getDevice(deviceId);
+        ConnectableDevice device = mConnectSDKRouteProvider.getDeviceForRouteId(theRoute.getId());
 
         if (device != null) {
             LOGD(TAG, "trying to acquire Cast Client for " + device);
@@ -845,22 +915,104 @@ public abstract class BaseCastManager
     }
 
     /*
+    * Note: this is not called by the SDK anymore but this library calls this in the appropriate
+    * time.
+    */
+    protected void onDisconnected(boolean stopAppOnExit, boolean clearPersistedConnectionData, boolean setDefaultRoute) {
+        LOGD(TAG, "onDisconnected() reached");
+        mDeviceName = null;
+        for (BaseCastConsumer consumer : mBaseCastConsumers) {
+            consumer.onDisconnected();
+        }
+    }
+
+    /*
      * (non-Javadoc)
      * @see com.google.android.gms.GoogleApiClient.ConnectionCallbacks#onConnected
      * (android.os.Bundle)
      */
+//    @Override
+//    public final void onConnected(Bundle hint) {
+//        LOGD(TAG, "onConnected() reached with prior suspension: " + mConnectionSuspended);
+//        if (mConnectionSuspended) {
+//            mConnectionSuspended = false;
+//            if (hint != null && hint.getBoolean(Cast.EXTRA_APP_NO_LONGER_RUNNING)) {
+//                // the same app is not running any more
+//                LOGD(TAG, "onConnected(): App no longer running, so disconnecting");
+//                disconnect();
+//            } else {
+//                onConnectivityRecovered();
+//            }
+//            return;
+//        }
+//        if (!isConnected()) {
+//            if (mReconnectionStatus == RECONNECTION_STATUS_IN_PROGRESS) {
+//                setReconnectionStatus(RECONNECTION_STATUS_INACTIVE);
+//            }
+//            return;
+//        }
+//        try {
+//            if (isFeatureEnabled(FEATURE_WIFI_RECONNECT)) {
+//                String ssid = Utils.getWifiSsid(mContext);
+//                mPreferenceAccessor.saveStringToPreference(PREFS_KEY_SSID, ssid);
+//            }
+//            Cast.CastApi.requestStatus(mApiClient);
+//            launchApp();
+//
+//            for (BaseCastConsumer consumer : mBaseCastConsumers) {
+//                consumer.onConnected();
+//            }
+//
+//        } catch (IOException | IllegalStateException e) {
+//            LOGE(TAG, "requestStatus()", e);
+//        }
+//
+//    }
+
+    /*
+     * (non-Javadoc)
+     * @see com.google.android.gms.GoogleApiClient.OnConnectionFailedListener#
+     * onConnectionFailed(com.google.android.gms.common.ConnectionResult)
+     */
+//    @Override
+//    public void onConnectionFailed(ConnectionResult result) {
+//        LOGD(TAG, "onConnectionFailed() reached, error code: " + result.getErrorCode()
+//                + ", reason: " + result.toString());
+//        disconnectDevice(mDestroyOnDisconnect, false /* clearPersistentConnectionData */,
+//                false /* setDefaultRoute */);
+//        mConnectionSuspended = false;
+//        if (mMediaRouter != null) {
+//            mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
+//        }
+//
+//        for (BaseCastConsumer consumer : mBaseCastConsumers) {
+//            consumer.onConnectionFailed(result);
+//        }
+//    }
+
+//    @Override
+//    public void onConnectionSuspended(int cause) {
+//        mConnectionSuspended = true;
+//        LOGD(TAG, "onConnectionSuspended() was called with cause: " + cause);
+//        for (BaseCastConsumer consumer : mBaseCastConsumers) {
+//            consumer.onConnectionSuspended(cause);
+//        }
+//    }
+
     @Override
-    public final void onConnected(Bundle hint) {
+    public void onDeviceReady(ConnectableDevice connectableDevice) {
         LOGD(TAG, "onConnected() reached with prior suspension: " + mConnectionSuspended);
+        isConnecting = false;
+
         if (mConnectionSuspended) {
             mConnectionSuspended = false;
-            if (hint != null && hint.getBoolean(Cast.EXTRA_APP_NO_LONGER_RUNNING)) {
-                // the same app is not running any more
-                LOGD(TAG, "onConnected(): App no longer running, so disconnecting");
-                disconnect();
-            } else {
+//            if (hint != null && hint.getBoolean(Cast.EXTRA_APP_NO_LONGER_RUNNING)) {
+//                // the same app is not running any more
+//                LOGD(TAG, "onConnected(): App no longer running, so disconnecting");
+//                disconnect();
+//            } else {
                 onConnectivityRecovered();
-            }
+//            }
             return;
         }
         if (!isConnected()) {
@@ -874,8 +1026,13 @@ public abstract class BaseCastManager
                 String ssid = Utils.getWifiSsid(mContext);
                 mPreferenceAccessor.saveStringToPreference(PREFS_KEY_SSID, ssid);
             }
-            Cast.CastApi.requestStatus(mApiClient);
+
+            //Cast.CastApi.requestStatus(mApiClient);
             launchApp();
+
+//            for (BaseCastConsumer consumer : mBaseCastConsumers) {
+//                consumer.onDeviceSelected(connectableDevice);
+//            }
 
             for (BaseCastConsumer consumer : mBaseCastConsumers) {
                 consumer.onConnected();
@@ -884,56 +1041,82 @@ public abstract class BaseCastManager
         } catch (IOException | IllegalStateException e) {
             LOGE(TAG, "requestStatus()", e);
         }
-
     }
 
-    /*
-     * Note: this is not called by the SDK anymore but this library calls this in the appropriate
-     * time.
-     */
-    protected void onDisconnected(boolean stopAppOnExit, boolean clearPersistedConnectionData,
-            boolean setDefaultRoute) {
-        LOGD(TAG, "onDisconnected() reached");
-        mDeviceName = null;
-        for (BaseCastConsumer consumer : mBaseCastConsumers) {
-            consumer.onDisconnected();
-        }
-    }
-
-    /*
-     * (non-Javadoc)
-     * @see com.google.android.gms.GoogleApiClient.OnConnectionFailedListener#
-     * onConnectionFailed(com.google.android.gms.common.ConnectionResult)
-     */
     @Override
-    public void onConnectionFailed(ConnectionResult result) {
-        LOGD(TAG, "onConnectionFailed() reached, error code: " + result.getErrorCode()
-                + ", reason: " + result.toString());
-        disconnectDevice(mDestroyOnDisconnect, false /* clearPersistentConnectionData */,
-                false /* setDefaultRoute */);
+    public void onPairingRequired(ConnectableDevice connectableDevice, DeviceService deviceService, DeviceService.PairingType pairingType) {
+
+    }
+
+    @Override
+    public void onDeviceDisconnected(ConnectableDevice connectableDevice) {
+        LOGD(TAG, "onDeviceDisconnected() reached, device " + connectableDevice);
+        isConnecting = false;
+        disconnectDevice(mDestroyOnDisconnect, false /* clearPersistentConnectionData */, false /* setDefaultRoute */);
         mConnectionSuspended = false;
         if (mMediaRouter != null) {
             mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
         }
 
         for (BaseCastConsumer consumer : mBaseCastConsumers) {
-            consumer.onConnectionFailed(result);
+            consumer.onDisconnected();
         }
     }
 
     @Override
-    public void onConnectionSuspended(int cause) {
-        mConnectionSuspended = true;
-        LOGD(TAG, "onConnectionSuspended() was called with cause: " + cause);
+    public void onCapabilityUpdated(ConnectableDevice connectableDevice, List<String> list, List<String> list1) {
+//        mConnectionSuspended = true;
+//        LOGD(TAG, "onConnectionSuspended() was called with cause: " + cause);
+//        for (BaseCastConsumer consumer : mBaseCastConsumers) {
+//            consumer.onConnectionSuspended(cause);
+//        }
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectableDevice connectableDevice, ServiceCommandError serviceCommandError) {
+        LOGD(TAG, "onConnectionFailed() reached, error code: " + serviceCommandError.getCode() + ", reason: " + serviceCommandError.getPayload());
+        isConnecting = false;
+        disconnectDevice(mDestroyOnDisconnect, false /* clearPersistentConnectionData */, false /* setDefaultRoute */);
+        mConnectionSuspended = false;
+        if (mMediaRouter != null) {
+            mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
+        }
+
         for (BaseCastConsumer consumer : mBaseCastConsumers) {
-            consumer.onConnectionSuspended(cause);
+            consumer.onConnectionFailed(serviceCommandError);
+        }
+    }
+
+    @Override
+    public void onDeviceAdded(DiscoveryManager discoveryManager, ConnectableDevice connectableDevice) {
+
+    }
+
+    @Override
+    public void onDeviceUpdated(DiscoveryManager discoveryManager, ConnectableDevice connectableDevice) {
+
+    }
+
+    @Override
+    public void onDiscoveryFailed(DiscoveryManager discoveryManager, ServiceCommandError serviceCommandError) {
+
+    }
+
+    @Override
+    public void onDeviceRemoved(DiscoveryManager discoveryManager, ConnectableDevice connectableDevice) {
+        if(connectableDevice == mSelectedCastDevice) {
+            mConnectionSuspended = true;
+            LOGD(TAG, "onConnectionSuspended() was called with cause: " + -1);
+            for (BaseCastConsumer consumer : mBaseCastConsumers) {
+                consumer.onConnectionSuspended(-1);
+            }
         }
     }
 
     /*
-     * Launches application. For this to succeed, a connection should be already established by the
-     * CastClient.
-     */
+             * Launches application. For this to succeed, a connection should be already established by the
+             * CastClient.
+             */
     private void launchApp() throws TransientNetworkDisconnectionException, NoConnectionException {
         LOGD(TAG, "launchApp() is called");
         if (!isConnected()) {
@@ -948,43 +1131,83 @@ public abstract class BaseCastManager
             LOGD(TAG, "Attempting to join a previously interrupted session...");
             String sessionId = mPreferenceAccessor.getStringFromPreference(PREFS_KEY_SESSION_ID);
             LOGD(TAG, "joinApplication() -> start");
-            Cast.CastApi.joinApplication(mApiClient, mApplicationId, sessionId).setResultCallback(
-                    new ResultCallback<Cast.ApplicationConnectionResult>() {
+//            Cast.CastApi.joinApplication(mApiClient, mApplicationId, sessionId).setResultCallback(
+//                    new ResultCallback<Cast.ApplicationConnectionResult>() {
+//
+//                        @Override
+//                        public void onResult(ApplicationConnectionResult result) {
+//                            if (result.getStatus().isSuccess()) {
+//                                LOGD(TAG, "joinApplication() -> success");
+//                                onApplicationConnected(result.getApplicationMetadata(),
+//                                        result.getApplicationStatus(), result.getSessionId(),
+//                                        result.getWasLaunched());
+//                            } else {
+//                                LOGD(TAG, "joinApplication() -> failure");
+//                                clearPersistedConnectionInfo(CLEAR_SESSION | CLEAR_MEDIA_END);
+//                                onApplicationConnectionFailed(result.getStatus().getStatusCode());
+//                            }
+//                        }
+//                    }
+//            );
 
-                        @Override
-                        public void onResult(ApplicationConnectionResult result) {
-                            if (result.getStatus().isSuccess()) {
-                                LOGD(TAG, "joinApplication() -> success");
-                                onApplicationConnected(result.getApplicationMetadata(),
-                                        result.getApplicationStatus(), result.getSessionId(),
-                                        result.getWasLaunched());
-                            } else {
-                                LOGD(TAG, "joinApplication() -> failure");
-                                clearPersistedConnectionInfo(CLEAR_SESSION | CLEAR_MEDIA_END);
-                                onApplicationConnectionFailed(result.getStatus().getStatusCode());
-                            }
-                        }
+            WebAppLauncher launcher = mSelectedCastDevice.getCapability(WebAppLauncher.class);
+            if(launcher!=null){
+                launcher.joinWebApp(mApplicationId, new WebAppSession.LaunchListener() {
+                    @Override
+                    public void onSuccess(WebAppSession webAppSession) {
+                        LOGD(TAG, "joinWebApp() -> success");
+                        //onApplicationConnected(result.getApplicationMetadata(), result.getApplicationStatus(), result.getSessionId(), result.getWasLaunched());
+                        onApplicationConnected(webAppSession, WebAppSession.WebAppStatus.Open);
                     }
-            );
+
+                    @Override
+                    public void onError(ServiceCommandError serviceCommandError) {
+                        LOGD(TAG, "joinWebApp() -> failure");
+                        clearPersistedConnectionInfo(CLEAR_SESSION | CLEAR_MEDIA_END);
+                        //onApplicationConnectionFailed(result.getStatus().getStatusCode());
+                        onApplicationConnectionFailed(serviceCommandError.getCode());
+                    }
+                });
+            }
         } else {
             LOGD(TAG, "Launching app");
-            Cast.CastApi.launchApplication(mApiClient, mApplicationId).setResultCallback(
-                    new ResultCallback<Cast.ApplicationConnectionResult>() {
+//            Cast.CastApi.launchApplication(mApiClient, mApplicationId).setResultCallback(
+//                    new ResultCallback<Cast.ApplicationConnectionResult>() {
+//
+//                        @Override
+//                        public void onResult(ApplicationConnectionResult result) {
+//                            if (result.getStatus().isSuccess()) {
+//                                LOGD(TAG, "launchApplication() -> success result");
+//                                onApplicationConnected(result.getApplicationMetadata(),
+//                                        result.getApplicationStatus(), result.getSessionId(),
+//                                        result.getWasLaunched());
+//                            } else {
+//                                LOGD(TAG, "launchApplication() -> failure result");
+//                                onApplicationConnectionFailed(result.getStatus().getStatusCode());
+//                            }
+//                        }
+//                    }
+//            );
 
-                        @Override
-                        public void onResult(ApplicationConnectionResult result) {
-                            if (result.getStatus().isSuccess()) {
-                                LOGD(TAG, "launchApplication() -> success result");
-                                onApplicationConnected(result.getApplicationMetadata(),
-                                        result.getApplicationStatus(), result.getSessionId(),
-                                        result.getWasLaunched());
-                            } else {
-                                LOGD(TAG, "launchApplication() -> failure result");
-                                onApplicationConnectionFailed(result.getStatus().getStatusCode());
-                            }
-                        }
+            WebAppLauncher launcher = mSelectedCastDevice.getCapability(WebAppLauncher.class);
+            if(launcher!=null){
+                launcher.launchWebApp(mApplicationId, new WebAppSession.LaunchListener() {
+                    @Override
+                    public void onSuccess(WebAppSession webAppSession) {
+                        LOGD(TAG, "launchWebApp() -> success :" + webAppSession);
+                        //onApplicationConnected(result.getApplicationMetadata(), result.getApplicationStatus(), result.getSessionId(), result.getWasLaunched());
+                        onApplicationConnected(webAppSession, WebAppSession.WebAppStatus.Open);
                     }
-            );
+
+                    @Override
+                    public void onError(ServiceCommandError serviceCommandError) {
+                        LOGD(TAG, "launchWebApp() -> failure");
+                        clearPersistedConnectionInfo(CLEAR_SESSION | CLEAR_MEDIA_END);
+                        //onApplicationConnectionFailed(result.getStatus().getStatusCode());
+                        onApplicationConnectionFailed(serviceCommandError.getCode());
+                    }
+                });
+            }
         }
     }
 
@@ -994,24 +1217,40 @@ public abstract class BaseCastManager
      * @throws NoConnectionException
      * @throws TransientNetworkDisconnectionException
      */
-    public final void stopApplication()
-            throws TransientNetworkDisconnectionException, NoConnectionException {
+    public final void stopApplication() throws TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
-        Cast.CastApi.stopApplication(mApiClient, mSessionId).setResultCallback(
-                new ResultCallback<Status>() {
+//        Cast.CastApi.stopApplication(mApiClient, mSessionId).setResultCallback(
+//                new ResultCallback<Status>() {
+//
+//                    @Override
+//                    public void onResult(Status result) {
+//                        if (!result.isSuccess()) {
+//                            LOGD(TAG, "stopApplication -> onResult: stopping "
+//                                    + "application failed");
+//                            onApplicationStopFailed(result.getStatusCode());
+//                        } else {
+//                            LOGD(TAG, "stopApplication -> onResult Stopped application "
+//                                    + "successfully");
+//                        }
+//                    }
+//                });
 
-                    @Override
-                    public void onResult(Status result) {
-                        if (!result.isSuccess()) {
-                            LOGD(TAG, "stopApplication -> onResult: stopping "
-                                    + "application failed");
-                            onApplicationStopFailed(result.getStatusCode());
-                        } else {
-                            LOGD(TAG, "stopApplication -> onResult Stopped application "
-                                    + "successfully");
-                        }
-                    }
-                });
+        WebAppLauncher launcher = mSelectedCastDevice.getCapability(WebAppLauncher.class);
+        if(launcher!=null){
+            launcher.closeWebApp(null, new ResponseListener<Object>() {
+                @Override
+                public void onError(ServiceCommandError serviceCommandError) {
+                    LOGD(TAG, "stopApplication -> onResult: stopping " + "application failed");
+                    //onApplicationStopFailed(result.getStatusCode());
+                    onApplicationStopFailed(serviceCommandError.getCode());
+                }
+
+                @Override
+                public void onSuccess(Object o) {
+                    LOGD(TAG, "stopApplication -> onResult Stopped application " + "successfully");
+                }
+            });
+        }
     }
 
     /**
@@ -1046,8 +1285,7 @@ public abstract class BaseCastManager
      * @throws TransientNetworkDisconnectionException If framework is still trying to recover
      * @throws NoConnectionException If no connectivity to the device exists
      */
-    public final void checkConnectivity() throws TransientNetworkDisconnectionException,
-            NoConnectionException {
+    public final void checkConnectivity() throws TransientNetworkDisconnectionException, NoConnectionException {
         if (!isConnected()) {
             if (mConnectionSuspended) {
                 throw new TransientNetworkDisconnectionException();

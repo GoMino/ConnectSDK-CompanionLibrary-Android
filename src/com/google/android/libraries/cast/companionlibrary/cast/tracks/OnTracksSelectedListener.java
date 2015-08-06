@@ -16,7 +16,7 @@
 
 package com.google.android.libraries.cast.companionlibrary.cast.tracks;
 
-import com.google.android.gms.cast.MediaTrack;
+//import com.google.android.gms.cast.MediaTrack;
 
 import java.util.List;
 
@@ -30,5 +30,5 @@ public interface OnTracksSelectedListener {
      *
      * @param tracks A Non-<code>null</code> list of MediaTracks.
      */
-    void onTracksSelected(List<MediaTrack> tracks);
+    //void onTracksSelected(List<MediaTrack> tracks);
 }

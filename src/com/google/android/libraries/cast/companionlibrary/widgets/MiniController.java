@@ -16,10 +16,11 @@
 
 package com.google.android.libraries.cast.companionlibrary.widgets;
 
-import com.google.android.gms.cast.MediaInfo;
-import com.google.android.gms.cast.MediaMetadata;
-import com.google.android.gms.cast.MediaQueueItem;
-import com.google.android.gms.cast.MediaStatus;
+//import com.google.android.gms.cast.MediaInfo;
+//import com.google.android.gms.cast.MediaMetadata;
+//import com.google.android.gms.cast.MediaQueueItem;
+//import com.google.android.gms.cast.MediaStatus;
+import com.connectsdk.service.capability.MediaControl;
 import com.google.android.libraries.cast.companionlibrary.R;
 import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.CastException;
@@ -72,7 +73,7 @@ public class MiniController extends RelativeLayout implements IMiniController {
     private Uri mIconUri;
     private Drawable mPauseDrawable;
     private Drawable mPlayDrawable;
-    private int mStreamType = MediaInfo.STREAM_TYPE_BUFFERED;
+    //private int mStreamType = MediaInfo.STREAM_TYPE_BUFFERED;
     private Drawable mStopDrawable;
     private FetchBitmapTask mFetchBitmapTask;
     private ProgressBar mProgressBar;
@@ -84,7 +85,7 @@ public class MiniController extends RelativeLayout implements IMiniController {
     private Uri mUpcomingIconUri;
     private FetchBitmapTask mFetchUpcomingBitmapTask;
     private View mMainContainer;
-    private MediaQueueItem mUpcomingItem;
+    //private MediaQueueItem mUpcomingItem;
 
     public MiniController(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -121,15 +122,15 @@ public class MiniController extends RelativeLayout implements IMiniController {
         }
     }
 
-    @Override
-    public void setStreamType(int streamType) {
-        mStreamType = streamType;
-    }
+//    @Override
+//    public void setStreamType(int streamType) {
+//        mStreamType = streamType;
+//    }
 
     @Override
     public void setProgress(final int progress, final int duration) {
         // for live streams, we do not attempt to update the progress bar
-        if (mStreamType == MediaInfo.STREAM_TYPE_LIVE || mProgressBar == null) {
+        if (/*mStreamType == MediaInfo.STREAM_TYPE_LIVE ||*/ mProgressBar == null) {
             return;
         }
         mHandler.post(new Runnable() {
@@ -146,9 +147,11 @@ public class MiniController extends RelativeLayout implements IMiniController {
         if (mProgressBar == null) {
             return;
         }
-        mProgressBar.setVisibility(
-                visible && (mStreamType != MediaInfo.STREAM_TYPE_LIVE) ? View.VISIBLE
-                        : View.INVISIBLE);
+//        mProgressBar.setVisibility(
+//                visible && (mStreamType != MediaInfo.STREAM_TYPE_LIVE) ? View.VISIBLE
+//                        : View.INVISIBLE);
+
+        mProgressBar.setVisibility(View.VISIBLE);
     }
 
     @Override
@@ -157,21 +160,21 @@ public class MiniController extends RelativeLayout implements IMiniController {
         setProgressVisibility(!visible);
     }
 
-    @Override
-    public void setUpcomingItem(MediaQueueItem item) {
-        mUpcomingItem = item;
-        if (item != null) {
-            MediaInfo mediaInfo = item.getMedia();
-            if (mediaInfo != null) {
-                MediaMetadata metadata = mediaInfo.getMetadata();
-                setUpcomingTitle(metadata.getString(MediaMetadata.KEY_TITLE));
-                setUpcomingIcon(Utils.getImageUri(mediaInfo, 0));
-            }
-        } else {
-            setUpcomingTitle("");
-            setUpcomingIcon((Uri) null);
-        }
-    }
+//    @Override
+//    public void setUpcomingItem(MediaQueueItem item) {
+//        mUpcomingItem = item;
+//        if (item != null) {
+//            MediaInfo mediaInfo = item.getMedia();
+//            if (mediaInfo != null) {
+//                MediaMetadata metadata = mediaInfo.getMetadata();
+//                setUpcomingTitle(metadata.getString(MediaMetadata.KEY_TITLE));
+//                setUpcomingIcon(Utils.getImageUri(mediaInfo, 0));
+//            }
+//        } else {
+//            setUpcomingTitle("");
+//            setUpcomingIcon((Uri) null);
+//        }
+//    }
 
     @Override
     public void setCurrentVisibility(boolean visible) {
@@ -223,7 +226,7 @@ public class MiniController extends RelativeLayout implements IMiniController {
             @Override
             public void onClick(View v) {
                 if (mListener != null) {
-                    mListener.onUpcomingPlayClicked(v, mUpcomingItem);
+                    //mListener.onUpcomingPlayClicked(v, mUpcomingItem);
                 }
             }
         });
@@ -232,7 +235,7 @@ public class MiniController extends RelativeLayout implements IMiniController {
             @Override
             public void onClick(View v) {
                 if (mListener != null) {
-                    mListener.onUpcomingStopClicked(v, mUpcomingItem);
+                    //mListener.onUpcomingStopClicked(v, mUpcomingItem);
                 }
             }
         });
@@ -301,35 +304,35 @@ public class MiniController extends RelativeLayout implements IMiniController {
     @Override
     public void setPlaybackStatus(int state, int idleReason) {
         switch (state) {
-            case MediaStatus.PLAYER_STATE_PLAYING:
+            case MediaControl.PLAYER_STATE_PLAYING:
                 mPlayPause.setVisibility(View.VISIBLE);
                 mPlayPause.setImageDrawable(getPauseStopDrawable());
                 setLoadingVisibility(false);
                 break;
-            case MediaStatus.PLAYER_STATE_PAUSED:
+            case MediaControl.PLAYER_STATE_PAUSED:
                 mPlayPause.setVisibility(View.VISIBLE);
                 mPlayPause.setImageDrawable(mPlayDrawable);
                 setLoadingVisibility(false);
                 break;
-            case MediaStatus.PLAYER_STATE_IDLE:
-                switch (mStreamType) {
-                    case MediaInfo.STREAM_TYPE_BUFFERED:
+            case MediaControl.PLAYER_STATE_IDLE:
+//                switch (mStreamType) {
+                    //case MediaInfo.STREAM_TYPE_BUFFERED:
                         mPlayPause.setVisibility(View.INVISIBLE);
                         setLoadingVisibility(false);
-                        break;
-                    case MediaInfo.STREAM_TYPE_LIVE:
-                        if (idleReason == MediaStatus.IDLE_REASON_CANCELED) {
-                            mPlayPause.setVisibility(View.VISIBLE);
-                            mPlayPause.setImageDrawable(mPlayDrawable);
-                            setLoadingVisibility(false);
-                        } else {
-                            mPlayPause.setVisibility(View.INVISIBLE);
-                            setLoadingVisibility(false);
-                        }
-                        break;
-                }
+//                        break;
+//                    case MediaInfo.STREAM_TYPE_LIVE:
+//                        if (idleReason == MediaStatus.IDLE_REASON_CANCELED) {
+//                            mPlayPause.setVisibility(View.VISIBLE);
+//                            mPlayPause.setImageDrawable(mPlayDrawable);
+//                            setLoadingVisibility(false);
+//                        } else {
+//                            mPlayPause.setVisibility(View.INVISIBLE);
+//                            setLoadingVisibility(false);
+//                        }
+//                        break;
+//                }
                 break;
-            case MediaStatus.PLAYER_STATE_BUFFERING:
+            case MediaControl.PLAYER_STATE_BUFFERING:
                 mPlayPause.setVisibility(View.INVISIBLE);
                 setLoadingVisibility(true);
                 break;
@@ -365,14 +368,14 @@ public class MiniController extends RelativeLayout implements IMiniController {
     }
 
     private Drawable getPauseStopDrawable() {
-        switch (mStreamType) {
-            case MediaInfo.STREAM_TYPE_BUFFERED:
+//        switch (mStreamType) {
+//            case MediaInfo.STREAM_TYPE_BUFFERED:
+//                return mPauseDrawable;
+//            case MediaInfo.STREAM_TYPE_LIVE:
+//                return mStopDrawable;
+//            default:
                 return mPauseDrawable;
-            case MediaInfo.STREAM_TYPE_LIVE:
-                return mStopDrawable;
-            default:
-                return mPauseDrawable;
-        }
+//        }
     }
 
     private void setUpcomingIcon(Uri uri) {
@@ -433,12 +436,12 @@ public class MiniController extends RelativeLayout implements IMiniController {
         /**
          * Is called when the "play" button in the upcoming area is clicked.
          */
-        void onUpcomingPlayClicked(View v, MediaQueueItem upcomingItem);
+        //void onUpcomingPlayClicked(View v, MediaQueueItem upcomingItem);
 
         /**
          * Is called when the "stop" button in the upcoming area is clicked.
          */
-        void onUpcomingStopClicked(View view, MediaQueueItem upcomingItem);
+        //void onUpcomingStopClicked(View view, MediaQueueItem upcomingItem);
 
     }
 }

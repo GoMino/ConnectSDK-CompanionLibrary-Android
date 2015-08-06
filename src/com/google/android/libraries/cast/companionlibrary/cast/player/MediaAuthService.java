@@ -17,7 +17,9 @@
 
 package com.google.android.libraries.cast.companionlibrary.cast.player;
 
-import com.google.android.gms.cast.MediaInfo;
+//import com.google.android.gms.cast.MediaInfo;
+
+import com.connectsdk.core.MediaInfo;
 
 /**
  * A public interface if an application requires a pre-authorization of a media, prior to its

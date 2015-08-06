@@ -16,9 +16,11 @@
 
 package com.google.android.libraries.cast.companionlibrary.cast.player;
 
-import com.google.android.gms.cast.MediaStatus;
+//import com.google.android.gms.cast.MediaStatus;
+import com.connectsdk.service.capability.MediaControl;
 
 import android.graphics.Bitmap;
+
 
 /**
  * An interface that can be used to display a remote controller for the video that is playing on
@@ -52,7 +54,7 @@ public interface VideoCastController {
 
     /**
      * Sets the playback state, and the idleReason (this is only used when the state is idle).
-     * Values that can be passed to this method are from {@link MediaStatus}
+     * Values that can be passed to this method are from {@link MediaControl}
      */
     void setPlaybackStatus(int state);
 

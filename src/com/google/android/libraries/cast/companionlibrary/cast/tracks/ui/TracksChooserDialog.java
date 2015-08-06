@@ -16,7 +16,9 @@
 
 package com.google.android.libraries.cast.companionlibrary.cast.tracks.ui;
 
-import com.google.android.gms.cast.MediaInfo;
+//import com.google.android.gms.cast.MediaInfo;
+//import com.google.android.gms.cast.MediaTrack;
+import com.connectsdk.core.MediaInfo;
 import com.google.android.gms.cast.MediaTrack;
 import com.google.android.libraries.cast.companionlibrary.R;
 import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
@@ -73,7 +75,7 @@ public class TracksChooserDialog extends DialogFragment {
                                 if (audioVideoTrack != null) {
                                     selectedTracks.add(audioVideoTrack);
                                 }
-                                mCastManager.notifyTracksSelectedListeners(selectedTracks);
+                                //mCastManager.notifyTracksSelectedListeners(selectedTracks);
                                 TracksChooserDialog.this.getDialog().cancel();
                             }
                         })
@@ -100,7 +102,8 @@ public class TracksChooserDialog extends DialogFragment {
         mMediaInfo = Utils.bundleToMediaInfo(mediaWrapper);
         mCastManager = VideoCastManager.getInstance();
         mActiveTracks = mCastManager.getActiveTrackIds();
-        List<MediaTrack> allTracks = mMediaInfo.getMediaTracks();
+        //List<MediaTrack> allTracks = mMediaInfo.getMediaTracks();
+        List<MediaTrack> allTracks = null;
         if (allTracks == null || allTracks.isEmpty()) {
             Utils.showToast(getActivity(), R.string.ccl_caption_no_tracks_available);
             dismiss();
@@ -174,7 +177,8 @@ public class TracksChooserDialog extends DialogFragment {
      * group of Audio tracks, and skips over the Video tracks.
      */
     private void partitionTracks() {
-        List<MediaTrack> allTracks = mMediaInfo.getMediaTracks();
+        //List<MediaTrack> allTracks = mMediaInfo.getMediaTracks();
+        List<MediaTrack> allTracks = null;
         mAudioTracks.clear();
         mTextTracks.clear();
         mTextTracks.add(buildNoneTrack());

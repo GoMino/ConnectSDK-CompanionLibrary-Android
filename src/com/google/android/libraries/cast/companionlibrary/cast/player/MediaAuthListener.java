@@ -16,7 +16,9 @@
 
 package com.google.android.libraries.cast.companionlibrary.cast.player;
 
-import com.google.android.gms.cast.MediaInfo;
+//import com.google.android.gms.cast.MediaInfo;
+
+import com.connectsdk.core.MediaInfo;
 
 import org.json.JSONObject;
 

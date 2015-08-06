@@ -16,11 +16,15 @@
 
 package com.google.android.libraries.cast.companionlibrary.cast.callbacks;
 
+import com.connectsdk.device.ConnectableDevice;
+//import com.google.android.gms.cast.ApplicationMetadata;
+//import com.google.android.gms.cast.Cast;
+//import com.google.android.gms.cast.CastDevice;
+//import com.google.android.gms.cast.MediaQueueItem;
+import com.connectsdk.service.sessions.WebAppSession;
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.Cast;
-import com.google.android.gms.cast.CastDevice;
-import com.google.android.gms.cast.MediaQueueItem;
-import com.google.android.gms.cast.TextTrackStyle;
+//import com.google.android.gms.cast.TextTrackStyle;
 
 import android.view.View;
 
@@ -38,8 +42,8 @@ public interface VideoCastConsumer extends BaseCastConsumer {
      * session ID is returned. <code>wasLaunched</code> indicates if the application was launched or
      * joined.
      */
-    void onApplicationConnected(ApplicationMetadata appMetadata,
-            String sessionId, boolean wasLaunched);
+    //void onApplicationConnected(ApplicationMetadata appMetadata, String sessionId, boolean wasLaunched);
+    void onApplicationConnected(WebAppSession webAppSession, WebAppSession.WebAppStatus status);
 
     /**
      * Called when an application launch has failed. Failure reason is captured in the
@@ -95,7 +99,7 @@ public interface VideoCastConsumer extends BaseCastConsumer {
     void onDataMessageSendFailed(int errorCode);
 
     /**
-     * Called when a message is received from a given {@link CastDevice}.
+     * Called when a message is received from a given {@link ConnectableDevice}.
      *
      * @param message The received payload for the message.
      */
@@ -105,7 +109,7 @@ public interface VideoCastConsumer extends BaseCastConsumer {
      * Called when the style of the text caption has changed
      * @param style The new style
      */
-    void onTextTrackStyleChanged(TextTrackStyle style);
+    //void onTextTrackStyleChanged(TextTrackStyle style);
 
     /**
      * Called when Close Captions on/off is changed
@@ -135,18 +139,18 @@ public interface VideoCastConsumer extends BaseCastConsumer {
     /**
      * A callback to inform the clients that queue has been updated.
      */
-    void onMediaQueueUpdated(List<MediaQueueItem> queueItems, MediaQueueItem item,
-            int repeatMode, boolean shuffle);
+//    void onMediaQueueUpdated(List<MediaQueueItem> queueItems, MediaQueueItem item,
+//            int repeatMode, boolean shuffle);
 
     /**
      * A callback to inform the client that pre-loading of a queue item has started
      * @param item
      */
-    void onRemoteMediaPreloadStatusUpdated(MediaQueueItem item);
-
-    void onUpcomingPlayClicked(View v, MediaQueueItem item);
-
-    void onUpcomingStopClicked(View view, MediaQueueItem upcomingItem);
+//    void onRemoteMediaPreloadStatusUpdated(MediaQueueItem item);
+//
+//    void onUpcomingPlayClicked(View v, MediaQueueItem item);
+//
+//    void onUpcomingStopClicked(View view, MediaQueueItem upcomingItem);
 
     /**
      * A callback to inform the client of the result of a queueing operation.
@@ -159,7 +163,7 @@ public interface VideoCastConsumer extends BaseCastConsumer {
      * {@link com.google.android.gms.cast.CastStatusCodes}.
      * {@link com.google.android.gms.cast.CastStatusCodes#SUCCESS} signifies a successful request.
      */
-    void onMediaQueueOperationResult(int operationId, int statusCode);
+//    void onMediaQueueOperationResult(int operationId, int statusCode);
 
 
 

@@ -18,9 +18,11 @@ package com.google.android.libraries.cast.companionlibrary.cast.dialog.video;
 
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
 
-import com.google.android.gms.cast.MediaInfo;
-import com.google.android.gms.cast.MediaMetadata;
-import com.google.android.gms.cast.MediaStatus;
+//import com.google.android.gms.cast.MediaInfo;
+//import com.google.android.gms.cast.MediaMetadata;
+//import com.google.android.gms.cast.MediaStatus;
+import com.connectsdk.core.MediaInfo;
+import com.connectsdk.service.capability.MediaControl;
 import com.google.android.libraries.cast.companionlibrary.R;
 import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
 import com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumerImpl;
@@ -70,7 +72,7 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
     private View mTextContainer;
     private FetchBitmapTask mFetchBitmap;
 
-    private int mStreamType;
+    //private int mStreamType;
 
     public VideoMediaRouteControllerDialog(Context context, int theme) {
         super(context, theme);
@@ -157,12 +159,12 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
             hideControls(true, R.string.ccl_no_media_info);
             return;
         }
-        mStreamType = info.getStreamType();
+        //mStreamType = info.getStreamType();
         hideControls(false, 0);
-        MediaMetadata mm = info.getMetadata();
-        mTitle.setText(mm.getString(MediaMetadata.KEY_TITLE));
-        mSubTitle.setText(mm.getString(MediaMetadata.KEY_SUBTITLE));
-        setIcon(mm.hasImages() ? mm.getImages().get(0).getUrl() : null);
+        //MediaMetadata mm = info.getMetadata();
+        mTitle.setText(info.getTitle());
+        mSubTitle.setText(info.getDescription());
+        setIcon(info.getImages()!=null && info.getImages().size()>0 ? Uri.parse(info.getImages().get(0).getUrl()) : null);
     }
 
     public void setIcon(Uri uri) {
@@ -196,41 +198,41 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
     private void updatePlayPauseState(int state) {
         if (mPausePlay != null) {
             switch (state) {
-                case MediaStatus.PLAYER_STATE_PLAYING:
+                case MediaControl.PLAYER_STATE_PLAYING:
                     mPausePlay.setImageDrawable(getPauseStopDrawable());
                     adjustControlsVisibility(true);
                     break;
-                case MediaStatus.PLAYER_STATE_PAUSED:
+                case MediaControl.PLAYER_STATE_PAUSED:
                     mPausePlay.setImageDrawable(mPlayDrawable);
                     adjustControlsVisibility(true);
                     break;
-                case MediaStatus.PLAYER_STATE_IDLE:
+                case MediaControl.PLAYER_STATE_IDLE:
                     mPausePlay.setVisibility(View.INVISIBLE);
                     setLoadingVisibility(false);
 
-                    if (mState == MediaStatus.PLAYER_STATE_IDLE
-                            && mCastManager.getIdleReason() == MediaStatus.IDLE_REASON_FINISHED) {
+                    if (mState == MediaControl.PLAYER_STATE_IDLE) {
+                            //&& mCastManager.getIdleReason() == MediaStatus.IDLE_REASON_FINISHED) {
                         hideControls(true, R.string.ccl_no_media_info);
                     } else {
-                        switch (mStreamType) {
-                            case MediaInfo.STREAM_TYPE_BUFFERED:
+//                        switch (mStreamType) {
+//                            case MediaInfo.STREAM_TYPE_BUFFERED:
                                 mPausePlay.setVisibility(View.INVISIBLE);
                                 setLoadingVisibility(false);
-                                break;
-                            case MediaInfo.STREAM_TYPE_LIVE:
-                                int idleReason = mCastManager.getIdleReason();
-                                if (idleReason == MediaStatus.IDLE_REASON_CANCELED) {
-                                    mPausePlay.setImageDrawable(mPlayDrawable);
-                                    adjustControlsVisibility(true);
-                                } else {
-                                    mPausePlay.setVisibility(View.INVISIBLE);
-                                    setLoadingVisibility(false);
-                                }
-                                break;
-                        }
+//                                break;
+//                            case MediaInfo.STREAM_TYPE_LIVE:
+//                                int idleReason = mCastManager.getIdleReason();
+//                                if (idleReason == MediaStatus.IDLE_REASON_CANCELED) {
+//                                    mPausePlay.setImageDrawable(mPlayDrawable);
+//                                    adjustControlsVisibility(true);
+//                                } else {
+//                                    mPausePlay.setVisibility(View.INVISIBLE);
+//                                    setLoadingVisibility(false);
+//                                }
+//                                break;
+//                        }
                     }
                     break;
-                case MediaStatus.PLAYER_STATE_BUFFERING:
+                case MediaControl.PLAYER_STATE_BUFFERING:
                     adjustControlsVisibility(false);
                     break;
                 default:
@@ -241,14 +243,14 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
     }
 
     private Drawable getPauseStopDrawable() {
-        switch (mStreamType) {
-            case MediaInfo.STREAM_TYPE_BUFFERED:
+//        switch (mStreamType) {
+//            case MediaInfo.STREAM_TYPE_BUFFERED:
+//                return mPauseDrawable;
+//            case MediaInfo.STREAM_TYPE_LIVE:
+//                return mStopDrawable;
+//            default:
                 return mPauseDrawable;
-            case MediaInfo.STREAM_TYPE_LIVE:
-                return mStopDrawable;
-            default:
-                return mPauseDrawable;
-        }
+//        }
     }
 
     private void setLoadingVisibility(boolean show) {

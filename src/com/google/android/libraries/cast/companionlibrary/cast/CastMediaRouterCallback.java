@@ -18,7 +18,9 @@ package com.google.android.libraries.cast.companionlibrary.cast;
 
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
 
-import com.google.android.gms.cast.CastDevice;
+//import com.google.android.gms.cast.CastDevice;
+import com.connectsdk.device.ConnectableDevice;
+import com.connectsdk.discovery.DiscoveryManager;
 import com.google.android.libraries.cast.companionlibrary.utils.LogUtils;
 
 import android.support.v7.media.MediaRouter;
@@ -27,7 +29,7 @@ import android.support.v7.media.MediaRouter.RouteInfo;
 /**
  * Provides a handy implementation of {@link MediaRouter.Callback}. When a {@link RouteInfo} is
  * selected by user from the list of available routes, this class will call the
- * {@link BaseCastManager#setDevice(CastDevice))} of the listener that was passed to it in
+ * {@link BaseCastManager#setDevice(ConnectableDevice))} of the listener that was passed to it in
  * the constructor. In addition, as soon as a non-default route is discovered, the
  * {@link BaseCastManager#onCastDeviceDetected(RouteInfo))} is called.
  * <p>
@@ -51,9 +53,12 @@ public class CastMediaRouterCallback extends MediaRouter.Callback {
             mCastManager.cancelReconnectionTask();
             return;
         }
-        mCastManager.getPreferenceAccessor().saveStringToPreference(
-                BaseCastManager.PREFS_KEY_ROUTE_ID, info.getId());
-        CastDevice device = CastDevice.getFromBundle(info.getExtras());
+        mCastManager.getPreferenceAccessor().saveStringToPreference(BaseCastManager.PREFS_KEY_ROUTE_ID, info.getId());
+        //ConnectableDevice device = ConnectableDevice.getFromBundle(info.getExtras());
+        //String deviceId = info.getExtras().getString(ConnectableDevice.KEY_ID);
+        //ConnectableDevice device = DiscoveryManager.getInstance().getConnectableDeviceStore().getDevice(deviceId);
+        ConnectableDevice device = mCastManager.getRouteProvider().getDeviceForRouteId(info.getId());
+
         mCastManager.onDeviceSelected(device);
         LOGD(TAG, "onRouteSelected: mSelectedDevice=" + device.getFriendlyName());
     }
@@ -79,9 +84,12 @@ public class CastMediaRouterCallback extends MediaRouter.Callback {
                 LOGD(TAG, "onRouteAdded: Attempting to recover a session with info=" + route);
                 mCastManager.setReconnectionStatus(BaseCastManager.RECONNECTION_STATUS_IN_PROGRESS);
 
-                CastDevice device = CastDevice.getFromBundle(route.getExtras());
-                LOGD(TAG, "onRouteAdded: Attempting to recover a session with device: "
-                        + device.getFriendlyName());
+                //ConnectableDevice device = ConnectableDevice.getFromBundle(route.getExtras());
+                //String deviceId = route.getExtras().getString(ConnectableDevice.KEY_ID);
+                //ConnectableDevice device = DiscoveryManager.getInstance().getConnectableDeviceStore().getDevice(deviceId);
+                ConnectableDevice device = mCastManager.getRouteProvider().getDeviceForRouteId(route.getId());
+
+                LOGD(TAG, "onRouteAdded: Attempting to recover a session with device: " + device.getFriendlyName());
                 mCastManager.onDeviceSelected(device);
             }
         }

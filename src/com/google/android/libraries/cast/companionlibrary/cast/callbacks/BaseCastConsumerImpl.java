@@ -16,8 +16,11 @@
 
 package com.google.android.libraries.cast.companionlibrary.cast.callbacks;
 
-import com.google.android.gms.cast.CastDevice;
-import com.google.android.gms.common.ConnectionResult;
+//import com.google.android.gms.cast.CastDevice;
+//import com.google.android.gms.common.ConnectionResult;
+import com.connectsdk.device.ConnectableDevice;
+import com.connectsdk.service.command.ServiceCommandError;
+
 
 import android.support.v7.media.MediaRouter.RouteInfo;
 
@@ -35,7 +38,7 @@ public class BaseCastConsumerImpl implements BaseCastConsumer {
     }
 
     @Override
-    public void onConnectionFailed(ConnectionResult result) {
+    public void onConnectionFailed(ServiceCommandError result) {
     }
 
     @Override
@@ -63,7 +66,11 @@ public class BaseCastConsumerImpl implements BaseCastConsumer {
     }
 
     @Override
-    public void onDeviceSelected(CastDevice device) {
+    public void onDeviceSelected(ConnectableDevice device) {
+    }
+
+    @Override
+    public void onDeviceUnselected(ConnectableDevice device) {
     }
 
     @Override

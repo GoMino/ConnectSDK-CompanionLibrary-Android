@@ -19,9 +19,12 @@ package com.google.android.libraries.cast.companionlibrary.notification;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
 
-import com.google.android.gms.cast.MediaInfo;
-import com.google.android.gms.cast.MediaMetadata;
-import com.google.android.gms.cast.MediaStatus;
+//import com.google.android.gms.cast.MediaInfo;
+//import com.google.android.gms.cast.MediaMetadata;
+//import com.google.android.gms.cast.MediaStatus;
+
+import com.connectsdk.core.MediaInfo;
+import com.connectsdk.service.capability.MediaControl;
 import com.google.android.libraries.cast.companionlibrary.R;
 import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
 import com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumerImpl;
@@ -172,11 +175,12 @@ public class VideoCastNotificationService extends Service {
         }
         Uri imgUri = null;
         try {
-            if (!info.getMetadata().hasImages()) {
+            if (info.getImages()==null || info.getImages().size()==0) {
                 build(info, null, mIsPlaying);
                 return;
             } else {
-                imgUri = info.getMetadata().getImages().get(0).getUrl();
+                String url = info.getImages().get(0).getUrl();
+                imgUri = Uri.parse(url);
             }
         } catch (CastException e) {
             LOGE(TAG, "Failed to build notification", e);
@@ -220,19 +224,19 @@ public class VideoCastNotificationService extends Service {
         LOGD(TAG, "onRemoteMediaPlayerStatusUpdated() reached with status: " + mediaStatus);
         try {
             switch (mediaStatus) {
-                case MediaStatus.PLAYER_STATE_BUFFERING: // (== 4)
+                case MediaControl.PLAYER_STATE_BUFFERING: // (== 4)
                     mIsPlaying = false;
                     setUpNotification(mCastManager.getRemoteMediaInformation());
                     break;
-                case MediaStatus.PLAYER_STATE_PLAYING: // (== 2)
+                case MediaControl.PLAYER_STATE_PLAYING: // (== 2)
                     mIsPlaying = true;
                     setUpNotification(mCastManager.getRemoteMediaInformation());
                     break;
-                case MediaStatus.PLAYER_STATE_PAUSED: // (== 3)
+                case MediaControl.PLAYER_STATE_PAUSED: // (== 3)
                     mIsPlaying = false;
                     setUpNotification(mCastManager.getRemoteMediaInformation());
                     break;
-                case MediaStatus.PLAYER_STATE_IDLE: // (== 1)
+                case MediaControl.PLAYER_STATE_IDLE: // (== 1)
                     mIsPlaying = false;
                     if (!mCastManager.shouldRemoteUiBeVisible(mediaStatus,
                             mCastManager.getIdleReason())) {
@@ -241,7 +245,7 @@ public class VideoCastNotificationService extends Service {
                         setUpNotification(mCastManager.getRemoteMediaInformation());
                     }
                     break;
-                case MediaStatus.PLAYER_STATE_UNKNOWN: // (== 0)
+                case MediaControl.PLAYER_STATE_UNKNOWN: // (== 0)
                     mIsPlaying = false;
                     stopForeground(true);
                     break;
@@ -298,7 +302,7 @@ public class VideoCastNotificationService extends Service {
         PendingIntent resultPendingIntent =
                 stackBuilder.getPendingIntent(NOTIFICATION_ID, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        MediaMetadata mm = info.getMetadata();
+        //MediaMetadata mm = info.getMetadata();
 
         RemoteViews rv = new RemoteViews(getPackageName(), R.layout.custom_notification);
         if (Utils.IS_ICS_OR_ABOVE) {
@@ -311,7 +315,7 @@ public class VideoCastNotificationService extends Service {
                     R.drawable.album_art_placeholder);
             rv.setImageViewBitmap(R.id.iconView, bitmap);
         }
-        rv.setTextViewText(R.id.title_view, mm.getString(MediaMetadata.KEY_TITLE));
+        rv.setTextViewText(R.id.title_view, info.getTitle());
         String castingTo = getResources().getString(R.string.ccl_casting_to_device,
                 mCastManager.getDeviceName());
         rv.setTextViewText(R.id.subtitle_view, castingTo);
@@ -351,7 +355,8 @@ public class VideoCastNotificationService extends Service {
         contentIntent.putExtra("media", mediaWrapper);
 
         // Media metadata
-        MediaMetadata metadata = info.getMetadata();
+        //MediaMetadata metadata = info.getMetadata();
+
         String castingTo = getResources().getString(R.string.ccl_casting_to_device,
                 mCastManager.getDeviceName());
         TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
@@ -364,15 +369,15 @@ public class VideoCastNotificationService extends Service {
                 stackBuilder.getPendingIntent(NOTIFICATION_ID, PendingIntent.FLAG_UPDATE_CURRENT);
 
         int pauseOrStopResourceId = 0;
-        if (info.getStreamType() == MediaInfo.STREAM_TYPE_LIVE) {
-            pauseOrStopResourceId = R.drawable.ic_notification_stop_48dp;
-        } else {
+//        if (info.getStreamType() == MediaInfo.STREAM_TYPE_LIVE) {
+//            pauseOrStopResourceId = R.drawable.ic_notification_stop_48dp;
+//        } else {
             pauseOrStopResourceId = R.drawable.ic_notification_pause_48dp;
-        }
+//        }
 
         mNotification = new Notification.Builder(this)
                 .setSmallIcon(R.drawable.ic_stat_action_notification)
-                .setContentTitle(metadata.getString(MediaMetadata.KEY_TITLE))
+                .setContentTitle(info.getTitle())
                 .setContentText(castingTo)
                 .setContentIntent(contentPendingIntent)
                 .setLargeIcon(bitmap)
@@ -403,11 +408,11 @@ public class VideoCastNotificationService extends Service {
         rv.setOnClickPendingIntent(R.id.removeView, stopPendingIntent);
 
         if (isPlaying) {
-            if (info.getStreamType() == MediaInfo.STREAM_TYPE_LIVE) {
-                rv.setImageViewResource(R.id.play_pause, R.drawable.ic_notification_stop_24dp);
-            } else {
+//            if (info.getStreamType() == MediaInfo.STREAM_TYPE_LIVE) {
+//                rv.setImageViewResource(R.id.play_pause, R.drawable.ic_notification_stop_24dp);
+//            } else {
                 rv.setImageViewResource(R.id.play_pause, R.drawable.ic_notification_pause_24dp);
-            }
+//            }
 
         } else {
             rv.setImageViewResource(R.id.play_pause, R.drawable.ic_notification_play_24dp);

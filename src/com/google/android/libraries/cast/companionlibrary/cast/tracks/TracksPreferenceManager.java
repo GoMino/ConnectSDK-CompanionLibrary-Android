@@ -369,7 +369,7 @@ public class TracksPreferenceManager implements SharedPreferences.OnSharedPrefer
                     .setSummary(OPACITY_MAPPING.get(opacity) + "%%");
         }
         if (broadcast) {
-            VideoCastManager.getInstance().onTextTrackStyleChanged(getTextTrackStyle());
+            //VideoCastManager.getInstance().onTextTrackStyleChanged(getTextTrackStyle());
         }
 
     }

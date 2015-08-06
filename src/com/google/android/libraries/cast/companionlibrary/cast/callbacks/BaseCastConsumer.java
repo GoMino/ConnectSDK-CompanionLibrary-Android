@@ -16,11 +16,14 @@
 
 package com.google.android.libraries.cast.companionlibrary.cast.callbacks;
 
-import com.google.android.gms.cast.CastDevice;
-import com.google.android.gms.common.ConnectionResult;
+//import com.google.android.gms.cast.CastDevice;
+//import com.google.android.gms.common.ConnectionResult;
+import com.connectsdk.service.command.ServiceCommandError;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.OnFailedListener;
 
 import android.support.v7.media.MediaRouter.RouteInfo;
+
+import com.connectsdk.device.ConnectableDevice;
 
 /**
  * An interface for receiving callbacks around the connectivity status to a Cast device.
@@ -51,7 +54,7 @@ public interface BaseCastConsumer extends OnFailedListener {
     /**
      * Called when an error happens while connecting to a device.
      */
-    void onConnectionFailed(ConnectionResult result);
+    void onConnectionFailed(ServiceCommandError result);
 
     /**
      * Called when the MediaRouterCallback detects a non-default route.
@@ -89,5 +92,11 @@ public interface BaseCastConsumer extends OnFailedListener {
      * Called when a device is selected/unselected.
      * @param device
      */
-    void onDeviceSelected(CastDevice device);
+    void onDeviceSelected(ConnectableDevice device);
+
+    /**
+     * Called when a device is selected/unselected.
+     * @param device
+     */
+    void onDeviceUnselected(ConnectableDevice device);
 }

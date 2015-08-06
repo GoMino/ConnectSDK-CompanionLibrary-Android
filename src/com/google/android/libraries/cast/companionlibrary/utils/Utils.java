@@ -18,10 +18,13 @@ package com.google.android.libraries.cast.companionlibrary.utils;
 
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
 
-import com.google.android.gms.cast.MediaInfo;
-import com.google.android.gms.cast.MediaMetadata;
-import com.google.android.gms.cast.MediaQueueItem;
-import com.google.android.gms.cast.MediaTrack;
+//import com.google.android.gms.cast.MediaInfo;
+//import com.google.android.gms.cast.MediaMetadata;
+//import com.google.android.gms.cast.MediaQueueItem;
+//import com.google.android.gms.cast.MediaTrack;
+import com.connectsdk.core.ImageInfo;
+import com.connectsdk.core.MediaInfo;
+import com.core.MediaInfoWithCustomData;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.images.WebImage;
@@ -56,6 +59,10 @@ import java.util.List;
 public final class Utils {
 
     private static final String TAG = LogUtils.makeLogTag(Utils.class);
+    public static final String KEY_TITLE = "title";
+    public static final String KEY_SUBTITLE = "subtitle";
+    public static final String KEY_CUSTOMDATA = "customdata";
+    public static final String KEY_CUSTOMDATA_FORLOAD = "customdataforload";
     private static final String KEY_IMAGES = "images";
     private static final String KEY_URL = "movie-urls";
     private static final String KEY_CONTENT_TYPE = "content-type";
@@ -124,9 +131,10 @@ public final class Utils {
      * number of images for that given item.
      */
     public static Uri getImageUri(MediaInfo info, int index) {
-        MediaMetadata mediaMetadata = info.getMetadata();
-        if (mediaMetadata != null && mediaMetadata.getImages().size() > index) {
-            return mediaMetadata.getImages().get(index).getUrl();
+        //MediaMetadata mediaMetadata = info.getMetadata();
+        if (info != null && info.getImages().size() > index) {
+            String url = info.getImages().get(index).getUrl();
+            return Uri.parse(url);
         }
         return null;
     }
@@ -170,49 +178,55 @@ public final class Utils {
             return null;
         }
 
-        MediaMetadata md = info.getMetadata();
+        //MediaMetadata md = info.getMetadata();
         Bundle wrapper = new Bundle();
-        wrapper.putString(MediaMetadata.KEY_TITLE, md.getString(MediaMetadata.KEY_TITLE));
-        wrapper.putString(MediaMetadata.KEY_SUBTITLE, md.getString(MediaMetadata.KEY_SUBTITLE));
-        wrapper.putString(KEY_URL, info.getContentId());
-        wrapper.putString(MediaMetadata.KEY_STUDIO, md.getString(MediaMetadata.KEY_STUDIO));
-        wrapper.putString(KEY_CONTENT_TYPE, info.getContentType());
-        wrapper.putInt(KEY_STREAM_TYPE, info.getStreamType());
-        wrapper.putLong(KEY_STREAM_DURATION, info.getStreamDuration());
-        if (!md.getImages().isEmpty()) {
+        wrapper.putString(KEY_TITLE, info.getTitle());
+        wrapper.putString(KEY_SUBTITLE, info.getDescription());
+        wrapper.putString(KEY_URL, info.getUrl());
+        //wrapper.putString(MediaMetadata.KEY_STUDIO, md.getString(MediaMetadata.KEY_STUDIO));
+        wrapper.putString(KEY_CONTENT_TYPE, info.getMimeType());
+        //wrapper.putInt(KEY_STREAM_TYPE, info.getStreamType());
+        wrapper.putInt(KEY_STREAM_TYPE, 1);
+        //wrapper.putLong(KEY_STREAM_DURATION, info.getStreamDuration());
+        if (!info.getImages().isEmpty()) {
             ArrayList<String> urls = new ArrayList<>();
-            for (WebImage img : md.getImages()) {
+            for (ImageInfo img : info.getImages()) {
                 urls.add(img.getUrl().toString());
             }
             wrapper.putStringArrayList(KEY_IMAGES, urls);
         }
-        JSONObject customData = info.getCustomData();
-        if (customData != null) {
-            wrapper.putString(KEY_CUSTOM_DATA, customData.toString());
+
+        if(info instanceof MediaInfoWithCustomData){
+            wrapper.putString(KEY_CUSTOMDATA, ((MediaInfoWithCustomData) info).getCustomData().toString());
+            wrapper.putString(KEY_CUSTOMDATA_FORLOAD, ((MediaInfoWithCustomData) info).getCustomDataForLoad().toString());
         }
-        if (info.getMediaTracks() != null && !info.getMediaTracks().isEmpty()) {
-            try {
-                JSONArray jsonArray = new JSONArray();
-                for (MediaTrack mt : info.getMediaTracks()) {
-                    JSONObject jsonObject = new JSONObject();
-                    jsonObject.put(KEY_TRACK_NAME, mt.getName());
-                    jsonObject.put(KEY_TRACK_CONTENT_ID, mt.getContentId());
-                    jsonObject.put(KEY_TRACK_ID, mt.getId());
-                    jsonObject.put(KEY_TRACK_LANGUAGE, mt.getLanguage());
-                    jsonObject.put(KEY_TRACK_TYPE, mt.getType());
-                    if (mt.getSubtype() != MediaTrack.SUBTYPE_UNKNOWN) {
-                        jsonObject.put(KEY_TRACK_SUBTYPE, mt.getSubtype());
-                    }
-                    if (mt.getCustomData() != null) {
-                        jsonObject.put(KEY_TRACK_CUSTOM_DATA, mt.getCustomData().toString());
-                    }
-                    jsonArray.put(jsonObject);
-                }
-                wrapper.putString(KEY_TRACKS_DATA, jsonArray.toString());
-            } catch (JSONException e) {
-                LOGE(TAG, "mediaInfoToBundle(): Failed to convert Tracks data to json", e);
-            }
-        }
+//        JSONObject customData = info.getCustomData();
+//        if (customData != null) {
+//            wrapper.putString(KEY_CUSTOM_DATA, customData.toString());
+//        }
+//        if (info.getMediaTracks() != null && !info.getMediaTracks().isEmpty()) {
+//            try {
+//                JSONArray jsonArray = new JSONArray();
+//                for (MediaTrack mt : info.getMediaTracks()) {
+//                    JSONObject jsonObject = new JSONObject();
+//                    jsonObject.put(KEY_TRACK_NAME, mt.getName());
+//                    jsonObject.put(KEY_TRACK_CONTENT_ID, mt.getContentId());
+//                    jsonObject.put(KEY_TRACK_ID, mt.getId());
+//                    jsonObject.put(KEY_TRACK_LANGUAGE, mt.getLanguage());
+//                    jsonObject.put(KEY_TRACK_TYPE, mt.getType());
+//                    if (mt.getSubtype() != MediaTrack.SUBTYPE_UNKNOWN) {
+//                        jsonObject.put(KEY_TRACK_SUBTYPE, mt.getSubtype());
+//                    }
+//                    if (mt.getCustomData() != null) {
+//                        jsonObject.put(KEY_TRACK_CUSTOM_DATA, mt.getCustomData().toString());
+//                    }
+//                    jsonArray.put(jsonObject);
+//                }
+//                wrapper.putString(KEY_TRACKS_DATA, jsonArray.toString());
+//            } catch (JSONException e) {
+//                LOGE(TAG, "mediaInfoToBundle(): Failed to convert Tracks data to json", e);
+//            }
+//        }
 
         return wrapper;
     }
@@ -229,75 +243,92 @@ public final class Utils {
             return null;
         }
 
-        MediaMetadata metaData = new MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE);
+        //MediaMetadata metaData = new MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE);
 
-        metaData.putString(MediaMetadata.KEY_SUBTITLE,
-                wrapper.getString(MediaMetadata.KEY_SUBTITLE));
-        metaData.putString(MediaMetadata.KEY_TITLE, wrapper.getString(MediaMetadata.KEY_TITLE));
-        metaData.putString(MediaMetadata.KEY_STUDIO, wrapper.getString(MediaMetadata.KEY_STUDIO));
+        String contentId = wrapper.getString(KEY_URL);
+        String title = wrapper.getString(KEY_TITLE);
+        String subtitle = wrapper.getString(KEY_SUBTITLE);
+        String mimetype = wrapper.getString(KEY_CONTENT_TYPE);
+        //metaData.putString(MediaMetadata.KEY_STUDIO, wrapper.getString(MediaMetadata.KEY_STUDIO));
         ArrayList<String> images = wrapper.getStringArrayList(KEY_IMAGES);
+
+        List<ImageInfo> imageInfos = new ArrayList<>();
         if (images != null && !images.isEmpty()) {
             for (String url : images) {
-                Uri uri = Uri.parse(url);
-                metaData.addImage(new WebImage(uri));
+                //Uri uri = Uri.parse(url);
+                imageInfos.add(new ImageInfo(url));
             }
         }
-        String customDataStr = wrapper.getString(KEY_CUSTOM_DATA);
-        JSONObject customData = null;
-        if (!TextUtils.isEmpty(customDataStr)) {
-            try {
-                customData = new JSONObject(customDataStr);
-            } catch (JSONException e) {
-                LOGE(TAG, "Failed to deserialize the custom data string: custom data= "
-                        + customDataStr);
-            }
-        }
-        List<MediaTrack> mediaTracks = null;
-        if (wrapper.getString(KEY_TRACKS_DATA) != null) {
-            try {
-                JSONArray jsonArray = new JSONArray(wrapper.getString(KEY_TRACKS_DATA));
-                mediaTracks = new ArrayList<MediaTrack>();
-                if (jsonArray.length() > 0) {
-                    for (int i = 0; i < jsonArray.length(); i++) {
-                        JSONObject jsonObj = (JSONObject) jsonArray.get(i);
-                        MediaTrack.Builder builder = new MediaTrack.Builder(
-                                jsonObj.getLong(KEY_TRACK_ID), jsonObj.getInt(KEY_TRACK_TYPE));
-                        if (jsonObj.has(KEY_TRACK_NAME)) {
-                            builder.setName(jsonObj.getString(KEY_TRACK_NAME));
-                        }
-                        if (jsonObj.has(KEY_TRACK_SUBTYPE)) {
-                            builder.setSubtype(jsonObj.getInt(KEY_TRACK_SUBTYPE));
-                        }
-                        if (jsonObj.has(KEY_TRACK_CONTENT_ID)) {
-                            builder.setContentId(jsonObj.getString(KEY_TRACK_CONTENT_ID));
-                        }
-                        if (jsonObj.has(KEY_TRACK_LANGUAGE)) {
-                            builder.setLanguage(jsonObj.getString(KEY_TRACK_LANGUAGE));
-                        }
-                        if (jsonObj.has(KEY_TRACKS_DATA)) {
-                            builder.setCustomData(
-                                    new JSONObject(jsonObj.getString(KEY_TRACKS_DATA)));
-                        }
-                        mediaTracks.add(builder.build());
-                    }
-                }
-            } catch (JSONException e) {
-                LOGE(TAG, "Failed to build media tracks from the wrapper bundle", e);
-            }
-        }
-        MediaInfo.Builder mediaBuilder = new MediaInfo.Builder(wrapper.getString(KEY_URL))
-                .setStreamType(wrapper.getInt(KEY_STREAM_TYPE))
-                .setContentType(wrapper.getString(KEY_CONTENT_TYPE))
-                .setMetadata(metaData)
-                .setCustomData(customData)
-                .setMediaTracks(mediaTracks);
+        //String customDataStr = wrapper.getString(KEY_CUSTOM_DATA);
+//        JSONObject customData = null;
+//        if (!TextUtils.isEmpty(customDataStr)) {
+//            try {
+//                customData = new JSONObject(customDataStr);
+//            } catch (JSONException e) {
+//                LOGE(TAG, "Failed to deserialize the custom data string: custom data= "
+//                        + customDataStr);
+//            }
+//        }
+//        List<MediaTrack> mediaTracks = null;
+//        if (wrapper.getString(KEY_TRACKS_DATA) != null) {
+//            try {
+//                JSONArray jsonArray = new JSONArray(wrapper.getString(KEY_TRACKS_DATA));
+//                mediaTracks = new ArrayList<MediaTrack>();
+//                if (jsonArray.length() > 0) {
+//                    for (int i = 0; i < jsonArray.length(); i++) {
+//                        JSONObject jsonObj = (JSONObject) jsonArray.get(i);
+//                        MediaTrack.Builder builder = new MediaTrack.Builder(
+//                                jsonObj.getLong(KEY_TRACK_ID), jsonObj.getInt(KEY_TRACK_TYPE));
+//                        if (jsonObj.has(KEY_TRACK_NAME)) {
+//                            builder.setName(jsonObj.getString(KEY_TRACK_NAME));
+//                        }
+//                        if (jsonObj.has(KEY_TRACK_SUBTYPE)) {
+//                            builder.setSubtype(jsonObj.getInt(KEY_TRACK_SUBTYPE));
+//                        }
+//                        if (jsonObj.has(KEY_TRACK_CONTENT_ID)) {
+//                            builder.setContentId(jsonObj.getString(KEY_TRACK_CONTENT_ID));
+//                        }
+//                        if (jsonObj.has(KEY_TRACK_LANGUAGE)) {
+//                            builder.setLanguage(jsonObj.getString(KEY_TRACK_LANGUAGE));
+//                        }
+//                        if (jsonObj.has(KEY_TRACKS_DATA)) {
+//                            builder.setCustomData(
+//                                    new JSONObject(jsonObj.getString(KEY_TRACKS_DATA)));
+//                        }
+//                        mediaTracks.add(builder.build());
+//                    }
+//                }
+//            } catch (JSONException e) {
+//                LOGE(TAG, "Failed to build media tracks from the wrapper bundle", e);
+//            }
+//        }
+//        MediaInfo.Builder mediaBuilder = new MediaInfo.Builder(wrapper.getString(KEY_URL))
+//                .setStreamType(wrapper.getInt(KEY_STREAM_TYPE))
+//                .setContentType(wrapper.getString(KEY_CONTENT_TYPE))
+//                .setMetadata(metaData)
+//                .setCustomData(customData)
+//                .setMediaTracks(mediaTracks);
 
-        if (wrapper.containsKey(KEY_STREAM_DURATION)
-                && wrapper.getLong(KEY_STREAM_DURATION) >= 0) {
-            mediaBuilder.setStreamDuration(wrapper.getLong(KEY_STREAM_DURATION));
+//        if (wrapper.containsKey(KEY_STREAM_DURATION) && wrapper.getLong(KEY_STREAM_DURATION) >= 0) {
+//            mediaBuilder.setStreamDuration(wrapper.getLong(KEY_STREAM_DURATION));
+//        }
+
+        //return mediaBuilder.build();
+        MediaInfo info;
+        if(wrapper.containsKey(KEY_CUSTOMDATA)){
+            info = new MediaInfoWithCustomData(contentId, mimetype, title, subtitle, imageInfos);
+            try {
+                ((MediaInfoWithCustomData)info).setCustomData(new JSONObject(wrapper.getString(KEY_CUSTOMDATA)));
+                ((MediaInfoWithCustomData)info).setCustomDataForLoad(new JSONObject(wrapper.getString(KEY_CUSTOMDATA_FORLOAD)));
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }else{
+            info = new MediaInfo(contentId, mimetype, title, subtitle, imageInfos);
         }
 
-        return mediaBuilder.build();
+
+        return info;
     }
 
     /**
@@ -354,17 +385,17 @@ public final class Utils {
      * {@code itemId} of each item is erased, in effect preparing the list to be reloaded on the
      * receiver.
      */
-    public static MediaQueueItem[] rebuildQueue(List<MediaQueueItem> items) {
-        if (items == null || items.isEmpty()) {
-            return null;
-        }
-        MediaQueueItem[] rebuiltQueue = new MediaQueueItem[items.size()];
-        for (int i = 0; i < items.size(); i++) {
-            rebuiltQueue[i] =rebuildQueueItem(items.get(i));
-        }
-
-        return rebuiltQueue;
-    }
+//    public static MediaQueueItem[] rebuildQueue(List<MediaQueueItem> items) {
+//        if (items == null || items.isEmpty()) {
+//            return null;
+//        }
+//        MediaQueueItem[] rebuiltQueue = new MediaQueueItem[items.size()];
+//        for (int i = 0; i < items.size(); i++) {
+//            rebuiltQueue[i] =rebuildQueueItem(items.get(i));
+//        }
+//
+//        return rebuiltQueue;
+//    }
 
     /**
      * Given a list of queue items, and a new item, this method recreates an identical list of items
@@ -372,25 +403,25 @@ public final class Utils {
      * the list to be reloaded. Then, it appends the new item to teh end of the rebuilt list and
      * returns the result.
      */
-    public static MediaQueueItem[] rebuildQueueAndAppend(List<MediaQueueItem> items,
-            MediaQueueItem currentItem) {
-        if (items == null || items.isEmpty()) {
-            return new MediaQueueItem[]{currentItem};
-        }
-        MediaQueueItem[] rebuiltQueue = new MediaQueueItem[items.size() + 1];
-        for (int i = 0; i < items.size(); i++) {
-            rebuiltQueue[i] = rebuildQueueItem(items.get(i));
-        }
-        rebuiltQueue[items.size()] = currentItem;
-
-        return rebuiltQueue;
-    }
+//    public static MediaQueueItem[] rebuildQueueAndAppend(List<MediaQueueItem> items,
+//            MediaQueueItem currentItem) {
+//        if (items == null || items.isEmpty()) {
+//            return new MediaQueueItem[]{currentItem};
+//        }
+//        MediaQueueItem[] rebuiltQueue = new MediaQueueItem[items.size() + 1];
+//        for (int i = 0; i < items.size(); i++) {
+//            rebuiltQueue[i] = rebuildQueueItem(items.get(i));
+//        }
+//        rebuiltQueue[items.size()] = currentItem;
+//
+//        return rebuiltQueue;
+//    }
 
     /**
      * Given a queue item, it returns an identical item except that the {@code itemId} has been
      * cleared.
      */
-    public static MediaQueueItem rebuildQueueItem(MediaQueueItem item) {
-        return new MediaQueueItem.Builder(item).clearItemId().build();
-    }
+//    public static MediaQueueItem rebuildQueueItem(MediaQueueItem item) {
+//        return new MediaQueueItem.Builder(item).clearItemId().build();
+//    }
 }

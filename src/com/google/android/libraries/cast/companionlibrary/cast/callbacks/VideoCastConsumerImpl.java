@@ -16,9 +16,10 @@
 
 package com.google.android.libraries.cast.companionlibrary.cast.callbacks;
 
+import com.connectsdk.service.sessions.WebAppSession;
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.MediaQueueItem;
-import com.google.android.gms.cast.TextTrackStyle;
+//import com.google.android.gms.cast.TextTrackStyle;
 
 import android.view.View;
 
@@ -30,12 +31,10 @@ import java.util.Locale;
  * (partially) implement {@link VideoCastConsumer} can extend this class and only override the
  * desired methods.
  */
-public class VideoCastConsumerImpl extends BaseCastConsumerImpl
-        implements VideoCastConsumer {
+public class VideoCastConsumerImpl extends BaseCastConsumerImpl implements VideoCastConsumer {
 
     @Override
-    public void onApplicationConnected(ApplicationMetadata appMetadata,
-            String sessionId, boolean wasLaunched) {
+    public void onApplicationConnected(WebAppSession webAppSession, WebAppSession.WebAppStatus status) {
     }
 
     @Override
@@ -78,9 +77,9 @@ public class VideoCastConsumerImpl extends BaseCastConsumerImpl
     public void onDataMessageReceived(String message) {
     }
 
-    @Override
-    public void onTextTrackStyleChanged(TextTrackStyle style) {
-    }
+//    @Override
+//    public void onTextTrackStyleChanged(TextTrackStyle style) {
+//    }
 
     @Override
     public void onTextTrackEnabledChanged(boolean isEnabled) {
@@ -94,25 +93,25 @@ public class VideoCastConsumerImpl extends BaseCastConsumerImpl
     public void onMediaLoadResult(int statusCode) {
     }
 
-    @Override
-    public void onMediaQueueUpdated(List<MediaQueueItem> queueItems, MediaQueueItem item,
-            int repeatMode, boolean shuffle) {
-    }
-
-    @Override
-    public void onRemoteMediaPreloadStatusUpdated(MediaQueueItem item) {
-    }
-
-    @Override
-    public void onUpcomingPlayClicked(View v, MediaQueueItem item) {
-    }
-
-    @Override
-    public void onUpcomingStopClicked(View view, MediaQueueItem upcomingItem) {
-    }
-
-    @Override
-    public void onMediaQueueOperationResult(int operationId, int statusCode) {
-    }
+//    @Override
+//    public void onMediaQueueUpdated(List<MediaQueueItem> queueItems, MediaQueueItem item,
+//            int repeatMode, boolean shuffle) {
+//    }
+//
+//    @Override
+//    public void onRemoteMediaPreloadStatusUpdated(MediaQueueItem item) {
+//    }
+//
+//    @Override
+//    public void onUpcomingPlayClicked(View v, MediaQueueItem item) {
+//    }
+//
+//    @Override
+//    public void onUpcomingStopClicked(View view, MediaQueueItem upcomingItem) {
+//    }
+//
+//    @Override
+//    public void onMediaQueueOperationResult(int operationId, int statusCode) {
+//    }
 
 }

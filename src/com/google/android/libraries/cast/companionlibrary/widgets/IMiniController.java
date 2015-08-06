@@ -16,9 +16,10 @@
 
 package com.google.android.libraries.cast.companionlibrary.widgets;
 
-import com.google.android.gms.cast.MediaInfo;
-import com.google.android.gms.cast.MediaQueueItem;
-import com.google.android.gms.cast.MediaStatus;
+//import com.google.android.gms.cast.MediaInfo;
+//import com.google.android.gms.cast.MediaQueueItem;
+//import com.google.android.gms.cast.MediaStatus;
+import com.connectsdk.service.capability.MediaControl;
 import com.google.android.libraries.cast.companionlibrary.widgets.MiniController.OnMiniControllerChangedListener;
 
 import android.graphics.Bitmap;
@@ -53,7 +54,7 @@ public interface IMiniController {
 
     /**
      * Sets the playback state, and the idleReason (this is only reliable when the state is idle).
-     * Values that can be passed to this method are from {@link MediaStatus}
+     * Values that can be passed to this method are from {@link MediaControl}
      */
     public void setPlaybackStatus(int state, int idleReason);
 
@@ -73,11 +74,11 @@ public interface IMiniController {
      */
     public void setOnMiniControllerChangedListener(OnMiniControllerChangedListener listener);
 
-    /**
-     * Sets the type of stream. <code>streamType</code> can be {@link MediaInfo#STREAM_TYPE_LIVE}
-     * or {@link MediaInfo#STREAM_TYPE_BUFFERED}
-     */
-    public void setStreamType(int streamType);
+//    /**
+//     * Sets the type of stream. <code>streamType</code> can be {@link MediaInfo#STREAM_TYPE_LIVE}
+//     * or {@link MediaInfo#STREAM_TYPE_BUFFERED}
+//     */
+//    public void setStreamType(int streamType);
 
     /**
      * Sets the progress of stream.
@@ -97,7 +98,7 @@ public interface IMiniController {
     /**
      * Sets the upcoming item, which can be {@code null}.
      */
-    public void setUpcomingItem(MediaQueueItem item);
+    //public void setUpcomingItem(MediaQueueItem item);
 
     /**
      * Controls the visibility of the currently playing item.

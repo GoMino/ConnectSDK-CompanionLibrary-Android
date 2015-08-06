@@ -16,8 +16,10 @@
 
 package com.google.android.libraries.cast.companionlibrary.cast.callbacks;
 
+import com.connectsdk.device.ConnectableDevice;
+import com.connectsdk.service.sessions.WebAppSession;
 import com.google.android.gms.cast.ApplicationMetadata;
-import com.google.android.gms.cast.CastDevice;
+//import com.google.android.gms.cast.CastDevice;
 import com.google.android.gms.common.api.Status;
 
 /**
@@ -30,8 +32,7 @@ public interface DataCastConsumer extends BaseCastConsumer {
      * session ID is returned. <code>wasLaunched</code> indicates if the application was launched or
      * joined.
      */
-    void onApplicationConnected(ApplicationMetadata appMetadata,
-            String applicationStatus, String sessionId, boolean wasLaunched);
+    void onApplicationConnected(WebAppSession webAppSession, WebAppSession.WebAppStatus status);
 
     /**
      * Called when the current application has stopped
@@ -65,10 +66,10 @@ public interface DataCastConsumer extends BaseCastConsumer {
     void onVolumeChanged(double value, boolean isMute);
 
     /**
-     * Called when a message is received from a given {@link CastDevice} for a given
+     * Called when a message is received from a given {@link ConnectableDevice} for a given
      * <code>namespace</code>.
      */
-    void onMessageReceived(CastDevice castDevice, String namespace, String message);
+    void onMessageReceived(ConnectableDevice castDevice, String namespace, String message);
 
     /**
      * Called when there is an error sending a message.
@@ -83,5 +84,5 @@ public interface DataCastConsumer extends BaseCastConsumer {
      * @param castDevice The castDevice from where the message originated.
      * @param namespace The associated namespace of the removed listener.
      */
-    void onRemoved(CastDevice castDevice, String namespace);
+    void onRemoved(ConnectableDevice castDevice, String namespace);
 }
