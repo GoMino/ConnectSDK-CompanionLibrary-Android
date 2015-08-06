@@ -138,16 +138,15 @@ public class VideoCastNotificationService extends Service {
             } else if (ACTION_VISIBILITY.equals(action)) {
                 mVisible = intent.getBooleanExtra(NOTIFICATION_VISIBILITY, false);
                 LOGD(TAG, "onStartCommand(): Action: ACTION_VISIBILITY " + mVisible);
-                if (mVisible) {
-                    if (mNotification != null) {
-                        startForeground(NOTIFICATION_ID, mNotification);
-                    } else {
-                        try {
-                            setUpNotification(mCastManager.getRemoteMediaInformation());
-                        } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
-                            LOGE(TAG, "onStartCommand() failed to get media", e);
-                        }
+                if (mNotification == null) {
+                    try {
+                        setUpNotification(mCastManager.getRemoteMediaInformation());
+                    } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
+                        LOGE(TAG, "onStartCommand() failed to get media", e);
                     }
+                }
+                if (mVisible && mNotification != null) {
+                    startForeground(NOTIFICATION_ID, mNotification);
                 } else {
                     stopForeground(true);
                 }
@@ -259,6 +258,7 @@ public class VideoCastNotificationService extends Service {
      */
     @Override
     public void onDestroy() {
+        LOGD(TAG, "Service is destroyed");
         if (mBitmapDecoderTask != null) {
             mBitmapDecoderTask.cancel(false);
         }
