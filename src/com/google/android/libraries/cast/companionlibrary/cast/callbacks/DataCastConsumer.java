@@ -18,7 +18,7 @@ package com.google.android.libraries.cast.companionlibrary.cast.callbacks;
 
 import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.service.sessions.WebAppSession;
-import com.google.android.gms.cast.ApplicationMetadata;
+//import com.google.android.gms.cast.ApplicationMetadata;
 //import com.google.android.gms.cast.CastDevice;
 import com.google.android.gms.common.api.Status;
 

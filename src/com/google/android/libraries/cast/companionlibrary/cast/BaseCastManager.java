@@ -25,7 +25,7 @@ import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.
 //import com.google.android.gms.cast.CastDevice;
 import com.connectsdk.discovery.DiscoveryManagerListener;
 import com.connectsdk.route.provider.ConnectSDKMediaRouteProvider;
-import com.google.android.gms.cast.CastMediaControlIntent;
+//import com.google.android.gms.cast.CastMediaControlIntent;
 //import com.google.android.gms.common.ConnectionResult;
 //import com.google.android.gms.common.api.GoogleApiClient;
 //import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;

@@ -17,8 +17,8 @@
 package com.google.android.libraries.cast.companionlibrary.cast.callbacks;
 
 import com.connectsdk.service.sessions.WebAppSession;
-import com.google.android.gms.cast.ApplicationMetadata;
-import com.google.android.gms.cast.MediaQueueItem;
+//import com.google.android.gms.cast.ApplicationMetadata;
+//import com.google.android.gms.cast.MediaQueueItem;
 //import com.google.android.gms.cast.TextTrackStyle;
 
 import android.view.View;

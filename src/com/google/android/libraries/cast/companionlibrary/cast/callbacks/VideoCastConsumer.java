@@ -22,8 +22,8 @@ import com.connectsdk.device.ConnectableDevice;
 //import com.google.android.gms.cast.CastDevice;
 //import com.google.android.gms.cast.MediaQueueItem;
 import com.connectsdk.service.sessions.WebAppSession;
-import com.google.android.gms.cast.ApplicationMetadata;
-import com.google.android.gms.cast.Cast;
+//import com.google.android.gms.cast.ApplicationMetadata;
+//import com.google.android.gms.cast.Cast;
 //import com.google.android.gms.cast.TextTrackStyle;
 
 import android.view.View;
