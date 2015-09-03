@@ -30,6 +30,11 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
 
 ## Change List
 
+2.4
+ * Fixed a number of bugs (#205, #204, #203)
+ * Prepared the library for Marshmallow permissions related to the Play Services
+ * Some code cleanup
+
 2.3.2
  * Updated the icon for "queue list" in the library.
 
