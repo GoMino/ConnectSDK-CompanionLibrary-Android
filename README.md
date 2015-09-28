@@ -38,10 +38,10 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
    value is "false" which falls back to the old behavior.
  * You can now set the LaunchOptions soon after initializing the Cast Manager by calling VideoCastManager.setLaunchOptions()
    (same with DataCastManager).
- * A new callback (onDiconnectionReason(int reason)) has been added that can inform the registered listeners
+ * A new callback (onDisconnectionReason(int reason)) has been added that can inform the registered listeners
    of the reason a disconnect has happened. Understanding the reason behind a disconnect is somewhat non-trivial
    so this will hopefully make that task easier; see the JavaDoc for more details.
- * Now you can have the library automatically try to reconnect enable the FEATURE_AUTO_RECONNECT after
+ * Now you can have the library automatically try to reconnect by enabling the FEATURE_AUTO_RECONNECT after
    initializing the Cast Manager; this means clients don't need to call reconnectSessionIfPossible() if that
    feature is enabled.
  * Updated the documentation.
