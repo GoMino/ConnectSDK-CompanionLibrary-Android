@@ -93,6 +93,7 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
                 public void onRemoteMediaPlayerStatusUpdated() {
                     mState = mCastManager.getPlaybackStatus();
                     updatePlayPauseState(mState);
+                    updateMetadata();
                 }
 
                 /*

@@ -21,6 +21,7 @@ import com.connectsdk.device.ConnectableDevice;
 //import com.google.android.gms.cast.Cast;
 //import com.google.android.gms.cast.CastDevice;
 //import com.google.android.gms.cast.MediaQueueItem;
+import com.connectsdk.service.capability.MediaPlayer;
 import com.connectsdk.service.sessions.WebAppSession;
 //import com.google.android.gms.cast.ApplicationMetadata;
 //import com.google.android.gms.cast.Cast;
@@ -132,8 +133,9 @@ public interface VideoCastConsumer extends BaseCastConsumer {
      * {@link com.google.android.gms.cast.CastStatusCodes}.
      * {@link com.google.android.gms.cast.CastStatusCodes#SUCCESS} signifies a successful request.
      */
-    void onMediaLoadResult(int statusCode);
-
+    //void onMediaLoadResult(int statusCode);
+    //void onMediaLoadResult(MediaPlayer.MediaLaunchObject mediaLaunchObject);
+    void onMediaLoadResult(WebAppSession session);
 
 
     /**

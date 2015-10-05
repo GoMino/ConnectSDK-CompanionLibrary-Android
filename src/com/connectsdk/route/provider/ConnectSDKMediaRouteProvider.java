@@ -148,19 +148,22 @@ public class ConnectSDKMediaRouteProvider extends MediaRouteProvider{
             @Override
             public void onDeviceAdded(DiscoveryManager discoveryManager, ConnectableDevice connectableDevice) {
                 Log.d(TAG, "deviceAdded:" + connectableDevice);
-                setDiscoveryRequest(null);
+                //setDiscoveryRequest(null);
+                onDiscoveryRequestChanged(null);
             }
 
             @Override
             public void onDeviceUpdated(DiscoveryManager discoveryManager, ConnectableDevice connectableDevice) {
-                setDiscoveryRequest(null);
+                //setDiscoveryRequest(null);
+                onDiscoveryRequestChanged(null);
             }
 
             @Override
             public void onDeviceRemoved(DiscoveryManager discoveryManager, ConnectableDevice connectableDevice) {
                 Log.d(TAG, "onDeviceRemoved:" + connectableDevice);
                 //providerDescriptors.remove(connectableDevice);
-                setDiscoveryRequest(null);
+                //setDiscoveryRequest(null);
+                onDiscoveryRequestChanged(null);
             }
 
             @Override
@@ -182,9 +185,10 @@ public class ConnectSDKMediaRouteProvider extends MediaRouteProvider{
     @Override
     public void onDiscoveryRequestChanged(MediaRouteDiscoveryRequest request) {
         super.onDiscoveryRequestChanged(request);
-        Log.d(TAG, "onDiscoveryRequestChanged number of devices:" + DiscoveryManager.getInstance().getCompatibleDevices().size());
+        Log.d(TAG, "onDiscoveryRequestChanged number of compatible devices:" + DiscoveryManager.getInstance().getCompatibleDevices().size());
+        Log.d(TAG, "onDiscoveryRequestChanged all devices:" + DiscoveryManager.getInstance().getAllDevices().size());
         MediaRouteProviderDescriptor.Builder providerDescriptorBuilder = new MediaRouteProviderDescriptor.Builder();
-        for(ConnectableDevice device: DiscoveryManager.getInstance().getCompatibleDevices().values()) {
+        for(ConnectableDevice device: DiscoveryManager.getInstance().getAllDevices().values()) {
             MediaRouteDescriptor routeDescriptor = getMediaRouteDescriptorForDevice(device);
             mRouteIdToDeviceMap.put(routeDescriptor.getId(), device);
             providerDescriptorBuilder.addRoute(routeDescriptor);

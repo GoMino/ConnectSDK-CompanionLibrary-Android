@@ -70,5 +70,5 @@ task wrapper(type: Wrapper) {
 
 //Comment this or leave it commented if you don't know what is it for
 //apply from: 'gradle-mvn-push.gradle'
-//apply from: 'mavenInstall.gradle'
-//apply from: 'bintray.gradle'
+apply from: 'mavenInstall.gradle'
+apply from: 'bintray.gradle'

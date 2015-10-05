@@ -170,6 +170,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
     private ComponentName mMediaEventReceiver;
     private MediaQueue mMediaQueue;
     private MediaControl mMediaStatus;
+    private WebAppSession mWebAppSession;
     private Timer mProgressTimer;
     private UpdateProgressTask mProgressTask;
     private int mNextPreviousVisibilityPolicy = VideoCastController.NEXT_PREV_VISIBILITY_POLICY_DISABLED;
@@ -307,12 +308,15 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
                 try {
                     if ( duration> 0 || isRemoteStreamLive()) {
                         MediaInfo mediaInfo = getRemoteMediaInformation();
-                        //MediaMetadata mm = mediaInfo.getMetadata();
-                        //controller.setStreamType(mediaInfo.getStreamType());
-                        controller.setPlaybackStatus(mState, mIdleReason);
-                        controller.setSubtitle(mContext.getResources().getString(R.string.ccl_casting_to_device, mDeviceName));
-                        controller.setTitle(mediaInfo.getTitle());
-                        controller.setIcon(Utils.getImageUri(mediaInfo, 0));
+                        if (mediaInfo != null) {
+                            //MediaMetadata mm = mediaInfo.getMetadata();
+                            //controller.setStreamType(mediaInfo.getStreamType());
+                            controller.setPlaybackStatus(mState, mIdleReason);
+                            controller.setSubtitle(mContext.getResources().getString(R.string.ccl_casting_to_device, mDeviceName));
+                            controller.setTitle(mediaInfo.getTitle());
+                            controller.setIcon(Utils.getImageUri(mediaInfo, 0));
+                            LOGE(TAG, "updateMiniControllers() title:" + mediaInfo.getTitle() + " imageUrl:" + Utils.getImageUri(mediaInfo, 0));
+                        }
                     }
                 } catch (TransientNetworkDisconnectionException e) {
                     e.printStackTrace();
@@ -323,7 +327,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 
             @Override
             public void onError(ServiceCommandError serviceCommandError) {
-
+                LOGE(TAG, "updateMiniControllers() getting duration error:"+ serviceCommandError);
             }
         });
     }
@@ -438,7 +442,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
      */
     public void startVideoCastControllerActivity(Context context, Bundle mediaWrapper, int position,
             boolean shouldStart, JSONObject customData) {
-        Intent intent = new Intent(context, VideoCastControllerActivity.class);
+        Intent intent = new Intent(context, getTargetActivity());
         intent.putExtra(EXTRA_MEDIA, mediaWrapper);
         intent.putExtra(EXTRA_START_POINT, position);
         intent.putExtra(EXTRA_SHOULD_START, shouldStart);
@@ -473,7 +477,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
     public void startVideoCastControllerActivity(Context context, MediaAuthService authService) {
         if (authService != null) {
             mAuthService = authService;
-            Intent intent = new Intent(context, VideoCastControllerActivity.class);
+            Intent intent = new Intent(context, getTargetActivity());
             intent.putExtra(EXTRA_HAS_AUTH, true);
             setFlagForStartCastControllerActivity();
             context.startActivity(intent);
@@ -648,6 +652,8 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
     public MediaInfo getRemoteMediaInformation() throws TransientNetworkDisconnectionException, NoConnectionException {
         checkConnectivity();
         checkRemoteMediaPlayerAvailable();
+//        if(mState == MediaControl.PLAYER_STATE_IDLE)
+//            return null;
         return mCurrentMediaInfo;
     }
 
@@ -1022,6 +1028,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
         }
         startNotificationService();
         try {
+            mWebAppSession = webAppSession;
             mMediaStatus = webAppSession.getMediaControl();
             mSessionId =  webAppSession.launchSession.getSessionId();
 
@@ -1174,7 +1181,9 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
             public void onSuccess(MediaPlayer.MediaLaunchObject mediaLaunchObject) {
                 LOGD(TAG, "cast success");
                 for (VideoCastConsumer consumer : mVideoConsumers) {
-                    consumer.onMediaLoadResult(CastStatusCodes.SUCCESS);
+                    //consumer.onMediaLoadResult(CastStatusCodes.SUCCESS);
+                    //consumer.onMediaLoadResult(mediaLaunchObject);
+                    consumer.onMediaLoadResult(mWebAppSession);
                 }
             }
 
@@ -2088,6 +2097,13 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
                 public void onSuccess(MediaControl.PlayStateStatus playStateStatus) {
                     LOGD(TAG, "RemoteMediaPlayer::onStatusUpdated() is reached");
                     mCurrentPlayStateStatus = playStateStatus;
+//                    switch (mCurrentPlayStateStatus)
+//                    {
+//                        case Finished:
+//                            mCurrentMediaInfo = null;
+//                            LOGD(TAG, "RemoteMediaPlayer::onStatusUpdated() status finished, clearing mediaInfo");
+//                            break;
+//                    }
                     VideoCastManager.this.onRemoteMediaPlayerStatusUpdated();
                 }
 
@@ -2298,19 +2314,19 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
                 switch(playStateStatus) {
                     case Unknown:
                     default:
-                        mState = 0;
+                        mState = MediaControl.PLAYER_STATE_UNKNOWN;
                         break;
                     case Finished:
-                        mState = 1;
+                        mState = MediaControl.PLAYER_STATE_IDLE;
                         break;
                     case Playing:
-                        mState = 2;
+                        mState = MediaControl.PLAYER_STATE_PLAYING;
                         break;
                     case Paused:
-                        mState = 3;
+                        mState =  MediaControl.PLAYER_STATE_PAUSED;
                         break;
                     case Buffering:
-                        mState = 4;
+                        mState = MediaControl.PLAYER_STATE_BUFFERING;
                 }
 
                 //mIdleReason = mMediaStatus.getIdleReason();

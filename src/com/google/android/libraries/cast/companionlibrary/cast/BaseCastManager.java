@@ -222,7 +222,7 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
     public final void onDeviceSelected(ConnectableDevice device) {
         if (device == null) {
             for (BaseCastConsumer consumer : mBaseCastConsumers) {
-                consumer.onDeviceUnselected(device);
+                consumer.onDeviceUnselected(null);
             }
             disconnectDevice(mDestroyOnDisconnect, true, false);
         } else {
@@ -259,9 +259,18 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
      * to the Default Route.
      */
     public final void disconnectDevice(boolean stopAppOnExit, boolean clearPersistedConnectionData, boolean setDefaultRoute) {
-        LOGD(TAG, "disconnectDevice(" + clearPersistedConnectionData + "," + setDefaultRoute + ")");
+        LOGD(TAG, "disconnectDevice(" + stopAppOnExit + ","+ clearPersistedConnectionData + "," + setDefaultRoute + ")");
         if (mSelectedCastDevice == null) {
             return;
+        }
+
+        try {
+            if (stopAppOnExit) {
+                LOGD(TAG, "Calling stopApplication");
+                stopApplication();
+            }
+        } catch (NoConnectionException | TransientNetworkDisconnectionException e) {
+            LOGE(TAG, "Failed to stop the application before disconnecting route", e);
         }
 
         mSelectedCastDevice.disconnect();
@@ -273,14 +282,7 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
             clearPersistedConnectionInfo(CLEAR_ALL);
             stopReconnectionService();
         }
-        try {
-            if ((isConnected() || isConnecting()) && stopAppOnExit) {
-                LOGD(TAG, "Calling stopApplication");
-                stopApplication();
-            }
-        } catch (NoConnectionException | TransientNetworkDisconnectionException e) {
-            LOGE(TAG, "Failed to stop the application after disconnecting route", e);
-        }
+
         onDisconnected(stopAppOnExit, clearPersistedConnectionData, setDefaultRoute);
         onDeviceUnselected();
 //        if (mApiClient != null) {
@@ -308,6 +310,10 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
             throw new CastException("No cast device has yet been selected");
         }
         return mSelectedCastDevice.isConnectable();
+    }
+
+    public ConnectableDevice getSelectedCastDevice(){
+        return mSelectedCastDevice;
     }
 
     private void setDevice(ConnectableDevice device) {
@@ -506,6 +512,9 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
      */
     public final void disconnect() {
         if (isConnected() || isConnecting()) {
+            for (BaseCastConsumer consumer : mBaseCastConsumers) {
+                consumer.onDeviceUnselected(mSelectedCastDevice);
+            }
             disconnectDevice(mDestroyOnDisconnect, true, true);
         }
     }
@@ -1052,6 +1061,11 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
     public void onDeviceDisconnected(ConnectableDevice connectableDevice) {
         LOGD(TAG, "onDeviceDisconnected() reached, device " + connectableDevice);
         isConnecting = false;
+
+        for (BaseCastConsumer consumer : mBaseCastConsumers) {
+            consumer.onDeviceUnselected(connectableDevice);
+        }
+
         disconnectDevice(mDestroyOnDisconnect, false /* clearPersistentConnectionData */, false /* setDefaultRoute */);
         mConnectionSuspended = false;
         if (mMediaRouter != null) {

@@ -197,8 +197,12 @@ public final class Utils {
         }
 
         if(info instanceof MediaInfoWithCustomData){
-            wrapper.putString(KEY_CUSTOMDATA, ((MediaInfoWithCustomData) info).getCustomData().toString());
-            wrapper.putString(KEY_CUSTOMDATA_FORLOAD, ((MediaInfoWithCustomData) info).getCustomDataForLoad().toString());
+            try {
+                wrapper.putString(KEY_CUSTOMDATA, ((MediaInfoWithCustomData) info).getCustomData().toString());
+                wrapper.putString(KEY_CUSTOMDATA_FORLOAD, ((MediaInfoWithCustomData) info).getCustomDataForLoad().toString());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 //        JSONObject customData = info.getCustomData();
 //        if (customData != null) {
@@ -320,7 +324,7 @@ public final class Utils {
             try {
                 ((MediaInfoWithCustomData)info).setCustomData(new JSONObject(wrapper.getString(KEY_CUSTOMDATA)));
                 ((MediaInfoWithCustomData)info).setCustomDataForLoad(new JSONObject(wrapper.getString(KEY_CUSTOMDATA_FORLOAD)));
-            } catch (JSONException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }else{

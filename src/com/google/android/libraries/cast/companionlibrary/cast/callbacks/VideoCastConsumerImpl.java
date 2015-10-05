@@ -16,6 +16,7 @@
 
 package com.google.android.libraries.cast.companionlibrary.cast.callbacks;
 
+import com.connectsdk.service.capability.MediaPlayer;
 import com.connectsdk.service.sessions.WebAppSession;
 //import com.google.android.gms.cast.ApplicationMetadata;
 //import com.google.android.gms.cast.MediaQueueItem;
@@ -89,11 +90,21 @@ public class VideoCastConsumerImpl extends BaseCastConsumerImpl implements Video
     public void onTextTrackLocaleChanged(Locale locale) {
     }
 
-    @Override
-    public void onMediaLoadResult(int statusCode) {
-    }
+//    @Override
+//    public void onMediaLoadResult(int statusCode) {
+//    }
 
 //    @Override
+//    public void onMediaLoadResult(MediaPlayer.MediaLaunchObject mediaLaunchObject) {
+//
+//    }
+
+    @Override
+    public void onMediaLoadResult(WebAppSession session) {
+
+    }
+
+    //    @Override
 //    public void onMediaQueueUpdated(List<MediaQueueItem> queueItems, MediaQueueItem item,
 //            int repeatMode, boolean shuffle) {
 //    }

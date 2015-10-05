@@ -35,6 +35,6 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
 
 1.0.0
 
- * base on version 2.3 of CastCompanionLibrary-android.
+ * based on version 2.3 of CastCompanionLibrary-android.
  * the refactoring to make this project works with ConnectSDK introduces a restructured and updated code base that has backward-incompatible changes with the original project
   some functionality are not yet supported (abstracted) by ConnectSDK (like QueueItem in a playList, and changing audio/subtitle track)

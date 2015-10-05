@@ -28,6 +28,7 @@ import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.
 import com.connectsdk.core.MediaInfo;
 import com.connectsdk.service.capability.MediaControl;
 import com.connectsdk.service.command.ServiceCommandError;
+import com.connectsdk.service.sessions.WebAppSession;
 import com.google.android.libraries.cast.companionlibrary.R;
 import com.google.android.libraries.cast.companionlibrary.cast.MediaQueue;
 import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
@@ -259,9 +260,16 @@ public class VideoCastControllerFragment extends Fragment implements
         @Override
         public void onRemoteMediaPlayerStatusUpdated() {
             updatePlayerStatus();
+            updateMetadata();
         }
 
-//        @Override
+        @Override
+        public void onMediaLoadResult(WebAppSession session) {
+            super.onMediaLoadResult(session);
+            mIsFresh = true;
+        }
+
+        //        @Override
 //        public void onMediaQueueUpdated(List<MediaQueueItem> queueItems, MediaQueueItem item,
 //                int repeatMode, boolean shuffle) {
 //
@@ -365,6 +373,7 @@ public class VideoCastControllerFragment extends Fragment implements
             JSONObject customData) {
         mSelectedMedia = mediaInfo;
         updateClosedCaptionState();
+
         try {
             //mCastController.setStreamType(mSelectedMedia.getStreamType());
             mCastController.setStreamType(1);
@@ -373,6 +382,7 @@ public class VideoCastControllerFragment extends Fragment implements
                 mPlaybackState = MediaControl.PLAYER_STATE_BUFFERING;
                 mCastController.setPlaybackStatus(mPlaybackState);
                 mCastManager.loadMedia(mSelectedMedia, true, startPoint, customData);
+                mIsFresh = true;
             } else {
                 // we don't change the status of remote playback
                 if (mCastManager.isRemoteMediaPlaying()) {
@@ -447,10 +457,10 @@ public class VideoCastControllerFragment extends Fragment implements
         Uri imageUrl = null;
         if (mSelectedMedia == null) {
             if (mMediaAuthService != null) {
-                imageUrl = Utils.getImageUri(mMediaAuthService.getMediaInfo(), 1);
+                imageUrl = Utils.getImageUri(mMediaAuthService.getMediaInfo(), 0);
             }
         } else {
-            imageUrl = Utils.getImageUri(mSelectedMedia, 1);
+            imageUrl = Utils.getImageUri(mSelectedMedia, 0);
         }
         showImage(imageUrl);
         if (mSelectedMedia == null) {
@@ -483,6 +493,7 @@ public class VideoCastControllerFragment extends Fragment implements
                     mPlaybackState = MediaControl.PLAYER_STATE_PLAYING;
                     mCastController.setPlaybackStatus(mPlaybackState);
                 }
+                restartTrickplayTimer();
                 break;
             case MediaControl.PLAYER_STATE_PAUSED:
                 mIsFresh = false;
@@ -490,6 +501,7 @@ public class VideoCastControllerFragment extends Fragment implements
                     mPlaybackState = MediaControl.PLAYER_STATE_PAUSED;
                     mCastController.setPlaybackStatus(mPlaybackState);
                 }
+                stopTrickplayTimer();
                 break;
             case MediaControl.PLAYER_STATE_BUFFERING:
                 mIsFresh = false;
@@ -497,13 +509,14 @@ public class VideoCastControllerFragment extends Fragment implements
                     mPlaybackState = MediaControl.PLAYER_STATE_BUFFERING;
                     mCastController.setPlaybackStatus(mPlaybackState);
                 }
+                stopTrickplayTimer();
                 break;
             case MediaControl.PLAYER_STATE_IDLE:
 //                switch (mCastManager.getIdleReason()) {
 //                    case MediaStatus.IDLE_REASON_FINISHED:
-//                        if (!mIsFresh && mMediaStatus.getLoadingItemId() == MediaQueueItem.INVALID_ITEM_ID) {
+                        if (!mIsFresh /*&& mMediaStatus.getLoadingItemId() == MediaQueueItem.INVALID_ITEM_ID*/) {
                             mCastController.closeActivity();
-//                        }
+                        }
 //                        break;
 //                    case MediaStatus.IDLE_REASON_CANCELED:
 //                        try {
@@ -727,6 +740,7 @@ public class VideoCastControllerFragment extends Fragment implements
             case MediaControl.PLAYER_STATE_PLAYING:
                 mCastManager.pause();
                 mPlaybackState = MediaControl.PLAYER_STATE_BUFFERING;
+                stopTrickplayTimer();
                 break;
             case MediaControl.PLAYER_STATE_IDLE:
 //                if ((mSelectedMedia.getStreamType() == MediaInfo.STREAM_TYPE_LIVE)
