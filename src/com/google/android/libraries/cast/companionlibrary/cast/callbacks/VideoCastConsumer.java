@@ -138,6 +138,8 @@ public interface VideoCastConsumer extends BaseCastConsumer {
     void onMediaLoadResult(WebAppSession session);
 
 
+    void onMediaStopped(WebAppSession session);
+
     /**
      * A callback to inform the clients that queue has been updated.
      */

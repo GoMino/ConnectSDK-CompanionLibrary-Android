@@ -104,6 +104,11 @@ public class VideoCastConsumerImpl extends BaseCastConsumerImpl implements Video
 
     }
 
+    @Override
+    public void onMediaStopped(WebAppSession session) {
+
+    }
+
     //    @Override
 //    public void onMediaQueueUpdated(List<MediaQueueItem> queueItems, MediaQueueItem item,
 //            int repeatMode, boolean shuffle) {

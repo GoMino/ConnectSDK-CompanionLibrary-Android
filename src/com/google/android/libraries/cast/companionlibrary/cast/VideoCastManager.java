@@ -1810,7 +1810,11 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 
             @Override
             public void onSuccess(Object o) {
-
+                LOGD(TAG, "stop success");
+                for (VideoCastConsumer consumer : mVideoConsumers) {
+                    //consumer.onMediaStopped(CastStatusCodes.SUCCESS);
+                    consumer.onMediaStopped(mWebAppSession);
+                }
             }
 
             @Override
