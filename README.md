@@ -30,6 +30,9 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
 
 ## Change List
 
+2.5.2
+ * Fixing issue #233
+
 2.5.1
  * Fixed an issue where not setting the LaunchOptions would have resulted in receiver not loading. Now the
    default behavior is to launch the app with the default value of relaunchIfRunning set to false.

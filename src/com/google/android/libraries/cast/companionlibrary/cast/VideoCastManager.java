@@ -156,6 +156,7 @@ public class VideoCastManager extends BaseCastManager
     private MediaStatus mMediaStatus;
     private Timer mProgressTimer;
     private UpdateProgressTask mProgressTask;
+    private FetchBitmapTask mLockScreenFetchTask;
 
     /**
      * Volume can be controlled at two different layers, one is at the "stream" level and one at
@@ -2281,19 +2282,23 @@ public class VideoCastManager extends BaseCastManager
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bm)
                     .build());
         } else {
-            new FetchBitmapTask() {
+            mLockScreenFetchTask = new FetchBitmapTask() {
                 @Override
                 protected void onPostExecute(Bitmap bitmap) {
-                    MediaMetadataCompat currentMetadata = mMediaSessionCompat.getController()
-                            .getMetadata();
-                    MediaMetadataCompat.Builder newBuilder = currentMetadata == null
-                            ? new MediaMetadataCompat.Builder()
-                            : new MediaMetadataCompat.Builder(currentMetadata);
-                    mMediaSessionCompat.setMetadata(newBuilder
-                            .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
-                            .build());
+                    if (mMediaSessionCompat != null) {
+                        MediaMetadataCompat currentMetadata = mMediaSessionCompat.getController()
+                                .getMetadata();
+                        MediaMetadataCompat.Builder newBuilder = currentMetadata == null
+                                ? new MediaMetadataCompat.Builder()
+                                : new MediaMetadataCompat.Builder(currentMetadata);
+                        mMediaSessionCompat.setMetadata(newBuilder
+                                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
+                                .build());
+                    }
+                    mLockScreenFetchTask = null;
                 }
-            }.execute(imgUrl);
+            };
+            mLockScreenFetchTask.execute(imgUrl);
         }
     }
     /*
@@ -2367,6 +2372,9 @@ public class VideoCastManager extends BaseCastManager
     public void clearMediaSession() {
         LOGD(TAG, "clearMediaSession()");
         if (isFeatureEnabled(FEATURE_LOCKSCREEN)) {
+            if (mLockScreenFetchTask != null) {
+                mLockScreenFetchTask.cancel(true);
+            }
             mAudioManager.abandonAudioFocus(null);
             if (mMediaSessionCompat != null) {
                 mMediaSessionCompat.setActive(false);
