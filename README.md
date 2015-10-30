@@ -29,6 +29,13 @@ See LICENSE
 Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl/TPLDxj)
 
 ## Change List
+2.6
+ * Addressing #242, #243
+ * Some enhancement around usage of MediaSessionCompat and its setup.
+ * Updated the appcompat and mediarouter support libraries to the latest version (23.1.0). Due to
+ the changes in this version of media router library, the styling of the VideoCastControllerDialog
+ is somewhat different, please make sure colors are fine with your application theme and if needed,
+ update the appropriate resource aliases and color in your client application.
 
 2.5.2
  * Fixing issue #233
