@@ -21,6 +21,7 @@ import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.
 
 import com.connectsdk.core.ImageInfo;
 import com.connectsdk.core.MediaInfo;
+import com.connectsdk.core.MediaInfoWithCustomData;
 import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.service.DeviceService;
 import com.connectsdk.service.capability.MediaControl;
@@ -100,6 +101,7 @@ import android.view.View;
 import android.view.accessibility.CaptioningManager;
 import android.widget.MediaController;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -1175,6 +1177,20 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 //                        }
 //                    }
 //                });
+
+        if(media instanceof MediaInfoWithCustomData){
+            try {
+                JSONObject customDataForLoad = ((MediaInfoWithCustomData)media).getCustomDataForLoad();
+                if(customDataForLoad==null) {
+                    customDataForLoad = new JSONObject();
+                    ((MediaInfoWithCustomData) media).setCustomDataForLoad(customDataForLoad);
+                }
+                customDataForLoad.put(EXTRA_START_POINT, position);
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
 
         mRemoteMediaPlayer.playMedia(media, false, new MediaPlayer.LaunchListener() {
             @Override
@@ -2852,18 +2868,30 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
     public boolean onDispatchVolumeKeyEvent(KeyEvent event, double volumeDelta) {
         if (isConnected()) {
             boolean isKeyDown = event.getAction() == KeyEvent.ACTION_DOWN;
-            switch (event.getKeyCode()) {
-                case KeyEvent.KEYCODE_VOLUME_UP:
-                    if (changeVolume(volumeDelta, isKeyDown)) {
-                        return true;
-                    }
-                    break;
-                case KeyEvent.KEYCODE_VOLUME_DOWN:
-                    if (changeVolume(-volumeDelta, isKeyDown)) {
-                        return true;
-                    }
-                    break;
+
+//            volumeDelta = (float) volumeDelta/10;
+//            switch (event.getKeyCode()) {
+//                case KeyEvent.KEYCODE_VOLUME_UP:
+//                    if (changeVolume(volumeDelta, isKeyDown)) {
+//                        return true;
+//                    }
+//                    break;
+//                case KeyEvent.KEYCODE_VOLUME_DOWN:
+//                    if (changeVolume(-volumeDelta, isKeyDown)) {
+//                        return true;
+//                    }
+//                    break;
+//            }
+
+            int keyCode = event.getKeyCode();
+            if(isKeyDown && getRouteInfo()!=null) {
+                if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+                    int delta = (int)volumeDelta;
+                    getRouteInfo().requestUpdateVolume(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN ? -delta : delta);
+                    return true;
+                }
             }
+
         }
         return false;
     }
@@ -3147,7 +3175,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
         @Override
         public void run() {
             //final int currentPos;
-            if (mState == MediaControl.PLAYER_STATE_BUFFERING || !isConnected() || mRemoteMediaPlayer == null) {
+            if (mState == MediaControl.PLAYER_STATE_BUFFERING || mState == MediaControl.PLAYER_STATE_IDLE || !isConnected() || mRemoteMediaPlayer == null) {
                 return;
             }
             try {

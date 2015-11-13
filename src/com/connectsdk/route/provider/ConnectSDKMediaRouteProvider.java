@@ -24,11 +24,18 @@ import com.connectsdk.discovery.DiscoveryManagerListener;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.sessions.WebAppSession;
+import com.google.android.libraries.cast.companionlibrary.cast.BaseCastManager;
+import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
+import com.google.android.libraries.cast.companionlibrary.cast.exceptions.CastException;
+import com.google.android.libraries.cast.companionlibrary.cast.exceptions.NoConnectionException;
+import com.google.android.libraries.cast.companionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
 
 /**
  * Created by gomino on 4/7/2015.
@@ -131,36 +138,36 @@ public class ConnectSDKMediaRouteProvider extends MediaRouteProvider{
             throw new RuntimeException(ex);
         }
     }
-    private static final int VOLUME_MAX = 10;
+
+    protected static final int VOLUME_MAX = 10;
     private Map<String, ConnectableDevice> mRouteIdToDeviceMap;
-    private Handler mHandler;
-    private int mVolume = 5;
+    protected int mVolume = 5;
     private int mEnqueueCount;
 
     public ConnectSDKMediaRouteProvider(Context context) {
         super(context);
 
         Log.d(TAG, "");
-        mHandler = new Handler();
         mRouteIdToDeviceMap = new HashMap<String, ConnectableDevice>();
 
         DiscoveryManager.getInstance().addListener(new DiscoveryManagerListener() {
             @Override
             public void onDeviceAdded(DiscoveryManager discoveryManager, ConnectableDevice connectableDevice) {
-                Log.d(TAG, "deviceAdded:" + connectableDevice);
+                Log.i(TAG, "deviceAdded:" + connectableDevice);
                 //setDiscoveryRequest(null);
                 onDiscoveryRequestChanged(null);
             }
 
             @Override
             public void onDeviceUpdated(DiscoveryManager discoveryManager, ConnectableDevice connectableDevice) {
+                Log.i(TAG, "onDeviceUpdated:" + connectableDevice);
                 //setDiscoveryRequest(null);
                 onDiscoveryRequestChanged(null);
             }
 
             @Override
             public void onDeviceRemoved(DiscoveryManager discoveryManager, ConnectableDevice connectableDevice) {
-                Log.d(TAG, "onDeviceRemoved:" + connectableDevice);
+                Log.i(TAG, "onDeviceRemoved:" + connectableDevice);
                 //providerDescriptors.remove(connectableDevice);
                 //setDiscoveryRequest(null);
                 onDiscoveryRequestChanged(null);
@@ -168,25 +175,27 @@ public class ConnectSDKMediaRouteProvider extends MediaRouteProvider{
 
             @Override
             public void onDiscoveryFailed(DiscoveryManager discoveryManager, ServiceCommandError serviceCommandError) {
-                Log.d(TAG, "onDiscoveryFailed:" + serviceCommandError);
+                Log.i(TAG, "onDiscoveryFailed:" + serviceCommandError);
+                onDiscoveryRequestChanged(null);
             }
         });
-        /*
+
         setCallback(new Callback() {
             @Override
             public void onDescriptorChanged(MediaRouteProvider provider, @Nullable MediaRouteProviderDescriptor descriptor) {
                 super.onDescriptorChanged(provider, descriptor);
+                Log.d(TAG, "onDescriptorChanged");
             }
         });
-        */
+
         //DiscoveryManager.getInstance().start();
     }
 
     @Override
     public void onDiscoveryRequestChanged(MediaRouteDiscoveryRequest request) {
         super.onDiscoveryRequestChanged(request);
-        Log.d(TAG, "onDiscoveryRequestChanged number of compatible devices:" + DiscoveryManager.getInstance().getCompatibleDevices().size());
-        Log.d(TAG, "onDiscoveryRequestChanged all devices:" + DiscoveryManager.getInstance().getAllDevices().size());
+        //Log.d(TAG, "onDiscoveryRequestChanged");
+        Log.d(TAG, "onDiscoveryRequestChanged allDevices(" + DiscoveryManager.getInstance().getAllDevices().size()+") VS compatibleDevices(" + DiscoveryManager.getInstance().getCompatibleDevices().size()+")");
         MediaRouteProviderDescriptor.Builder providerDescriptorBuilder = new MediaRouteProviderDescriptor.Builder();
         for(ConnectableDevice device: DiscoveryManager.getInstance().getAllDevices().values()) {
             MediaRouteDescriptor routeDescriptor = getMediaRouteDescriptorForDevice(device);
@@ -219,6 +228,7 @@ public class ConnectSDKMediaRouteProvider extends MediaRouteProvider{
                 .setPlaybackStream(AudioManager.STREAM_MUSIC)
                 .setPlaybackType(MediaRouter.RouteInfo.PLAYBACK_TYPE_REMOTE)
                 .setVolumeHandling(MediaRouter.RouteInfo.PLAYBACK_VOLUME_VARIABLE)
+                //.setVolumeHandling((int)VideoCastManager.getInstance().getVolumeStep())
                 .setVolumeMax(VOLUME_MAX)
                 .setVolume(mVolume)
                 .setExtras(bundle)
@@ -323,9 +333,15 @@ public class ConnectSDKMediaRouteProvider extends MediaRouteProvider{
             if (volume >= 0 && volume <= VOLUME_MAX) {
                 mVolume = volume;
                 Log.d(TAG, mRouteId + ": New volume is " + mVolume);
-                AudioManager audioManager =
-                        (AudioManager)getContext().getSystemService(Context.AUDIO_SERVICE);
-                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volume, 0);
+                //AudioManager audioManager = (AudioManager)getContext().getSystemService(Context.AUDIO_SERVICE);
+                //audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volume, 0);
+
+                try {
+                    float volumeToAdjust = (float) mVolume/10;
+                    VideoCastManager.getInstance().setVolume(volumeToAdjust);
+                } catch (CastException | TransientNetworkDisconnectionException | NoConnectionException e) {
+                    LOGE(TAG, "Failed to change volume", e);
+                }
             }
         }
 

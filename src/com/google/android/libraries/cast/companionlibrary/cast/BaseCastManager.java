@@ -24,6 +24,7 @@ import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.
 //import com.google.android.gms.cast.Cast.ApplicationConnectionResult;
 //import com.google.android.gms.cast.CastDevice;
 import com.connectsdk.discovery.DiscoveryManagerListener;
+import com.connectsdk.discovery.DiscoveryProvider;
 import com.connectsdk.route.provider.ConnectSDKMediaRouteProvider;
 //import com.google.android.gms.cast.CastMediaControlIntent;
 //import com.google.android.gms.common.ConnectionResult;
@@ -32,6 +33,7 @@ import com.connectsdk.route.provider.ConnectSDKMediaRouteProvider;
 //import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 //import com.google.android.gms.common.api.ResultCallback;
 //import com.google.android.gms.common.api.Status;
+import com.connectsdk.service.CompanionService;
 import com.google.android.libraries.cast.companionlibrary.R;
 
 import com.connectsdk.device.ConnectableDevice;
@@ -70,6 +72,7 @@ import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.MediaRouteActionProvider;
 import android.support.v7.app.MediaRouteButton;
 import android.support.v7.app.MediaRouteDialogFactory;
+import android.support.v7.media.MediaRouteProvider;
 import android.support.v7.media.MediaRouteSelector;
 import android.support.v7.media.MediaRouter;
 import android.support.v7.media.MediaRouter.RouteInfo;
@@ -145,7 +148,9 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
     protected String mSessionId;
     private Handler mUiVisibilityHandler;
     private RouteInfo mRouteInfo;
-    private ConnectSDKMediaRouteProvider mConnectSDKRouteProvider;
+    //private ConnectSDKMediaRouteProvider mConnectSDKRouteProvider;
+    private MediaRouteProvider mMediaRouteProvider;
+
 
     protected BaseCastManager() {
     }
@@ -202,17 +207,62 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
         mPreferenceAccessor.saveStringToPreference(PREFS_KEY_APPLICATION_ID, applicationId);
 
         mMediaRouter = MediaRouter.getInstance(mContext);
-        mConnectSDKRouteProvider = new ConnectSDKMediaRouteProvider(context);
-        mMediaRouter.addProvider(mConnectSDKRouteProvider);
-        //mMediaRouteSelector = new MediaRouteSelector.Builder().addControlCategory(CastMediaControlIntent.categoryForCast(mApplicationId)).build();
-        mMediaRouteSelector = new MediaRouteSelector.Builder().addControlCategory(ConnectSDKMediaRouteProvider.CATEGORY_SAMPLE_ROUTE).build();
+
+//        mMediaRouteProvider = new ConnectSDKMediaRouteProvider(context);
+//        mMediaRouter.addProvider(mMediaRouteProvider);
+//        mMediaRouteSelector = new MediaRouteSelector.Builder().addControlCategory(ConnectSDKMediaRouteProvider.CATEGORY_SAMPLE_ROUTE).build();
+//      //mMediaRouteSelector = new MediaRouteSelector.Builder().addControlCategory(CastMediaControlIntent.categoryForCast(mApplicationId)).build();
+
 
         mMediaRouterCallback = new CastMediaRouterCallback(this);
+//        mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback, MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
+//        setRouteProvider(new ConnectSDKMediaRouteProvider(context), ConnectSDKMediaRouteProvider.CATEGORY_SAMPLE_ROUTE);
+    }
+
+    public MediaRouteProvider getRouteProvider(){
+        return mMediaRouteProvider;
+    }
+
+    public void setRouteProvider(MediaRouteProvider provider, String category){
+        mMediaRouteProvider = provider;
+        //Check for double is already made internally by addProvider and addCallback
+        mMediaRouter.addProvider(mMediaRouteProvider);
+        mMediaRouteSelector = new MediaRouteSelector.Builder().addControlCategory(category).build();
         mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback, MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
     }
 
-    public ConnectSDKMediaRouteProvider getRouteProvider(){
-        return mConnectSDKRouteProvider;
+    public ConnectableDevice getDeviceForRouteId(RouteInfo routeInfo) {
+        ConnectableDevice device = null;
+
+        if(routeInfo!=null) {
+
+            //String json = routeinfo.getExtras().getString(ConnectSDKMediaRouteProviderDeprecated.EXTRA_CONNECTABLE_DEVICE);
+            //JSONObject jsonObject = new JSONObject(json);
+            //final ConnectableDevice device = new ConnectableDevice(jsonObject);
+			//JSONObject jsonServices = jsonObject.getJSONObject(ConnectableDevice.KEY_SERVICES);
+			//Iterator<?> keys = jsonServices.keys();
+			//while( keys.hasNext()) {
+			//	String key = (String)keys.next();
+			//	if ( jsonServices.get(key) instanceof JSONObject ) {
+			//		JSONObject serviceObject = (JSONObject)jsonServices.get(key);
+			//		DeviceService service = DeviceService.getService(serviceObject);
+			//		mSelectedDevice.addService(service);
+			//	}
+			//}
+
+			//mSelectedDevice = (ConnectableDevice) SerializationUtils.bytes2Object(bundle.getByteArray(ConnectSDKMediaRouteProviderDeprecated.EXTRA_CONNECTABLE_DEVICE));
+
+            //ConnectableDevice device = ConnectableDevice.getFromBundle(routeInfo.getExtras());
+
+            //String deviceId = routeInfo.getExtras().getString(ConnectableDevice.KEY_ID);
+            //ConnectableDevice device = DiscoveryManager.getInstance().getConnectableDeviceStore().getDevice(deviceId);
+
+            if (mMediaRouteProvider instanceof ConnectSDKMediaRouteProvider) {
+                device = ((ConnectSDKMediaRouteProvider) mMediaRouteProvider).getDeviceForRouteId(routeInfo.getId());
+            }
+        }
+
+        return device;
     }
 
     /**
@@ -221,8 +271,10 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
      */
     public final void onDeviceSelected(ConnectableDevice device) {
         if (device == null) {
-            for (BaseCastConsumer consumer : mBaseCastConsumers) {
-                consumer.onDeviceUnselected(null);
+            if(mSelectedCastDevice!=null) {
+                for (BaseCastConsumer consumer : mBaseCastConsumers) {
+                    consumer.onDeviceUnselected(mSelectedCastDevice);
+                }
             }
             disconnectDevice(mDestroyOnDisconnect, true, false);
         } else {
@@ -232,6 +284,7 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
         for (BaseCastConsumer consumer : mBaseCastConsumers) {
             consumer.onDeviceSelected(device);
         }
+
     }
 
     /**
@@ -260,9 +313,7 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
      */
     public final void disconnectDevice(boolean stopAppOnExit, boolean clearPersistedConnectionData, boolean setDefaultRoute) {
         LOGD(TAG, "disconnectDevice(" + stopAppOnExit + ","+ clearPersistedConnectionData + "," + setDefaultRoute + ")");
-        if (mSelectedCastDevice == null) {
-            return;
-        }
+
 
         try {
             if (stopAppOnExit) {
@@ -273,9 +324,12 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
             LOGE(TAG, "Failed to stop the application before disconnecting route", e);
         }
 
-        mSelectedCastDevice.disconnect();
-        mSelectedCastDevice.removeListener(this);
-        mSelectedCastDevice = null;
+        if (mSelectedCastDevice != null) {
+            mSelectedCastDevice.disconnect();
+            mSelectedCastDevice.removeListener(this);
+            mSelectedCastDevice = null;
+        }
+
         mDeviceName = null;
         LOGD(TAG, "mConnectionSuspended: " + mConnectionSuspended);
         if (!mConnectionSuspended && clearPersistedConnectionData) {
@@ -291,10 +345,10 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
 //                LOGD(TAG, "Trying to disconnect");
 //                mApiClient.disconnect();
 //            }
-//            if ((mMediaRouter != null) && setDefaultRoute) {
-//                LOGD(TAG, "disconnectDevice(): Setting route to default");
-//                mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
-//            }
+            if ((mMediaRouter != null) && setDefaultRoute) {
+                LOGD(TAG, "disconnectDevice(): Setting route to default");
+                mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
+            }
 //            mApiClient = null;
 //        }
         mSessionId = null;
@@ -312,7 +366,7 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
         return mSelectedCastDevice.isConnectable();
     }
 
-    public ConnectableDevice getSelectedCastDevice(){
+    public ConnectableDevice getSelectedDevice(){
         return mSelectedCastDevice;
     }
 
@@ -336,6 +390,17 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
         mSelectedCastDevice.addListener(this);
         isConnecting = true;
         mSelectedCastDevice.connect();
+    }
+
+    private String getApplicationId(){
+        String appId = mApplicationId;
+        if(mSelectedCastDevice!=null){
+            DeviceService service = mSelectedCastDevice.getServiceByName(mSelectedCastDevice.getConnectedServiceNames());
+            if(service instanceof CompanionService) {
+                appId = ((CompanionService)service).getApplicationId();
+            }
+        }
+        return appId;
     }
 
     /**
@@ -465,7 +530,9 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
      * .MediaRouter.Callback}
      */
     public final void startCastDiscovery() {
+        LOGD(TAG, "startCastDiscovery() mMediaRouter.addCallback called");
         mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback, MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
+        DiscoveryManager.getInstance().removeListener(this);
         DiscoveryManager.getInstance().addListener(this);
         DiscoveryManager.getInstance().start();
     }
@@ -475,6 +542,7 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
      * {@link android.support.v7.media.MediaRouter.Callback}
      */
     public final void stopCastDiscovery() {
+        LOGD(TAG, "stopCastDiscovery() mMediaRouter.removeCallback called");
         mMediaRouter.removeCallback(mMediaRouterCallback);
         DiscoveryManager.getInstance().removeListener(this);
         DiscoveryManager.getInstance().stop();
@@ -780,11 +848,7 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
         }
         setReconnectionStatus(RECONNECTION_STATUS_IN_PROGRESS);
 
-        //ConnectableDevice device = ConnectableDevice.getFromBundle(theRoute.getExtras());
-        //String deviceId = theRoute.getExtras().getString(ConnectableDevice.KEY_ID);
-        //ConnectableDevice device = DiscoveryManager.getInstance().getConnectableDeviceStore().getDevice(deviceId);
-        ConnectableDevice device = mConnectSDKRouteProvider.getDeviceForRouteId(theRoute.getId());
-
+        ConnectableDevice device = getDeviceForRouteId(theRoute);
         if (device != null) {
             LOGD(TAG, "trying to acquire Cast Client for " + device);
             onDeviceSelected(device);
@@ -1022,7 +1086,7 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
 //            } else {
                 onConnectivityRecovered();
 //            }
-            return;
+//            return;
         }
         if (!isConnected()) {
             if (mReconnectionStatus == RECONNECTION_STATUS_IN_PROGRESS) {
@@ -1062,15 +1126,12 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
         LOGD(TAG, "onDeviceDisconnected() reached, device " + connectableDevice);
         isConnecting = false;
 
-        for (BaseCastConsumer consumer : mBaseCastConsumers) {
-            consumer.onDeviceUnselected(connectableDevice);
-        }
+//        for (BaseCastConsumer consumer : mBaseCastConsumers) {
+//            consumer.onDeviceUnselected(connectableDevice);
+//        }
 
-        disconnectDevice(mDestroyOnDisconnect, false /* clearPersistentConnectionData */, false /* setDefaultRoute */);
-        mConnectionSuspended = false;
-        if (mMediaRouter != null) {
-            mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
-        }
+        disconnectDevice(mDestroyOnDisconnect, false, true);
+        //mConnectionSuspended = false;
 
         for (BaseCastConsumer consumer : mBaseCastConsumers) {
             consumer.onDisconnected();
@@ -1090,11 +1151,8 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
     public void onConnectionFailed(ConnectableDevice connectableDevice, ServiceCommandError serviceCommandError) {
         LOGD(TAG, "onConnectionFailed() reached, error code: " + serviceCommandError.getCode() + ", reason: " + serviceCommandError.getPayload());
         isConnecting = false;
-        disconnectDevice(mDestroyOnDisconnect, false /* clearPersistentConnectionData */, false /* setDefaultRoute */);
+        disconnectDevice(mDestroyOnDisconnect, false, true);
         mConnectionSuspended = false;
-        if (mMediaRouter != null) {
-            mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
-        }
 
         for (BaseCastConsumer consumer : mBaseCastConsumers) {
             consumer.onConnectionFailed(serviceCommandError);
@@ -1124,13 +1182,14 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
             for (BaseCastConsumer consumer : mBaseCastConsumers) {
                 consumer.onConnectionSuspended(-1);
             }
+            //disconnectDevice(false, false, true);
         }
     }
 
     /*
-             * Launches application. For this to succeed, a connection should be already established by the
-             * CastClient.
-             */
+     * Launches application. For this to succeed, a connection should be already established by the
+     * CastClient.
+     */
     private void launchApp() throws TransientNetworkDisconnectionException, NoConnectionException {
         LOGD(TAG, "launchApp() is called");
         if (!isConnected()) {
@@ -1166,7 +1225,7 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
 
             WebAppLauncher launcher = mSelectedCastDevice.getCapability(WebAppLauncher.class);
             if(launcher!=null){
-                launcher.joinWebApp(mApplicationId, new WebAppSession.LaunchListener() {
+                launcher.joinWebApp(getApplicationId(), new WebAppSession.LaunchListener() {
                     @Override
                     public void onSuccess(WebAppSession webAppSession) {
                         LOGD(TAG, "joinWebApp() -> success");
@@ -1205,7 +1264,7 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
 
             WebAppLauncher launcher = mSelectedCastDevice.getCapability(WebAppLauncher.class);
             if(launcher!=null){
-                launcher.launchWebApp(mApplicationId, new WebAppSession.LaunchListener() {
+                launcher.launchWebApp(getApplicationId(), new WebAppSession.LaunchListener() {
                     @Override
                     public void onSuccess(WebAppSession webAppSession) {
                         LOGD(TAG, "launchWebApp() -> success :" + webAppSession);

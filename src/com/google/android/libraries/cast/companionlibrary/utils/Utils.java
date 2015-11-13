@@ -24,10 +24,9 @@ import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.
 //import com.google.android.gms.cast.MediaTrack;
 import com.connectsdk.core.ImageInfo;
 import com.connectsdk.core.MediaInfo;
-import com.core.MediaInfoWithCustomData;
+import com.connectsdk.core.MediaInfoWithCustomData;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
-import com.google.android.gms.common.images.WebImage;
 
 import android.app.Activity;
 import android.app.Dialog;
@@ -42,12 +41,9 @@ import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcelable;
-import android.text.TextUtils;
 import android.util.TypedValue;
 import android.widget.Toast;
 
-import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -198,8 +194,11 @@ public final class Utils {
 
         if(info instanceof MediaInfoWithCustomData){
             try {
-                wrapper.putString(KEY_CUSTOMDATA, ((MediaInfoWithCustomData) info).getCustomData().toString());
-                wrapper.putString(KEY_CUSTOMDATA_FORLOAD, ((MediaInfoWithCustomData) info).getCustomDataForLoad().toString());
+                MediaInfoWithCustomData infoWithCustomData = (MediaInfoWithCustomData) info;
+                if(infoWithCustomData.getCustomData()!=null)
+                    wrapper.putString(KEY_CUSTOMDATA, infoWithCustomData.getCustomData().toString());
+                if(infoWithCustomData.getCustomDataForLoad()!=null)
+                    wrapper.putString(KEY_CUSTOMDATA_FORLOAD, infoWithCustomData.getCustomDataForLoad().toString());
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -322,8 +321,10 @@ public final class Utils {
         if(wrapper.containsKey(KEY_CUSTOMDATA)){
             info = new MediaInfoWithCustomData(contentId, mimetype, title, subtitle, imageInfos);
             try {
-                ((MediaInfoWithCustomData)info).setCustomData(new JSONObject(wrapper.getString(KEY_CUSTOMDATA)));
-                ((MediaInfoWithCustomData)info).setCustomDataForLoad(new JSONObject(wrapper.getString(KEY_CUSTOMDATA_FORLOAD)));
+                if(wrapper.get(KEY_CUSTOMDATA)!=null)
+                    ((MediaInfoWithCustomData)info).setCustomData(new JSONObject(wrapper.getString(KEY_CUSTOMDATA)));
+                if(wrapper.get(KEY_CUSTOMDATA_FORLOAD)!=null)
+                    ((MediaInfoWithCustomData)info).setCustomDataForLoad(new JSONObject(wrapper.getString(KEY_CUSTOMDATA_FORLOAD)));
             } catch (Exception e) {
                 e.printStackTrace();
             }

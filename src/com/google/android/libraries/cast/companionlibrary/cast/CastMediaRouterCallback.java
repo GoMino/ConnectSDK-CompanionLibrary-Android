@@ -54,23 +54,23 @@ public class CastMediaRouterCallback extends MediaRouter.Callback {
             return;
         }
         mCastManager.getPreferenceAccessor().saveStringToPreference(BaseCastManager.PREFS_KEY_ROUTE_ID, info.getId());
-        //ConnectableDevice device = ConnectableDevice.getFromBundle(info.getExtras());
-        //String deviceId = info.getExtras().getString(ConnectableDevice.KEY_ID);
-        //ConnectableDevice device = DiscoveryManager.getInstance().getConnectableDeviceStore().getDevice(deviceId);
-        ConnectableDevice device = mCastManager.getRouteProvider().getDeviceForRouteId(info.getId());
 
+        ConnectableDevice device = mCastManager.getDeviceForRouteId(info);
         mCastManager.onDeviceSelected(device);
         LOGD(TAG, "onRouteSelected: mSelectedDevice=" + device.getFriendlyName());
+        mCastManager.setRouteInfo(info);
     }
 
     @Override
     public void onRouteUnselected(MediaRouter router, RouteInfo route) {
         LOGD(TAG, "onRouteUnselected: route=" + route);
         mCastManager.onDeviceSelected(null);
+        mCastManager.setRouteInfo(null);
     }
 
     @Override
     public void onRouteAdded(MediaRouter router, RouteInfo route) {
+        LOGD(TAG, "onRouteAdded: route=" + route);
         if (!router.getDefaultRoute().equals(route)) {
             notifyRouteAvailabilityChangedIfNeeded(router);
             mCastManager.onCastDeviceDetected(route);
@@ -84,11 +84,7 @@ public class CastMediaRouterCallback extends MediaRouter.Callback {
                 LOGD(TAG, "onRouteAdded: Attempting to recover a session with info=" + route);
                 mCastManager.setReconnectionStatus(BaseCastManager.RECONNECTION_STATUS_IN_PROGRESS);
 
-                //ConnectableDevice device = ConnectableDevice.getFromBundle(route.getExtras());
-                //String deviceId = route.getExtras().getString(ConnectableDevice.KEY_ID);
-                //ConnectableDevice device = DiscoveryManager.getInstance().getConnectableDeviceStore().getDevice(deviceId);
-                ConnectableDevice device = mCastManager.getRouteProvider().getDeviceForRouteId(route.getId());
-
+                ConnectableDevice device = mCastManager.getDeviceForRouteId(route);
                 LOGD(TAG, "onRouteAdded: Attempting to recover a session with device: " + device.getFriendlyName());
                 mCastManager.onDeviceSelected(device);
             }
@@ -97,7 +93,9 @@ public class CastMediaRouterCallback extends MediaRouter.Callback {
 
     @Override
     public void onRouteRemoved(MediaRouter router, RouteInfo route) {
+        LOGD(TAG, "onRouteRemoved: route=" + route);
         notifyRouteAvailabilityChangedIfNeeded(router);
+        mCastManager.setRouteInfo(null);
     }
 
     @Override

@@ -303,7 +303,7 @@ public class VideoCastControllerFragment extends Fragment implements
                 @Override
                 public void run() {
                     int currentPos;
-                    if (mPlaybackState == MediaControl.PLAYER_STATE_BUFFERING) {
+                    if (mPlaybackState == MediaControl.PLAYER_STATE_BUFFERING || mPlaybackState == MediaControl.PLAYER_STATE_IDLE) {
                         return;
                     }
                     if (!mCastManager.isConnected()) {
@@ -588,7 +588,7 @@ public class VideoCastControllerFragment extends Fragment implements
     public void onPause() {
         mCastManager.removeVideoCastConsumer(mCastConsumer);
         mCastManager.decrementUiCounter();
-        mIsFresh = false;
+        //mIsFresh = false;
         super.onPause();
     }
 

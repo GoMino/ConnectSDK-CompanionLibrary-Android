@@ -18,5 +18,6 @@
     <!-- Dialog -->
     <style name="CCLCastDialog" parent="android:Theme.Material.Dialog">
         <item name="android:windowTitleStyle">@style/CCLCastDialogWindowTitle</item>
+        <item name="android:windowNoTitle">true</item>
     </style>
 </resources>

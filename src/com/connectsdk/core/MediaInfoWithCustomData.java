@@ -1,11 +1,7 @@
-package com.core;
-
-import com.connectsdk.core.ImageInfo;
-import com.connectsdk.core.MediaInfo;
+package com.connectsdk.core;
 
 import org.json.JSONObject;
 
-import java.io.Serializable;
 import java.util.List;
 
 /**
