@@ -41,11 +41,13 @@ import com.google.android.gms.common.images.WebImage;
 import com.google.android.libraries.cast.companionlibrary.R;
 import com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumer;
 import com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumerImpl;
-import com.google.android.libraries.cast.companionlibrary.cast.dialog.video.VideoMediaRouteDialogFactory;
+import com.google.android.libraries.cast.companionlibrary.cast.dialog.video
+        .VideoMediaRouteDialogFactory;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.CastException;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.NoConnectionException;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.OnFailedListener;
-import com.google.android.libraries.cast.companionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
+import com.google.android.libraries.cast.companionlibrary.cast.exceptions
+        .TransientNetworkDisconnectionException;
 import com.google.android.libraries.cast.companionlibrary.cast.player.MediaAuthService;
 import com.google.android.libraries.cast.companionlibrary.cast.player.VideoCastController;
 import com.google.android.libraries.cast.companionlibrary.cast.player.VideoCastControllerActivity;
@@ -58,10 +60,12 @@ import com.google.android.libraries.cast.companionlibrary.utils.LogUtils;
 import com.google.android.libraries.cast.companionlibrary.utils.Utils;
 import com.google.android.libraries.cast.companionlibrary.widgets.IMiniController;
 import com.google.android.libraries.cast.companionlibrary.widgets.MiniController;
-import com.google.android.libraries.cast.companionlibrary.widgets.MiniController.OnMiniControllerChangedListener;
+import com.google.android.libraries.cast.companionlibrary.widgets.MiniController
+        .OnMiniControllerChangedListener;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
+import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -2230,6 +2234,10 @@ public class VideoCastManager extends BaseCastManager
         mAudioManager.requestAudioFocus(null, AudioManager.STREAM_MUSIC,
                 AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
 
+        PendingIntent pi = getCastControllerPendingIntent();
+        if (pi != null) {
+            mMediaSessionCompat.setSessionActivity(pi);
+        }
         mMediaSessionCompat.setPlaybackState(new PlaybackStateCompat.Builder()
                 .setState(PlaybackStateCompat.STATE_PLAYING, 0, 1.0f)
                 .setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE).build());
@@ -2241,6 +2249,23 @@ public class VideoCastManager extends BaseCastManager
         updateMediaSessionMetadata();
 
         mMediaRouter.setMediaSessionCompat(mMediaSessionCompat);
+    }
+
+    /*
+     * Returns a PendingIntent that can open the target activity for controlling the cast experience
+     */
+    private PendingIntent getCastControllerPendingIntent() {
+        try {
+            Bundle mediaWrapper = Utils.mediaInfoToBundle(getRemoteMediaInformation());
+            Intent contentIntent = new Intent(mContext, mTargetActivity);
+            contentIntent.putExtra(VideoCastManager.EXTRA_MEDIA, mediaWrapper);
+            return PendingIntent
+                    .getActivity(mContext, 0, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
+            LOGE(TAG,
+                    "getCastControllerPendingIntent(): Failed to get the remote media information");
+        }
+        return null;
     }
 
     /*
@@ -2332,7 +2357,10 @@ public class VideoCastManager extends BaseCastManager
                 int playState = isRemoteStreamLive() ? PlaybackStateCompat.STATE_BUFFERING
                         : PlaybackStateCompat.STATE_PLAYING;
                 int state = playing ? playState : PlaybackStateCompat.STATE_PAUSED;
-
+                PendingIntent pi = getCastControllerPendingIntent();
+                if (pi != null) {
+                    mMediaSessionCompat.setSessionActivity(pi);
+                }
                 mMediaSessionCompat.setPlaybackState(new PlaybackStateCompat.Builder()
                         .setState(state, 0, 1.0f)
                         .setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE).build());

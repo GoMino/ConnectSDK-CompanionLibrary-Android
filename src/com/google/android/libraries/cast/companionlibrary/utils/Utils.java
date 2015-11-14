@@ -179,6 +179,12 @@ public final class Utils {
         wrapper.putString(MediaMetadata.KEY_ALBUM_ARTIST,
                 md.getString(MediaMetadata.KEY_ALBUM_ARTIST));
         wrapper.putString(MediaMetadata.KEY_COMPOSER, md.getString(MediaMetadata.KEY_COMPOSER));
+        wrapper.putString(MediaMetadata.KEY_SERIES_TITLE,
+                md.getString(MediaMetadata.KEY_SERIES_TITLE));
+        wrapper.putInt(MediaMetadata.KEY_SEASON_NUMBER,
+                md.getInt(MediaMetadata.KEY_SEASON_NUMBER));
+        wrapper.putInt(MediaMetadata.KEY_EPISODE_NUMBER,
+                md.getInt(MediaMetadata.KEY_EPISODE_NUMBER));
         Calendar releaseCalendar = md.getDate(MediaMetadata.KEY_RELEASE_DATE);
         if (releaseCalendar != null) {
             long releaseMillis = releaseCalendar.getTimeInMillis();
@@ -252,6 +258,12 @@ public final class Utils {
                 wrapper.getString(MediaMetadata.KEY_ALBUM_TITLE));
         metaData.putString(MediaMetadata.KEY_COMPOSER,
                 wrapper.getString(MediaMetadata.KEY_COMPOSER));
+        metaData.putString(MediaMetadata.KEY_SERIES_TITLE,
+                wrapper.getString(MediaMetadata.KEY_SERIES_TITLE));
+        metaData.putInt(MediaMetadata.KEY_SEASON_NUMBER,
+                wrapper.getInt(MediaMetadata.KEY_SEASON_NUMBER));
+        metaData.putInt(MediaMetadata.KEY_EPISODE_NUMBER,
+                wrapper.getInt(MediaMetadata.KEY_EPISODE_NUMBER));
 
         long releaseDateMillis = wrapper.getLong(MediaMetadata.KEY_RELEASE_DATE, 0);
         if (releaseDateMillis > 0) {
