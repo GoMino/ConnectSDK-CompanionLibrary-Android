@@ -20,6 +20,7 @@ import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
 
 import com.google.android.libraries.cast.companionlibrary.cast.BaseCastManager;
+import com.google.android.libraries.cast.companionlibrary.cast.CastConfiguration;
 import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.NoConnectionException;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
@@ -121,7 +122,7 @@ public class ReconnectionService extends Service {
         LOGD(TAG, "WIFI connectivity changed to " + (connected ? "enabled" : "disabled"));
         if (connected && !mWifiConnectivity) {
             mWifiConnectivity = true;
-            if (mCastManager.isFeatureEnabled(BaseCastManager.FEATURE_WIFI_RECONNECT)) {
+            if (mCastManager.isFeatureEnabled(CastConfiguration.FEATURE_WIFI_RECONNECT)) {
                 mCastManager.startCastDiscovery();
                 mCastManager.reconnectSessionIfPossible(RECONNECTION_ATTEMPT_PERIOD_S, networkSsid);
             }

@@ -26,18 +26,17 @@ import com.google.android.gms.cast.MediaStatus;
 import com.google.android.gms.cast.MediaTrack;
 import com.google.android.gms.cast.RemoteMediaPlayer;
 import com.google.android.libraries.cast.companionlibrary.R;
+import com.google.android.libraries.cast.companionlibrary.cast.CastConfiguration;
 import com.google.android.libraries.cast.companionlibrary.cast.MediaQueue;
 import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
 import com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumerImpl;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.CastException;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.NoConnectionException;
-import com.google.android.libraries.cast.companionlibrary.cast.exceptions
-        .TransientNetworkDisconnectionException;
+import com.google.android.libraries.cast.companionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
 import com.google.android.libraries.cast.companionlibrary.utils.FetchBitmapTask;
 import com.google.android.libraries.cast.companionlibrary.utils.LogUtils;
 import com.google.android.libraries.cast.companionlibrary.utils.Utils;
 
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -45,9 +44,9 @@ import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
@@ -112,10 +111,6 @@ public class VideoCastControllerFragment extends Fragment implements
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        if (mCastManager.getPreferenceAccessor()
-                .getBooleanFromPreference(VideoCastManager.PREFS_KEY_IMMERSIVE_MODE, true)) {
-            setImmersive();
-        }
         mCastConsumer = new MyCastConsumer();
         Bundle bundle = getArguments();
         if (bundle == null) {
@@ -134,10 +129,8 @@ public class VideoCastControllerFragment extends Fragment implements
         }
         mCastManager.getPreferenceAccessor().saveBooleanToPreference(
                 VideoCastManager.PREFS_KEY_START_ACTIVITY, false);
-        int nextPreviousVisibilityPolicy = mCastManager.getPreferenceAccessor()
-                .getIntFromPreference(VideoCastManager.PREFS_KEY_NEXT_PREV_POLICY,
-                        VideoCastController.NEXT_PREV_VISIBILITY_POLICY_DISABLED);
-        mCastController.setNextPreviousVisibilityPolicy(nextPreviousVisibilityPolicy);
+        mCastController.setNextPreviousVisibilityPolicy(
+                mCastManager.getCastConfiguration().getNextPrevVisibilityPolicy());
         if (extras.getBoolean(VideoCastManager.EXTRA_HAS_AUTH)) {
             if (mIsFresh) {
                 mOverallState = OverallState.AUTHORIZING;
@@ -369,7 +362,7 @@ public class VideoCastControllerFragment extends Fragment implements
 
     private void updateClosedCaptionState() {
         int state = VideoCastController.CC_HIDDEN;
-        if (mCastManager.isFeatureEnabled(VideoCastManager.FEATURE_CAPTIONS_PREFERENCE)
+        if (mCastManager.isFeatureEnabled(CastConfiguration.FEATURE_CAPTIONS_PREFERENCE)
                 && mSelectedMedia != null
                 && mCastManager.getTracksPreferenceManager().isCaptionEnabled()) {
             List<MediaTrack> tracks = mSelectedMedia.getMediaTracks();
@@ -647,6 +640,7 @@ public class VideoCastControllerFragment extends Fragment implements
             setCancelable(false);
         }
 
+        @NonNull
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             String message = getArguments().getString(MESSAGE);
@@ -867,30 +861,6 @@ public class VideoCastControllerFragment extends Fragment implements
         }
 
         mCastManager.removeTracksSelectedListener(this);
-    }
-
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    private void setImmersive() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
-            return;
-        }
-        int newUiOptions = getActivity().getWindow().getDecorView().getSystemUiVisibility();
-
-        // Navigation bar hiding:  Backwards compatible to ICS.
-        if (Build.VERSION.SDK_INT >= 14) {
-            newUiOptions ^= View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
-        }
-
-        // Status bar hiding: Backwards compatible to Jellybean
-        if (Build.VERSION.SDK_INT >= 16) {
-            newUiOptions ^= View.SYSTEM_UI_FLAG_FULLSCREEN;
-        }
-
-        if (Build.VERSION.SDK_INT >= 18) {
-            newUiOptions ^= View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
-        }
-
-        getActivity().getWindow().getDecorView().setSystemUiVisibility(newUiOptions);
     }
 
     @Override

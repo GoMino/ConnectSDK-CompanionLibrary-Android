@@ -22,10 +22,12 @@ import com.google.android.libraries.cast.companionlibrary.R;
 import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
 import com.google.android.libraries.cast.companionlibrary.utils.Utils;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.DialogFragment;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -52,10 +54,12 @@ public class TracksChooserDialog extends DialogFragment {
     private int mSelectedTextPosition = 0;
     private int mSelectedAudioPosition = -1;
 
+    @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         LayoutInflater inflater = getActivity().getLayoutInflater();
+        @SuppressLint("InflateParams")
         View view = inflater.inflate(R.layout.custom_tracks_dialog_layout, null);
         setUpView(view);
 

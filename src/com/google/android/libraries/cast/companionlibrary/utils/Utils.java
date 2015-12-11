@@ -38,6 +38,7 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Looper;
 import android.os.Parcelable;
 import android.text.TextUtils;
 import android.util.TypedValue;
@@ -54,6 +55,7 @@ import java.util.List;
 /**
  * A collection of utility methods, all static.
  */
+@SuppressWarnings("unused")
 public final class Utils {
 
     private static final String TAG = LogUtils.makeLogTag(Utils.class);
@@ -74,8 +76,6 @@ public final class Utils {
     private static final String KEY_TRACKS_DATA = "track-data";
     public static final boolean IS_KITKAT_OR_ABOVE =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
-    public static final boolean IS_ICS_OR_ABOVE =
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH;
 
     private Utils() {
     }
@@ -83,8 +83,8 @@ public final class Utils {
     /**
      * Formats time from milliseconds to hh:mm:ss string format.
      */
-    public static String formatMillis(int millisec) {
-        int seconds = (int) (millisec / 1000);
+    public static String formatMillis(int millis) {
+        int seconds = millis / 1000;
         int hours = seconds / (60 * 60);
         seconds %= (60 * 60);
         int minutes = seconds / 60;
@@ -292,7 +292,7 @@ public final class Utils {
         if (wrapper.getString(KEY_TRACKS_DATA) != null) {
             try {
                 JSONArray jsonArray = new JSONArray(wrapper.getString(KEY_TRACKS_DATA));
-                mediaTracks = new ArrayList<MediaTrack>();
+                mediaTracks = new ArrayList<>();
                 if (jsonArray.length() > 0) {
                     for (int i = 0; i < jsonArray.length(); i++) {
                         JSONObject jsonObj = (JSONObject) jsonArray.get(i);
@@ -428,5 +428,60 @@ public final class Utils {
      */
     public static MediaQueueItem rebuildQueueItem(MediaQueueItem item) {
         return new MediaQueueItem.Builder(item).clearItemId().build();
+    }
+
+    /**
+     * Returns {@code true} if and only if the current thread is the UI thread.
+     */
+    public static boolean isUiThread() {
+        return Looper.getMainLooper().equals(Looper.myLooper());
+    }
+
+    /**
+     * Asserts that the current thread is the UI thread; if not, this method throws an
+     * {@link IllegalStateException}.
+     */
+    public static void assertUiThread() {
+        if (!isUiThread()) {
+            throw new IllegalStateException("Not a UI thread");
+        }
+    }
+
+    /**
+     * Asserts that the current thread is a worker (i.e. non-UI) thread; if not, this
+     * method throws an {@link IllegalStateException}.
+     */
+    public static void assertNonUiThread() {
+        if (isUiThread()) {
+            throw new IllegalStateException("Not a non-UI thread");
+        }
+    }
+
+    /**
+     * Returns the {@code object} if it is not {@code null}, or throws a
+     * {@link NullPointerException} otherwise.
+     *
+     * @param object The object to inspect
+     * @param name A name for the object to be used in the NPE message
+     */
+    public static <T> T assertNotNull(T object, String name) {
+        if (object == null) {
+            throw new NullPointerException(name + " cannot be null");
+        }
+        return object;
+    }
+
+    /**
+     * Asserts that the {@code string} is not empty or {@code null}. It throws  an
+     * {@link IllegalArgumentException} if it is, otherwise returns the original string.
+     *
+     * @param string The string to inspect
+     * @param name A name for the string to be used in the NPE message
+     */
+    public static String assertNotEmpty(String string, String name) {
+        if (TextUtils.isEmpty(string)) {
+            throw new IllegalArgumentException(name + " cannot be null");
+        }
+        return string;
     }
 }

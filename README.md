@@ -3,15 +3,33 @@
 CastCompanionLibrary-android is a library project to enable developers integrate Cast capabilities into their applications faster and easier.
 
 ## Dependencies
-* google-play-services_lib library from the Android SDK (at least version 7.8+)
-* android-support-v7-appcompat (version 22 or above)
-* android-support-v7-mediarouter (version 22 or above)
+* google-play-services_lib library from the Android SDK (at least version 8.3+)
+* android-support-v7-appcompat (version 23.1.1 or above)
+* android-support-v7-mediarouter (version 23.1.1 or above)
 
 ## Setup Instructions
-* Set up the project dependencies
+Set up the project dependencies. To use this library in your project, follow these steps:
+ * Clone this library into a project named CastCompanionLibrary, parallel to your own application project:
+```shell
+git clone https://github.com/googlecast/CastCompanionLibrary-android.git CastCompanionLibrary
+```
+ * In the root of your application's project edit the file "settings.gradle" and add a new "include" line:
+```shell
+include '..:CastCompanionLibrary'
+```
+ * In your application's main module (usually called "app"), edit your build.gradle to add a new dependency:
+```shell
+ dependencies {
+    ...
+    compile project(':..:CastCompanionLibrary')
+ }
+```
+Now your project is ready to use this library
 
-## Documentation
-See the "CastCompanionLibrary.pdf" inside the project for a more extensive documentation.
+## Documentation and Demo
+See the "CastCompanionLibrary.pdf" inside the project for a more extensive documentation. The
+[CastVideos-android](https://github.com/googlecast/CastVideos-android) reference sample app uses this library and
+can also be used to understand how this library can be used in a real application.
 
 ## References and How to report bugs
 * [Cast Developer Documentation](http://developers.google.com/cast/)
@@ -29,6 +47,38 @@ See LICENSE
 Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl/TPLDxj)
 
 ## Change List
+
+2.7.0
+
+ * Changing how clients configure "features" in CCL: previously, clients would call initialize followed by
+ calling enableFeature() to add certain features, or would call certain direct APIs to control the behavior of the
+ library (e.g. by calling VideoCastManager.setCastControllerImmersive() or calling setLaunchOptions(), etc.).
+ Although that was working fine, it seemed more efficient  and organized to move all "configuration" parameters to its own class.
+ This release introduces a new class "CastConfiguration". This class holds all those parameters that are used to control the
+ behavior of the library. To initialize the library, one now needs to build an instance of the CastConfiguration object
+ (using a Builder pattern) and then pass that as a parameter to the initialize() method of VideoCastManager or DataCastManager.
+ Please see CastApplication.java class in [CastVideos-android](https://github.com/googlecast/CastVideos-android) sample for
+ an example or see the documentation in the root of this project for more details.
+ * Starting to use the MediaRouteControllerDialog from the media router support library. Previously, CCL
+ was using a custom dialog since the one provided by the media router support library lacked many features that
+ were called for in the UX Checklist. In v23.1.1 of that library, however, things have improved so that there is no
+ longer a need for having a custom dialog. There is currently one missing feature in that support library's implementation
+ that will be addressed in the next release of that library: tapping on the content area is not captured. CCL has all
+ the required wiring and code for that to work properly as soon as the updated support library is released. You can switch back
+ to the old custom dialog, if desired, by visiting VideosCastManager.getMediaRouteDialogFactory() and following the comments there.
+ * Major update in Notification Service. Previously, the actions that were provided in the notification were limited
+ to play/pause and disconnect. In this release, clients can choose what actions they want; the library provides
+ the following actions out of the box: Play/Pause, Disconnect, Skip Next, Skip Previous, Fast Forward and
+ Rewind. To select the desired actions, configure CastConfiguration accordingly. Fast Forward and Rewind take
+ an additional "duration" parameter to indicate how much the current position in the media should be skipped forward
+ or backward. For 10 and 30 seconds durations, special icons will be used but you can select any number that makes sense for
+ your application. Moreover, clients can now completely implement their own Notification Service and register that
+ with the library (again, using CastConfiguration) so that the start and stop of the service can be handled by the framework,
+ while the details of the service is designed by the client application.
+ It is recommended, however, to extend the existing VideoCastNotificationService class and override its
+ build() method to just focus on the notification itself rather then the details that may not be so interesting (a number
+ of methods in that class have been made "protected" to enable subclassing).
+ * Updated documentation
 
 2.6.1
  * Addressing #245

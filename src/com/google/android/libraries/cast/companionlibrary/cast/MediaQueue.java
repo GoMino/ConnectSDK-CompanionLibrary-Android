@@ -24,6 +24,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * A simple class to model a queue for bookkeeping purposes.
  */
+@SuppressWarnings("unused")
 public class MediaQueue {
 
     private List<MediaQueueItem> mQueueItems = new CopyOnWriteArrayList<>();
@@ -31,8 +32,6 @@ public class MediaQueue {
     private MediaQueueItem mCurrentItem;
     private boolean mShuffle;
     private int mRepeatMode;
-
-    public MediaQueue() {}
 
     public MediaQueue(List<MediaQueueItem> queueItems,
             MediaQueueItem currentItem, boolean shuffle, int repeatMode) {

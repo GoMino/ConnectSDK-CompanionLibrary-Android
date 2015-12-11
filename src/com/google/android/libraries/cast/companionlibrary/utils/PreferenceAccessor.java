@@ -23,6 +23,7 @@ import android.preference.PreferenceManager;
 /**
  * A class to streamline access to the Preference storage for both reading and writing.
  */
+@SuppressWarnings("unused")
 public class PreferenceAccessor {
     private final SharedPreferences mSharedPreference;
 

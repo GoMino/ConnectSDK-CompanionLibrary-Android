@@ -96,13 +96,11 @@ public interface BaseCastConsumer extends OnFailedListener {
 
     /**
      * Called when the status of reconnection changes.
-     * @param status
      */
     void onReconnectionStatusChanged(int status);
 
     /**
      * Called when a device is selected/unselected.
-     * @param device
      */
     void onDeviceSelected(CastDevice device);
 }

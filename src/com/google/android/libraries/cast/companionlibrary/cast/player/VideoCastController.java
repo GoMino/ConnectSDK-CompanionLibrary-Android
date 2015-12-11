@@ -17,6 +17,7 @@
 package com.google.android.libraries.cast.companionlibrary.cast.player;
 
 import com.google.android.gms.cast.MediaStatus;
+import com.google.android.libraries.cast.companionlibrary.cast.CastConfiguration;
 
 import android.graphics.Bitmap;
 
@@ -29,10 +30,6 @@ public interface VideoCastController {
     int CC_ENABLED = 1;
     int CC_DISABLED = 2;
     int CC_HIDDEN = 3;
-
-    int NEXT_PREV_VISIBILITY_POLICY_HIDDEN = 1;
-    int NEXT_PREV_VISIBILITY_POLICY_DISABLED = 2;
-    int NEXT_PREV_VISIBILITY_POLICY_ALWAYS = 3;
 
     /**
      * Sets the bitmap for the album art
@@ -69,7 +66,7 @@ public interface VideoCastController {
     void setStreamType(int streamType);
 
     /**
-     * Updates the position and total duration for the seekbar that presents the progress of media.
+     * Updates the position and total duration for the seek bar that presents the progress of media.
      * Both of these need to be provided in milliseconds.
      */
     void updateSeekbar(int position, int duration);
@@ -117,13 +114,13 @@ public interface VideoCastController {
      * queue, what should be the visibility or status of the "Skip Next" button. Available policies
      * are:
      * <ul>
-     *   <li>{@link VideoCastController#NEXT_PREV_VISIBILITY_POLICY_ALWAYS}: always show the button
+     *   <li>{@link CastConfiguration#NEXT_PREV_VISIBILITY_POLICY_ALWAYS}: always show the button
      *   </li>
-     *   <li>{@link VideoCastController#NEXT_PREV_VISIBILITY_POLICY_DISABLED}: disable the button
+     *   <li>{@link CastConfiguration#NEXT_PREV_VISIBILITY_POLICY_DISABLED}: disable the button
      *   </li>
-     *   <li>{@link VideoCastController#NEXT_PREV_VISIBILITY_POLICY_HIDDEN}: hide the button</li>
+     *   <li>{@link CastConfiguration#NEXT_PREV_VISIBILITY_POLICY_HIDDEN}: hide the button</li>
      * </ul>
-     * The default behavior is {@link VideoCastController#NEXT_PREV_VISIBILITY_POLICY_DISABLED}
+     * The default behavior is {@link CastConfiguration#NEXT_PREV_VISIBILITY_POLICY_DISABLED}
      */
-    void setNextPreviousVisibilityPolicy(int policy);
+    void setNextPreviousVisibilityPolicy(@CastConfiguration.PREV_NEXT_POLICY int policy);
 }

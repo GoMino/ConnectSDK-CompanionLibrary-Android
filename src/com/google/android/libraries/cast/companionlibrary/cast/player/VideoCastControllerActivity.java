@@ -22,6 +22,7 @@ import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaStatus;
 import com.google.android.libraries.cast.companionlibrary.R;
+import com.google.android.libraries.cast.companionlibrary.cast.CastConfiguration;
 import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.NoConnectionException;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions
@@ -31,9 +32,11 @@ import com.google.android.libraries.cast.companionlibrary.utils.LogUtils;
 import com.google.android.libraries.cast.companionlibrary.utils.Utils;
 import com.google.android.libraries.cast.companionlibrary.widgets.MiniController;
 
+import android.annotation.TargetApi;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
@@ -97,7 +100,8 @@ public class VideoCastControllerActivity extends AppCompatActivity implements
     private View mPlaybackControls;
     private Toolbar mToolbar;
     private int mNextPreviousVisibilityPolicy
-            = VideoCastController.NEXT_PREV_VISIBILITY_POLICY_DISABLED;
+            = CastConfiguration.NEXT_PREV_VISIBILITY_POLICY_DISABLED;
+    private boolean mImmersive;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,6 +109,7 @@ public class VideoCastControllerActivity extends AppCompatActivity implements
         setContentView(R.layout.cast_activity);
         loadAndSetupViews();
         mCastManager = VideoCastManager.getInstance();
+        mImmersive = mCastManager.getCastConfiguration().isCastControllerImmersive();
         mVolumeIncrement = mCastManager.getVolumeStep();
 
         Bundle extras = getIntent().getExtras();
@@ -286,7 +291,9 @@ public class VideoCastControllerActivity extends AppCompatActivity implements
     private void setUpActionBar() {
         mToolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(mToolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
     }
 
     @Override
@@ -327,7 +334,7 @@ public class VideoCastControllerActivity extends AppCompatActivity implements
         boolean prevAvailable = position > 0;
         boolean nextAvailable = position < queueLength - 1;
         switch(mNextPreviousVisibilityPolicy) {
-            case VideoCastController.NEXT_PREV_VISIBILITY_POLICY_HIDDEN:
+            case CastConfiguration.NEXT_PREV_VISIBILITY_POLICY_HIDDEN:
                 if (nextAvailable) {
                     mSkipNext.setVisibility(View.VISIBLE);
                     mSkipNext.setEnabled(true);
@@ -341,13 +348,13 @@ public class VideoCastControllerActivity extends AppCompatActivity implements
                     mSkipPrevious.setVisibility(View.INVISIBLE);
                 }
                 break;
-            case VideoCastController.NEXT_PREV_VISIBILITY_POLICY_ALWAYS:
+            case CastConfiguration.NEXT_PREV_VISIBILITY_POLICY_ALWAYS:
                 mSkipNext.setVisibility(View.VISIBLE);
                 mSkipNext.setEnabled(true);
                 mSkipPrevious.setVisibility(View.VISIBLE);
                 mSkipPrevious.setEnabled(true);
                 break;
-            case VideoCastController.NEXT_PREV_VISIBILITY_POLICY_DISABLED:
+            case CastConfiguration.NEXT_PREV_VISIBILITY_POLICY_DISABLED:
                 if (nextAvailable) {
                     mSkipNext.setVisibility(View.VISIBLE);
                     mSkipNext.setEnabled(true);
@@ -459,8 +466,42 @@ public class VideoCastControllerActivity extends AppCompatActivity implements
     }
 
     @Override // from VideoCastController
-    public void setNextPreviousVisibilityPolicy(int policy) {
+    public void setNextPreviousVisibilityPolicy(@CastConfiguration.PREV_NEXT_POLICY int policy) {
         mNextPreviousVisibilityPolicy = policy;
     }
 
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus && mImmersive) {
+            setImmersive();
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+    private void setImmersive() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
+            return;
+        }
+        int newUiOptions = getWindow().getDecorView().getSystemUiVisibility();
+
+        // Navigation bar hiding:  Backwards compatible to ICS.
+        if (Build.VERSION.SDK_INT >= 14) {
+            newUiOptions ^= View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+        }
+
+        // Status bar hiding: Backwards compatible to Jellybean
+        if (Build.VERSION.SDK_INT >= 16) {
+            newUiOptions ^= View.SYSTEM_UI_FLAG_FULLSCREEN;
+        }
+
+        if (Build.VERSION.SDK_INT >= 18) {
+            newUiOptions ^= View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+        }
+
+        getWindow().getDecorView().setSystemUiVisibility(newUiOptions);
+        if (Build.VERSION.SDK_INT >= 18) {
+            setImmersive(true);
+        }
+    }
 }

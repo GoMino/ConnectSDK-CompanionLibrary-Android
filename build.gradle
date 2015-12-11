@@ -32,9 +32,14 @@ repositories {
 
 apply plugin: 'com.android.library'
 
+ext {
+    supportLibVersion = '23.1.1'
+    versionName = '2.7.0'
+}
+
 android {
     compileSdkVersion 23
-    buildToolsVersion "23"
+    buildToolsVersion "23.0.2"
     publishNonDefault true
 
     defaultConfig {
@@ -49,10 +54,23 @@ android {
             res.srcDirs = ['res']
         }
     }
+
+    buildTypes {
+        debug {
+            libraryVariants.all { variant ->
+                variant.outputs.each { output ->
+                    output.outputFile = new File(output.outputFile.parent, output.outputFile.name.
+                            replace(".aar", "-${versionName}.aar"))
+                }
+            }
+        }
+
+    }
 }
 
+
 dependencies {
-    compile 'com.android.support:appcompat-v7:23.1.1'
-    compile 'com.android.support:mediarouter-v7:23.1.1'
+    compile "com.android.support:appcompat-v7:${supportLibVersion}"
+    compile "com.android.support:mediarouter-v7:${supportLibVersion}"
     compile 'com.google.android.gms:play-services-cast:8.3.0'
 }

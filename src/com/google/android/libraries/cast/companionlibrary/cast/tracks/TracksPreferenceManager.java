@@ -44,6 +44,7 @@ import java.util.Map;
  * This class manages preference settings for captions for Android versions prior to KitKat and
  * provides a number of methods that would work across all supported versions of Android.
  */
+@SuppressWarnings("unused")
 public class TracksPreferenceManager implements SharedPreferences.OnSharedPreferenceChangeListener {
 
     private static final String TAG = LogUtils.makeLogTag(TracksPreferenceManager.class);

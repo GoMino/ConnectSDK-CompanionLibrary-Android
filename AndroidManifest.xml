@@ -14,9 +14,7 @@
   limitations under the License.
   -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.google.android.libraries.cast.companionlibrary"
-    android:versionCode="19"
-    android:versionName="2.6.1" >
+    package="com.google.android.libraries.cast.companionlibrary">
 
     <uses-sdk
         android:minSdkVersion="10"

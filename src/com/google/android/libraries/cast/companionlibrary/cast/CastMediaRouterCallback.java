@@ -55,7 +55,8 @@ public class CastMediaRouterCallback extends MediaRouter.Callback {
                 BaseCastManager.PREFS_KEY_ROUTE_ID, info.getId());
         CastDevice device = CastDevice.getFromBundle(info.getExtras());
         mCastManager.onDeviceSelected(device);
-        LOGD(TAG, "onRouteSelected: mSelectedDevice=" + device.getFriendlyName());
+        LOGD(TAG, "onRouteSelected: mSelectedDevice=" + (device != null ? device.getFriendlyName()
+                : "Null"));
     }
 
     @Override
@@ -81,7 +82,7 @@ public class CastMediaRouterCallback extends MediaRouter.Callback {
 
                 CastDevice device = CastDevice.getFromBundle(route.getExtras());
                 LOGD(TAG, "onRouteAdded: Attempting to recover a session with device: "
-                        + device.getFriendlyName());
+                        + (device != null ? device.getFriendlyName() : "Null"));
                 mCastManager.onDeviceSelected(device);
             }
         }

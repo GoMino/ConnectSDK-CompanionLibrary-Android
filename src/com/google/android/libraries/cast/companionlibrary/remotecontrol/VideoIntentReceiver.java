@@ -42,23 +42,65 @@ public class VideoIntentReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        VideoCastManager castMgr = VideoCastManager.getInstance();
         String action = intent.getAction();
         if (action == null) {
             return;
         }
+        VideoCastManager castManager = VideoCastManager.getInstance();
         switch (action) {
             case VideoCastNotificationService.ACTION_TOGGLE_PLAYBACK:
                 try {
-                    VideoCastManager.getInstance().togglePlayback();
+                    castManager.togglePlayback();
                 } catch (CastException | TransientNetworkDisconnectionException |
                         NoConnectionException e) {
-                    LOGE(TAG, "onReceive() Failed to toggle playback ");
+                    LOGE(TAG, "onReceive() Failed to toggle playback");
+                }
+                break;
+            case VideoCastNotificationService.ACTION_PLAY_NEXT:
+                try {
+                    castManager.queueNext(null);
+                } catch (TransientNetworkDisconnectionException |
+                        NoConnectionException e) {
+                    LOGE(TAG, "onReceive() Failed to skip to the next in queue");
+                }
+                break;
+            case VideoCastNotificationService.ACTION_PLAY_PREV:
+                try {
+                    castManager.queuePrev(null);
+                } catch (TransientNetworkDisconnectionException |
+                        NoConnectionException e) {
+                    LOGE(TAG, "onReceive() Failed to skip to the previous in queue");
+                }
+                break;
+            case VideoCastNotificationService.ACTION_FORWARD:
+                int forwardAmount = intent
+                        .getIntExtra(VideoCastNotificationService.EXTRA_FORWARD_STEP_MS, 0);
+                try {
+                    castManager.forward(forwardAmount);
+                } catch (TransientNetworkDisconnectionException |
+                        NoConnectionException e) {
+                    LOGE(TAG, "onReceive() Failed to forward the media");
+                }
+                break;
+            case VideoCastNotificationService.ACTION_REWIND:
+                int rewindAmount = intent
+                        .getIntExtra(VideoCastNotificationService.EXTRA_FORWARD_STEP_MS, 0);
+                try {
+                    castManager.forward(rewindAmount);
+                } catch (TransientNetworkDisconnectionException |
+                        NoConnectionException e) {
+                    LOGE(TAG, "onReceive() Failed to rewind the media");
                 }
                 break;
             case VideoCastNotificationService.ACTION_STOP:
                 LOGD(TAG, "Calling stopApplication from intent");
-                castMgr.disconnect();
+                castManager.disconnectDevice(true, true, true);
+                // we stop the notification service to make sure we are not left with an orphaned
+                // persistent notification if other things go wrong
+                if (castManager.getNotificationServiceClass() != null) {
+                    context.stopService(
+                            new Intent(context, castManager.getNotificationServiceClass()));
+                }
                 break;
             case Intent.ACTION_MEDIA_BUTTON:
                 // this is used when we toggle playback from lockscreen in versions prior to
@@ -67,13 +109,13 @@ public class VideoIntentReceiver extends BroadcastReceiver {
                     return;
                 }
                 KeyEvent keyEvent = (KeyEvent) intent.getExtras().get(Intent.EXTRA_KEY_EVENT);
-                if (keyEvent.getAction() != KeyEvent.ACTION_DOWN) {
+                if (keyEvent == null || keyEvent.getAction() != KeyEvent.ACTION_DOWN) {
                     return;
                 }
 
                 if (keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) {
                     try {
-                        VideoCastManager.getInstance().togglePlayback();
+                        castManager.togglePlayback();
                     } catch (CastException | TransientNetworkDisconnectionException |
                             NoConnectionException e) {
                         LOGE(TAG, "onReceive() Failed to toggle playback ");
