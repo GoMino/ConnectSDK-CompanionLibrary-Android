@@ -13,15 +13,16 @@ Set up the project dependencies. To use this library in your project, follow the
 ```shell
 git clone https://github.com/googlecast/CastCompanionLibrary-android.git CastCompanionLibrary
 ```
- * In the root of your application's project edit the file "settings.gradle" and add a new "include" line:
+ * In the root of your application's project edit the file "settings.gradle" and add the following lines:
 ```shell
-include '..:CastCompanionLibrary'
+include ':CastCompanionLibrary'
+project(':CastCompanionLibrary').projectDir = new File('../CastCompanionLibrary/')
 ```
  * In your application's main module (usually called "app"), edit your build.gradle to add a new dependency:
 ```shell
  dependencies {
     ...
-    compile project(':..:CastCompanionLibrary')
+    compile project(':CastCompanionLibrary')
  }
 ```
 Now your project is ready to use this library
@@ -47,6 +48,16 @@ See LICENSE
 Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl/TPLDxj)
 
 ## Change List
+
+2.7.1
+ 
+ * Added a full-screen overlay for clients to introduce cast to users. This removes the
+ need to use any additional libraries for this purpose. Look at the javadoc for IntroductoryOverlay class for
+ the supported features, styling and customization of this view. For a working example, take a look at the
+ [CastVideos-android](https://github.com/googlecast/CastVideos-android) reference sample app.
+ * Fixed #256 (thanks to [curlyfrie](https://github.com/curlyfrie) for making the suggestion).
+ * Updated to the latest Play Service library (v8.4.0).
+ * Documentation has been updated to reflect the new changes.
 
 2.7.0
 

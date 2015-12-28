@@ -16,7 +16,7 @@
   -->
 <resources>
 
-    <string name="ccl_version">2.7.0</string>
+    <string name="ccl_version">2.7.1</string>
     <string name="ccl_media_route_menu_title">Play on&#8230;</string>
     <string name="ccl_live">Live</string>
     <string name="ccl_cancel">Cancel</string>
@@ -72,5 +72,8 @@
     <string name="ccl_skip_previous">Skip Previous</string>
     <string name="ccl_forward">Forward</string>
     <string name="ccl_rewind">Rewind</string>
+
+    <!-- Introductory Overlay -->
+    <string name="ccl_intro_overlay_button_text">@android:string/ok</string>
 
 </resources>
