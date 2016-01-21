@@ -68,6 +68,7 @@ import android.content.Intent;
 import android.content.res.Resources.NotFoundException;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Point;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
@@ -2335,7 +2336,8 @@ public class VideoCastManager extends BaseCastManager
             if (mLockScreenFetchTask != null) {
                 mLockScreenFetchTask.cancel(true);
             }
-            mLockScreenFetchTask = new FetchBitmapTask() {
+            Point screenSize = Utils.getDisplaySize(mContext);
+            mLockScreenFetchTask = new FetchBitmapTask(screenSize.x, screenSize.y) {
                 @Override
                 protected void onPostExecute(Bitmap bitmap) {
                     if (mMediaSessionCompat != null) {

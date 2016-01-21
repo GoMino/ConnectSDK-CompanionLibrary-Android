@@ -32,6 +32,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Point;
 import android.graphics.RectF;
 import android.net.Uri;
 import android.net.wifi.WifiInfo;
@@ -42,6 +43,8 @@ import android.os.Looper;
 import android.os.Parcelable;
 import android.text.TextUtils;
 import android.util.TypedValue;
+import android.view.Display;
+import android.view.WindowManager;
 import android.widget.Toast;
 
 import org.json.JSONArray;
@@ -483,5 +486,15 @@ public final class Utils {
             throw new IllegalArgumentException(name + " cannot be null");
         }
         return string;
+    }
+
+    @SuppressWarnings("deprecation")
+    /**
+     * Returns the screen/display size
+     */
+    public static Point getDisplaySize(Context context) {
+        WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+        Display display = wm.getDefaultDisplay();
+        return new Point(display.getWidth(), display.getHeight());
     }
 }

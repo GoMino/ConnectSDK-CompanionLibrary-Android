@@ -101,7 +101,7 @@ public class IntroductoryOverlay extends RelativeLayout {
         this(builder, null, R.styleable.CustomTheme_CCLIntroOverlayStyle);
     }
 
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     public IntroductoryOverlay(Builder builder, AttributeSet attrs, int defStyleAttr) {
         super(builder.mContext, attrs, defStyleAttr);
         mContext = builder.mContext;

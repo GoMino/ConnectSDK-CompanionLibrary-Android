@@ -19,6 +19,7 @@ package com.google.android.libraries.cast.companionlibrary.utils;
 import android.annotation.TargetApi;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Point;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -70,6 +71,20 @@ public abstract class FetchBitmapTask extends AsyncTask<Uri, Void, Bitmap> {
         } catch (MalformedURLException e) {
             return null;
         }
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = false;
+        options.inSampleSize = 1;
+        if ((mPreferredWidth > 0) && (mPreferredHeight > 0)) {
+            // This is done to do appropriate resampling when the image is too large for the
+            // desired target size; instead of downloading the original image and resizing that
+            // (which can run into OOM exception), we find an appropriate in-sample-size and
+            // only adjust the options to download the resized version.
+            Point originalSize = calculateOriginalDimensions(url);
+            if (originalSize.x > 0 && originalSize.y > 0) {
+                options.inSampleSize = calculateInSampleSize(originalSize.x, originalSize.y,
+                        mPreferredWidth, mPreferredHeight);
+            }
+        }
         HttpURLConnection urlConnection = null;
         try {
             urlConnection = (HttpURLConnection) url.openConnection();
@@ -77,7 +92,7 @@ public abstract class FetchBitmapTask extends AsyncTask<Uri, Void, Bitmap> {
 
             if (urlConnection.getResponseCode() == HttpURLConnection.HTTP_OK) {
                 InputStream stream = new BufferedInputStream(urlConnection.getInputStream());
-                bitmap = BitmapFactory.decodeStream(stream);
+                bitmap = BitmapFactory.decodeStream(stream, null, options);
                 if ((mPreferredWidth > 0) && (mPreferredHeight > 0)) {
                     bitmap = scaleBitmap(bitmap);
                 }
@@ -141,4 +156,52 @@ public abstract class FetchBitmapTask extends AsyncTask<Uri, Void, Bitmap> {
         return Bitmap.createScaledBitmap(bitmap, finalWidth, finalHeight, false);
     }
 
+    /**
+     * Returns the original size of the image.
+     */
+    private Point calculateOriginalDimensions(URL url) {
+        int inSampleSize = 0;
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        options.inSampleSize = inSampleSize;
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection)url.openConnection();
+            InputStream stream = connection.getInputStream();
+            BitmapFactory.decodeStream(stream, null, options);
+            return new Point(options.outWidth, options.outHeight);
+        } catch (IOException e) {
+             /* ignore */
+        }  finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+        return new Point(0, 0);
+    }
+
+    /**
+     * Find the appropriate in-sample-size (as an inverse power of 2) to help reduce the size of
+     * downloaded image.
+     */
+    private int calculateInSampleSize(int originalWidth, int originalHeight,
+            int reqWidth, int reqHeight) {
+        // Raw height and width of image
+        int inSampleSize = 1;
+
+        if (originalHeight > reqHeight || originalWidth > reqWidth) {
+
+            final int halfHeight = originalHeight / 2;
+            final int halfWidth = originalWidth / 2;
+
+            // Calculate the largest inSampleSize value that is a power of 2 and keeps both
+            // height and width larger than the requested height and width.
+            while ((halfHeight / inSampleSize) > reqHeight
+                    && (halfWidth / inSampleSize) > reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+
+        return inSampleSize;
+    }
 }

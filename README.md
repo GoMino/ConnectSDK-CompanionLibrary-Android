@@ -49,6 +49,12 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
 
 ## Change List
 
+2.7.2
+
+ * Now in the full-screen cast controller (VideoCastControllerActivity) and on lockscreen, images are
+ appropriately scaled down before being fetched, to avoid undesired OOM on devices with less memory.
+ * Fixed a couple of minor issues in the PDF documentation.
+
 2.7.1
  
  * Added a full-screen overlay for clients to introduce cast to users. This removes the

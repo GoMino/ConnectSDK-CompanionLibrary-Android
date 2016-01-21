@@ -43,6 +43,7 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Point;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -580,9 +581,6 @@ public class VideoCastControllerFragment extends Fragment implements
      * image to avoid unnecessary network calls.
      */
     private void showImage(final Uri uri) {
-        if (mImageAsyncTask != null) {
-            mImageAsyncTask.cancel(true);
-        }
         if (uri == null) {
             mCastController.setImage(BitmapFactory.decodeResource(getActivity().getResources(),
                     R.drawable.album_art_placeholder_large));
@@ -597,7 +595,8 @@ public class VideoCastControllerFragment extends Fragment implements
         if (mImageAsyncTask != null) {
             mImageAsyncTask.cancel(true);
         }
-        mImageAsyncTask = new FetchBitmapTask() {
+        Point screenSize = Utils.getDisplaySize(getActivity());
+        mImageAsyncTask = new FetchBitmapTask(screenSize.x, screenSize.y) {
             @Override
             protected void onPostExecute(Bitmap bitmap) {
                 if (bitmap != null) {
