@@ -24,6 +24,7 @@ import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
+import android.support.v7.app.MediaRouteDialogFactory;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -85,6 +86,7 @@ public class CastConfiguration {
     private LaunchOptions mLaunchOptions;
     private boolean mCastControllerImmersive;
     private int mForwardStep;
+    private MediaRouteDialogFactory mMediaRouteDialogFactory;
 
     private CastConfiguration(Builder builder) {
         if (builder.mDebugEnabled) {
@@ -120,6 +122,7 @@ public class CastConfiguration {
         mCastControllerImmersive = builder.mCastControllerImmersive;
         mForwardStep = builder.mForwardStep;
         mCustomNotificationService = builder.mCustomNotificationService;
+        mMediaRouteDialogFactory = builder.mMediaRouteDialogFactory;
     }
 
     public List<Integer> getNotificationActions() {
@@ -167,6 +170,10 @@ public class CastConfiguration {
         return mCustomNotificationService;
     }
 
+    public MediaRouteDialogFactory getMediaRouteDialogFactory() {
+        return mMediaRouteDialogFactory;
+    }
+
     public static class Builder {
 
         private List<Integer> mNotificationActions;
@@ -187,6 +194,7 @@ public class CastConfiguration {
         private boolean mCastControllerImmersive = true;
         private int mForwardStep = CCL_DEFAULT_FORWARD_STEP_S;
         private Class<? extends Service> mCustomNotificationService;
+        private MediaRouteDialogFactory mMediaRouteDialogFactory;
 
         public Builder(String applicationId) {
             mApplicationId = Utils.assertNotEmpty(applicationId, "applicationId");
@@ -398,6 +406,15 @@ public class CastConfiguration {
                 Class<? extends Service> customNotificationService) {
             mCustomNotificationService = Utils
                     .assertNotNull(customNotificationService, "customNotificationService");
+            return this;
+        }
+
+        /**
+         * (Optional) Sets the {@link MediaRouteDialogFactory}. This is optional and if not called,
+         * the default dialog will be used.
+         */
+        public Builder setMediaRouteDialogFactory(MediaRouteDialogFactory factory) {
+            mMediaRouteDialogFactory = factory;
             return this;
         }
     }

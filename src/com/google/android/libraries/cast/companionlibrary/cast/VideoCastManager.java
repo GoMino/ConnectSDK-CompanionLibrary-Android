@@ -2603,14 +2603,6 @@ public class VideoCastManager extends BaseCastManager
         mMediaQueue = null;
     }
 
-    @Override
-    protected MediaRouteDialogFactory getMediaRouteDialogFactory() {
-        // you can return "new VideoMediaRouteDialogFactory()" if interested in the custom
-        // dialog defined in this library; recent versions of the dialogs provided by the
-        // support library follow the UX guideline.
-        return null;
-    }
-
     class CastListener extends Cast.Listener {
 
         /*

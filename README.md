@@ -49,6 +49,13 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
 
 ## Change List
 
+2.7.3
+
+ * Added a configuration parameter to allow clients define their own MediaRouteDialogFactory. As a result,
+ the protected method "getMediaRouteDialogFactory()" has been removed from the VideoCastManager and DataCastManager.
+ If you were previously using this method, please update your code to use the CastConfiguration object
+ to achieve the same.
+
 2.7.2
 
  * Now in the full-screen cast controller (VideoCastControllerActivity) and on lockscreen, images are
@@ -56,7 +63,7 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
  * Fixed a couple of minor issues in the PDF documentation.
 
 2.7.1
- 
+
  * Added a full-screen overlay for clients to introduce cast to users. This removes the
  need to use any additional libraries for this purpose. Look at the javadoc for IntroductoryOverlay class for
  the supported features, styling and customization of this view. For a working example, take a look at the

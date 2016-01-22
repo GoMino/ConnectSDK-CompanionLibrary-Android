@@ -251,11 +251,6 @@ public class DataCastManager extends BaseCastManager implements Cast.MessageRece
     }
 
     @Override
-    protected MediaRouteDialogFactory getMediaRouteDialogFactory() {
-        return null;
-    }
-
-    @Override
     public void onApplicationConnected(ApplicationMetadata appMetadata, String applicationStatus,
             String sessionId, boolean wasLaunched) {
         LOGD(TAG, "onApplicationConnected() reached with sessionId: " + sessionId);

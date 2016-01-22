@@ -159,12 +159,6 @@ public abstract class BaseCastManager
     protected abstract Cast.CastOptions.Builder getCastOptionBuilder(CastDevice device);
 
     /**
-     * Subclasses can decide how the Cast Controller Dialog should be built. If this returns
-     * <code>null</code>, the default dialog will be shown.
-     */
-    protected abstract MediaRouteDialogFactory getMediaRouteDialogFactory();
-
-    /**
      * Subclasses should implement this to react appropriately to the successful launch of their
      * application. This is called when the application is successfully launched.
      */
@@ -214,6 +208,15 @@ public abstract class BaseCastManager
         mMediaRouterCallback = new CastMediaRouterCallback(this);
         mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback,
                 MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
+    }
+
+    /**
+     * Returns the {@link MediaRouteDialogFactory} that defines the chooser and controller dialogs
+     * for selecting a route and controlling the route when connected. The default factory will be
+     * used unless a different one is configured in {@link CastConfiguration}.
+     */
+    private MediaRouteDialogFactory getMediaRouteDialogFactory() {
+        return mCastConfiguration.getMediaRouteDialogFactory();
     }
 
     /**
