@@ -49,6 +49,10 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
 
 ## Change List
 
+2.7.4
+
+ * Fixed issue #269 where an unwanted scaling of a bitmap was resulting in reduced quality.
+
 2.7.3
 
  * Added a configuration parameter to allow clients define their own MediaRouteDialogFactory. As a result,

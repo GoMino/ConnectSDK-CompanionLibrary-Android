@@ -39,20 +39,41 @@ import java.net.URL;
 public abstract class FetchBitmapTask extends AsyncTask<Uri, Void, Bitmap> {
     private final int mPreferredWidth;
     private final int mPreferredHeight;
+    private final boolean mAllowedToScale;
 
     /**
-     * Constructs a new FetchBitmapTask that will do scaling.
+     * Constructs a new FetchBitmapTask that will do in-sampling and scaling, if needed.
      *
      * @param preferredWidth The preferred image width.
      * @param preferredHeight The preferred image height.
+     * @param allowedToScale If {@code true}, the resulting bitmap will be scaled to match the
+     * preferred dimensions while keeping the aspect ratio. Otherwise, no additional scaling will
+     * be performed.
      */
-    public FetchBitmapTask(int preferredWidth, int preferredHeight) {
+    public FetchBitmapTask(int preferredWidth, int preferredHeight, boolean allowedToScale) {
         mPreferredWidth = preferredWidth;
         mPreferredHeight = preferredHeight;
+        mAllowedToScale = allowedToScale;
     }
 
     /**
-     * Constructs a new FetchBitmapTask. No scaling will be performed if you use this constructor.
+     * Constructs a new FetchBitmapTask that will do in-sampling but no scaling.
+     *
+     * @param preferredWidth The preferred image width.
+     * @param preferredHeight The preferred image height.
+     *
+     * @see FetchBitmapTask#FetchBitmapTask(int, int, boolean)
+     */
+    public FetchBitmapTask(int preferredWidth, int preferredHeight) {
+        this(preferredWidth, preferredHeight, false);
+    }
+
+    /**
+     * Constructs a new FetchBitmapTask. No scaling or in-sampling will be performed if you use this
+     * constructor.
+     *
+     * @see FetchBitmapTask#FetchBitmapTask(int, int)
+     * @see FetchBitmapTask#FetchBitmapTask(int, int, boolean)
      */
     public FetchBitmapTask() {
         this(0, 0);
@@ -93,7 +114,7 @@ public abstract class FetchBitmapTask extends AsyncTask<Uri, Void, Bitmap> {
             if (urlConnection.getResponseCode() == HttpURLConnection.HTTP_OK) {
                 InputStream stream = new BufferedInputStream(urlConnection.getInputStream());
                 bitmap = BitmapFactory.decodeStream(stream, null, options);
-                if ((mPreferredWidth > 0) && (mPreferredHeight > 0)) {
+                if ((mPreferredWidth > 0) && (mPreferredHeight > 0) && mAllowedToScale) {
                     bitmap = scaleBitmap(bitmap);
                 }
             }
