@@ -11,7 +11,7 @@ CastCompanionLibrary-android is a library project to enable developers integrate
 Set up the project dependencies. To use this library in your project, you have two options:
 
 (1) Add this library from jCenter repo by adding the following line to your project's
-dependencies (note that you would need to explicitly include dependencies on the support and Play Services libraries as well):
+dependencies:
 ```shell
  dependencies {
     ...
