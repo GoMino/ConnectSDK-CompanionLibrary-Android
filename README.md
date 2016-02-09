@@ -8,7 +8,18 @@ CastCompanionLibrary-android is a library project to enable developers integrate
 * android-support-v7-mediarouter (version 23.1.1 or above)
 
 ## Setup Instructions
-Set up the project dependencies. To use this library in your project, follow these steps:
+Set up the project dependencies. To use this library in your project, you have two options:
+
+(1) Add this library from jCenter repo by adding the following line to your project's
+dependencies (note that you would need to explicitly include dependencies on the support and Play Services libraries as well):
+```shell
+ dependencies {
+    ...
+    compile 'com.google.android.libraries.cast.companionlibrary:ccl:2.7.4'
+ }
+```
+
+(2) Use the GitHub source and include that as a module dependency by following these steps:
  * Clone this library into a project named CastCompanionLibrary, parallel to your own application project:
 ```shell
 git clone https://github.com/googlecast/CastCompanionLibrary-android.git CastCompanionLibrary
