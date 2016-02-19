@@ -61,7 +61,7 @@ public interface BaseCastConsumer extends OnFailedListener {
      *     <li>{@link BaseCastManager#DISCONNECT_REASON_OTHER}</li>
      * </ul>@BaseCastManager.DISCONNECT_REASON
      */
-    void onDisconnectionReason(@BaseCastManager.DISCONNECT_REASON int reason);
+    void onDisconnectionReason(@BaseCastManager.DisconnectReason int reason);
 
     /**
      * Called when an error happens while connecting to a device.
@@ -84,6 +84,11 @@ public interface BaseCastConsumer extends OnFailedListener {
     void onCastAvailabilityChanged(boolean castPresent);
 
     /**
+     * Called when a route is removed.
+     */
+    void onRouteRemoved(RouteInfo info);
+
+    /**
      * Called after reconnection is established following a temporary disconnection, say, due to
      * network issues.
      */
@@ -102,5 +107,5 @@ public interface BaseCastConsumer extends OnFailedListener {
     /**
      * Called when a device is selected/unselected.
      */
-    void onDeviceSelected(CastDevice device);
+    void onDeviceSelected(CastDevice device, RouteInfo routeInfo);
 }

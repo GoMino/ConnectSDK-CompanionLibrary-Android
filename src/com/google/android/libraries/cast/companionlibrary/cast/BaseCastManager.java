@@ -76,7 +76,6 @@ import java.util.concurrent.CopyOnWriteArraySet;
  * An abstract class that manages connectivity to a cast device. Subclasses are expected to extend
  * the functionality of this class based on their purpose.
  */
-@SuppressWarnings("unused")
 public abstract class BaseCastManager
         implements ConnectionCallbacks, OnConnectionFailedListener, OnFailedListener {
 
@@ -107,10 +106,13 @@ public abstract class BaseCastManager
     public static final int DISCONNECT_REASON_EXPLICIT = 3;
     protected CastConfiguration mCastConfiguration;
 
+    /**
+     * Enumerates the reasons behind a disconnect
+     */
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({DISCONNECT_REASON_OTHER, DISCONNECT_REASON_CONNECTIVITY,
             DISCONNECT_REASON_APP_NOT_RUNNING, DISCONNECT_REASON_EXPLICIT})
-    public @interface DISCONNECT_REASON {}
+    public @interface DisconnectReason {}
 
     public static final int NO_APPLICATION_ERROR = 0;
 
@@ -223,14 +225,14 @@ public abstract class BaseCastManager
      * Called when a {@link CastDevice} is extracted from the {@link RouteInfo}. This is where all
      * the fun starts!
      */
-    public final void onDeviceSelected(CastDevice device) {
+    public final void onDeviceSelected(CastDevice device, RouteInfo routeInfo) {
+        for (BaseCastConsumer consumer : mBaseCastConsumers) {
+            consumer.onDeviceSelected(device, routeInfo);
+        }
         if (device == null) {
             disconnectDevice(mDestroyOnDisconnect, true, false);
         } else {
             setDevice(device);
-        }
-        for (BaseCastConsumer consumer : mBaseCastConsumers) {
-            consumer.onDeviceSelected(device);
         }
     }
 
@@ -364,6 +366,15 @@ public abstract class BaseCastManager
     public final void onCastDeviceDetected(RouteInfo info) {
         for (BaseCastConsumer consumer : mBaseCastConsumers) {
             consumer.onCastDeviceDetected(info);
+        }
+    }
+
+    /**
+     * Called when a route is removed.
+     */
+    public final void onRouteRemoved(RouteInfo info) {
+        for (BaseCastConsumer consumer : mBaseCastConsumers) {
+            consumer.onRouteRemoved(info);
         }
     }
 
@@ -739,7 +750,7 @@ public abstract class BaseCastManager
 
         if (device != null) {
             LOGD(TAG, "trying to acquire Cast Client for " + device);
-            onDeviceSelected(device);
+            onDeviceSelected(device, theRoute);
         }
     }
 
@@ -852,7 +863,7 @@ public abstract class BaseCastManager
                     if (result == null || !result) {
                         LOGD(TAG, "Couldn't reconnect, dropping connection");
                         setReconnectionStatus(RECONNECTION_STATUS_INACTIVE);
-                        onDeviceSelected(null);
+                        onDeviceSelected(null /* CastDevice */, null /* RouteInfo */);
                     }
                 }
 
@@ -906,7 +917,9 @@ public abstract class BaseCastManager
                 mPreferenceAccessor.saveStringToPreference(PREFS_KEY_SSID, ssid);
             }
             Cast.CastApi.requestStatus(mApiClient);
-            launchApp();
+            if (!mCastConfiguration.isDisableLaunchOnConnect()) {
+                launchApp();
+            }
 
             for (BaseCastConsumer consumer : mBaseCastConsumers) {
                 consumer.onConnected();
@@ -970,12 +983,15 @@ public abstract class BaseCastManager
         }
     }
 
-    /*
-     * Launches application. For this to succeed, a connection should be already established by the
-     * CastClient.
+    /**
+     * Launches application with the given {@code applicationId} and {@link LaunchOptions}.
+     *
+     * @throws TransientNetworkDisconnectionException
+     * @throws NoConnectionException
      */
-    private void launchApp() throws TransientNetworkDisconnectionException, NoConnectionException {
-        LOGD(TAG, "launchApp() is called");
+    public final void launchApp(String applicationId, LaunchOptions launchOptions)
+            throws TransientNetworkDisconnectionException, NoConnectionException {
+        LOGD(TAG, "launchApp(applicationId, launchOptions) is called");
         if (!isConnected()) {
             if (mReconnectionStatus == RECONNECTION_STATUS_IN_PROGRESS) {
                 setReconnectionStatus(RECONNECTION_STATUS_INACTIVE);
@@ -988,7 +1004,7 @@ public abstract class BaseCastManager
             LOGD(TAG, "Attempting to join a previously interrupted session...");
             String sessionId = mPreferenceAccessor.getStringFromPreference(PREFS_KEY_SESSION_ID);
             LOGD(TAG, "joinApplication() -> start");
-            Cast.CastApi.joinApplication(mApiClient, mApplicationId, sessionId).setResultCallback(
+            Cast.CastApi.joinApplication(mApiClient, applicationId, sessionId).setResultCallback(
                     new ResultCallback<Cast.ApplicationConnectionResult>() {
 
                         @Override
@@ -1009,7 +1025,7 @@ public abstract class BaseCastManager
             );
         } else {
             LOGD(TAG, "Launching app");
-            Cast.CastApi.launchApplication(mApiClient, mApplicationId, mLaunchOptions)
+            Cast.CastApi.launchApplication(mApiClient, applicationId, launchOptions)
                     .setResultCallback(
                             new ResultCallback<Cast.ApplicationConnectionResult>() {
 
@@ -1030,6 +1046,15 @@ public abstract class BaseCastManager
                             }
                     );
         }
+    }
+
+    /*
+     * Launches application. For this to succeed, a connection should be already established by the
+     * CastClient.
+     */
+    private void launchApp() throws TransientNetworkDisconnectionException, NoConnectionException {
+        LOGD(TAG, "launchApp() is called");
+        launchApp(mCastConfiguration.getApplicationId(), mCastConfiguration.getLaunchOptions());
     }
 
     /**

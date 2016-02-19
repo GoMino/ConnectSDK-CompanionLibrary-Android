@@ -24,7 +24,6 @@ import com.google.android.gms.common.api.Status;
  * An interface that extends {@link BaseCastConsumer} and adds callbacks for application lifecycle
  * and success or failure of message exchange with a cast device.
  */
-@SuppressWarnings("unused")
 public interface DataCastConsumer extends BaseCastConsumer {
     /**
      * Called when the application is successfully launched or joined. Upon successful connection, a

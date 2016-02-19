@@ -31,7 +31,6 @@ import java.util.Locale;
  * An interface that extends {@link BaseCastConsumer} and
  * adds callbacks related to the lifecycle of a video-centric application.
  */
-@SuppressWarnings("unused")
 public interface VideoCastConsumer extends BaseCastConsumer {
 
     /**

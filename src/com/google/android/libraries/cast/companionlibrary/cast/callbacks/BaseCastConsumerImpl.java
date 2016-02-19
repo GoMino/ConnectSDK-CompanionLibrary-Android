@@ -38,7 +38,7 @@ public class BaseCastConsumerImpl implements BaseCastConsumer {
     }
 
     @Override
-    public void onDisconnectionReason(@BaseCastManager.DISCONNECT_REASON int reason) {
+    public void onDisconnectionReason(@BaseCastManager.DisconnectReason int reason) {
         // no-op
     }
 
@@ -54,6 +54,11 @@ public class BaseCastConsumerImpl implements BaseCastConsumer {
 
     @Override
     public void onCastAvailabilityChanged(boolean castPresent) {
+        // no-op
+    }
+
+    @Override
+    public void onRouteRemoved(RouteInfo info) {
         // no-op
     }
 
@@ -78,7 +83,7 @@ public class BaseCastConsumerImpl implements BaseCastConsumer {
     }
 
     @Override
-    public void onDeviceSelected(CastDevice device) {
+    public void onDeviceSelected(CastDevice device, RouteInfo routeInfo) {
         // no-op
     }
 

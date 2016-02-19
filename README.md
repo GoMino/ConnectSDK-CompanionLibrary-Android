@@ -7,7 +7,7 @@ CastCompanionLibrary-android is a library project to enable developers integrate
 * android-support-v7-appcompat (version 23.1.1 or above)
 * android-support-v7-mediarouter (version 23.1.1 or above)
 
-## Setup Instructions
+## Set up Instructions
 Set up the project dependencies. To use this library in your project, you have two options:
 
 (1) Add this library from jCenter repo by adding the following line to your project's
@@ -41,9 +41,9 @@ Now your project is ready to use this library
 ## Documentation and Demo
 See the "CastCompanionLibrary.pdf" inside the project for a more extensive documentation. The
 [CastVideos-android](https://github.com/googlecast/CastVideos-android) reference sample app uses this library and
-can also be used to understand how this library can be used in a real application.
+demonstrates how this library can be used in a real application.
 
-## References and How to report bugs
+## References and how to report bugs
 * [Cast Developer Documentation](http://developers.google.com/cast/)
 * [Design Checklist](http://developers.google.com/cast/docs/design_checklist)
 * If you find any issues with this library, please open a bug here on GitHub
@@ -59,6 +59,19 @@ See LICENSE
 Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl/TPLDxj)
 
 ## Change List
+
+2.8.0
+
+ * CCL is now available from jCenter
+ * Introduced a collection of Simple Widgets: a number of cast-aware widgets that can be used with
+ no additional setup, managed by CCL.
+ * Changed the callback BaseCastConsumer.onDeviceSelected(CastDevice) to
+ BaseCastConsumer.onDeviceSelected(CastDevice, RouteInfo) to provide more information in the callback.
+ * Added a new callback BaseCastConsumer.onRouteRemoved(RouteInfo) to be called when a route is removed.
+ * Fixed #272 and a number of other minor issues.
+ * In their manifests, clients no longer need to add any "intent-filters" to the services and the receiver that CCL provides,
+ this enhances the security of the client applications.
+ * Updated the documentation.
 
 2.7.4
 

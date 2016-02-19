@@ -36,7 +36,6 @@ import com.google.android.libraries.cast.companionlibrary.cast.exceptions.Transi
 import com.google.android.libraries.cast.companionlibrary.utils.LogUtils;
 
 import android.content.Context;
-import android.support.v7.app.MediaRouteDialogFactory;
 import android.support.v7.media.MediaRouter.RouteInfo;
 import android.text.TextUtils;
 
@@ -74,7 +73,6 @@ import java.util.concurrent.CopyOnWriteArraySet;
  * update/activate their Google Play Services library. To learn more about this library, please read
  * the documentation that is distributed as part of this library.
  */
-@SuppressWarnings("unused")
 public class DataCastManager extends BaseCastManager implements Cast.MessageReceivedCallback {
 
     private static final String TAG = LogUtils.makeLogTag(DataCastManager.class);
@@ -277,7 +275,7 @@ public class DataCastManager extends BaseCastManager implements Cast.MessageRece
                 if (!found) {
                     // we were hoping to have the route that we wanted, but we
                     // didn't so we deselect the device
-                    onDeviceSelected(null);
+                    onDeviceSelected(null /* CastDevice */, null /* RouteInfo */);
                     mReconnectionStatus = RECONNECTION_STATUS_INACTIVE;
                     return;
                 }
@@ -341,13 +339,13 @@ public class DataCastManager extends BaseCastManager implements Cast.MessageRece
                 // while trying to re-establish session, we found out that the app is not running
                 // so we need to disconnect
                 mReconnectionStatus = RECONNECTION_STATUS_INACTIVE;
-                onDeviceSelected(null);
+                onDeviceSelected(null /* CastDevice */, null /* RouteInfo */);
             }
         } else {
             for (DataCastConsumer consumer : mDataConsumers) {
                 consumer.onApplicationConnectionFailed(errorCode);
             }
-            onDeviceSelected(null);
+            onDeviceSelected(null /* CastDevice */, null /* RouteInfo */);
             if (mMediaRouter != null) {
                 LOGD(TAG, "onApplicationConnectionFailed(): Setting route to default");
                 mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
@@ -362,7 +360,7 @@ public class DataCastManager extends BaseCastManager implements Cast.MessageRece
         if (mMediaRouter != null) {
             mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
         }
-        onDeviceSelected(null);
+        onDeviceSelected(null /* CastDevice */, null /* RouteInfo */);
 
     }
 

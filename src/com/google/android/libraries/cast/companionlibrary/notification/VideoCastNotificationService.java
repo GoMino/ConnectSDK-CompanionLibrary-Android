@@ -32,6 +32,7 @@ import com.google.android.libraries.cast.companionlibrary.cast.exceptions.CastEx
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.NoConnectionException;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions
         .TransientNetworkDisconnectionException;
+import com.google.android.libraries.cast.companionlibrary.remotecontrol.VideoIntentReceiver;
 import com.google.android.libraries.cast.companionlibrary.utils.FetchBitmapTask;
 import com.google.android.libraries.cast.companionlibrary.utils.LogUtils;
 import com.google.android.libraries.cast.companionlibrary.utils.Utils;
@@ -54,10 +55,10 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * A service to provide status bar Notifications when we are casting. For JB+ versions,
- * notification area provides a play/pause toggle and an "x" button to disconnect but that for GB,
- * we do not show that due to the framework limitations.
+ * notification area supports a number of actions such as play/pause toggle or an "x" button to
+ * disconnect but that for GB, these actions are not supported that due to the framework
+ * limitations.
  */
-@SuppressWarnings("WeakerAccess")
 public class VideoCastNotificationService extends Service {
 
     private static final String TAG = LogUtils.makeLogTag(VideoCastNotificationService.class);
@@ -113,7 +114,7 @@ public class VideoCastNotificationService extends Service {
         if (mediaQueue != null) {
             int position = mediaQueue.getCurrentItemPosition();
             int size = mediaQueue.getCount();
-            mHasNext = position < size - 1;
+            mHasNext = position < (size - 1);
             mHasPrev = position > 0;
         }
         mConsumer = new VideoCastConsumerImpl() {
@@ -138,6 +139,14 @@ public class VideoCastNotificationService extends Service {
             @Override
             public void onUiVisibilityChanged(boolean visible) {
                 mVisible = !visible;
+
+                if (mNotification == null) {
+                    try {
+                        setUpNotification(mCastManager.getRemoteMediaInformation());
+                    } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
+                        LOGE(TAG, "onStartCommand() failed to get media", e);
+                    }
+                }
                 if (mVisible && (mNotification != null)) {
                     startForeground(NOTIFICATION_ID, mNotification);
                 } else {
@@ -154,7 +163,7 @@ public class VideoCastNotificationService extends Service {
                     size = queueItems.size();
                     position = queueItems.indexOf(item);
                 }
-                mHasNext = position < size - 1;
+                mHasNext = position < (size - 1);
                 mHasPrev = position > 0;
             }
         };
@@ -372,7 +381,8 @@ public class VideoCastNotificationService extends Service {
      * {@code millis} milliseconds.
      */
     protected NotificationCompat.Action getForwardAction(long millis) {
-        Intent intent = new Intent(ACTION_FORWARD);
+        Intent intent = new Intent(this, VideoIntentReceiver.class);
+        intent.setAction(ACTION_FORWARD);
         intent.setPackage(getPackageName());
         intent.putExtra(EXTRA_FORWARD_STEP_MS, (int) millis);
         PendingIntent pendingIntent = PendingIntent
@@ -393,7 +403,8 @@ public class VideoCastNotificationService extends Service {
      * {@code millis} milliseconds.
      */
     protected NotificationCompat.Action getRewindAction(long millis) {
-        Intent intent = new Intent(ACTION_REWIND);
+        Intent intent = new Intent(this, VideoIntentReceiver.class);
+        intent.setAction(ACTION_REWIND);
         intent.setPackage(getPackageName());
         intent.putExtra(EXTRA_FORWARD_STEP_MS, (int)-millis);
         PendingIntent pendingIntent = PendingIntent
@@ -417,7 +428,8 @@ public class VideoCastNotificationService extends Service {
         PendingIntent pendingIntent = null;
         int iconResourceId = R.drawable.ic_notification_skip_next_semi_48dp;
         if (mHasNext) {
-            Intent intent = new Intent(ACTION_PLAY_NEXT);
+            Intent intent = new Intent(this, VideoIntentReceiver.class);
+            intent.setAction(ACTION_PLAY_NEXT);
             intent.setPackage(getPackageName());
             pendingIntent = PendingIntent.getBroadcast(this, 0, intent, 0);
             iconResourceId = R.drawable.ic_notification_skip_next_48dp;
@@ -436,7 +448,8 @@ public class VideoCastNotificationService extends Service {
         PendingIntent pendingIntent = null;
         int iconResourceId = R.drawable.ic_notification_skip_prev_semi_48dp;
         if (mHasPrev) {
-            Intent intent = new Intent(ACTION_PLAY_PREV);
+            Intent intent = new Intent(this, VideoIntentReceiver.class);
+            intent.setAction(ACTION_PLAY_PREV);
             intent.setPackage(getPackageName());
             pendingIntent = PendingIntent.getBroadcast(this, 0, intent, 0);
             iconResourceId = R.drawable.ic_notification_skip_prev_48dp;
@@ -460,7 +473,8 @@ public class VideoCastNotificationService extends Service {
         int pauseOrPlayTextResourceId = isPlaying ? R.string.ccl_pause : R.string.ccl_play;
         int pauseOrPlayResourceId = isPlaying ? pauseOrStopResourceId
                 : R.drawable.ic_notification_play_48dp;
-        Intent intent = new Intent(ACTION_TOGGLE_PLAYBACK);
+        Intent intent = new Intent(this, VideoIntentReceiver.class);
+        intent.setAction(ACTION_TOGGLE_PLAYBACK);
         intent.setPackage(getPackageName());
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, 0);
         return new NotificationCompat.Action.Builder(pauseOrPlayResourceId,
@@ -472,7 +486,8 @@ public class VideoCastNotificationService extends Service {
      * device.
      */
     protected NotificationCompat.Action getDisconnectAction() {
-        Intent intent = new Intent(ACTION_STOP);
+        Intent intent = new Intent(this, VideoIntentReceiver.class);
+        intent.setAction(ACTION_STOP);
         intent.setPackage(getPackageName());
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, 0);
         return new NotificationCompat.Action.Builder(R.drawable.ic_notification_disconnect_24dp,

@@ -57,6 +57,7 @@ import com.google.android.libraries.cast.companionlibrary.utils.Utils;
 import com.google.android.libraries.cast.companionlibrary.widgets.IMiniController;
 import com.google.android.libraries.cast.companionlibrary.widgets.MiniController;
 import com.google.android.libraries.cast.companionlibrary.widgets.MiniController.OnMiniControllerChangedListener;
+import com.google.android.libraries.cast.companionlibrary.widgets.ProgressWatcher;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
@@ -126,7 +127,6 @@ import java.util.concurrent.TimeUnit;
  *
  * @see CastConfiguration
  */
-@SuppressWarnings("unused")
 public class VideoCastManager extends BaseCastManager
         implements OnMiniControllerChangedListener, OnFailedListener {
 
@@ -178,6 +178,7 @@ public class VideoCastManager extends BaseCastManager
     private final Set<VideoCastConsumer> mVideoConsumers = new CopyOnWriteArraySet<>();
     private final Set<OnTracksSelectedListener> mTracksSelectedListeners =
             new CopyOnWriteArraySet<>();
+    private final Set<ProgressWatcher> mProgressWatchers = new CopyOnWriteArraySet<>();
     private MediaAuthService mAuthService;
     private long mLiveStreamDuration = DEFAULT_LIVE_STREAM_DURATION_MS;
     private MediaQueueItem mPreLoadingItem;
@@ -829,7 +830,7 @@ public class VideoCastManager extends BaseCastManager
                 mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
             }
         }
-        onDeviceSelected(null);
+        onDeviceSelected(null /* CastDevice */, null /* RouteInfo */);
         updateMiniControllersVisibility(false);
         stopNotificationService();
     }
@@ -951,13 +952,13 @@ public class VideoCastManager extends BaseCastManager
                 // while trying to re-establish session, we found out that the app is not running
                 // so we need to disconnect
                 mReconnectionStatus = RECONNECTION_STATUS_INACTIVE;
-                onDeviceSelected(null);
+                onDeviceSelected(null /* CastDevice */, null /* RouteInfo */);
             }
         } else {
             for (VideoCastConsumer consumer : mVideoConsumers) {
                 consumer.onApplicationConnectionFailed(errorCode);
             }
-            onDeviceSelected(null);
+            onDeviceSelected(null /* CastDevice */, null /* RouteInfo */);
             if (mMediaRouter != null) {
                 LOGD(TAG, "onApplicationConnectionFailed(): Setting route to default");
                 mMediaRouter.selectRoute(mMediaRouter.getDefaultRoute());
@@ -2336,7 +2337,7 @@ public class VideoCastManager extends BaseCastManager
                 mLockScreenFetchTask.cancel(true);
             }
             Point screenSize = Utils.getDisplaySize(mContext);
-            mLockScreenFetchTask = new FetchBitmapTask(screenSize.x, screenSize.y) {
+            mLockScreenFetchTask = new FetchBitmapTask(screenSize.x, screenSize.y, false) {
                 @Override
                 protected void onPostExecute(Bitmap bitmap) {
                     if (mMediaSessionCompat != null) {
@@ -2514,6 +2515,18 @@ public class VideoCastManager extends BaseCastManager
         }
     }
 
+    public synchronized void addProgressWatcher(ProgressWatcher watcher) {
+        if (watcher != null) {
+            mProgressWatchers.add(watcher);
+        }
+    }
+
+    public synchronized void removeProgressWatcher(ProgressWatcher watcher) {
+        if (watcher != null) {
+            mProgressWatchers.remove(watcher);
+        }
+    }
+
     /**
      * Adds a new {@link IMiniController} component. Callers need to provide their own
      * {@link OnMiniControllerChangedListener}.
@@ -2572,6 +2585,7 @@ public class VideoCastManager extends BaseCastManager
         detachMediaChannel();
         removeDataChannel();
         mState = MediaStatus.PLAYER_STATE_IDLE;
+        mMediaStatus = null;
     }
 
     @Override
@@ -2587,6 +2601,8 @@ public class VideoCastManager extends BaseCastManager
     public void onConnectionFailed(ConnectionResult result) {
         super.onConnectionFailed(result);
         updateMediaSession(false);
+        mState = MediaStatus.PLAYER_STATE_IDLE;
+        mMediaStatus = null;
         stopNotificationService();
     }
 
@@ -2599,6 +2615,7 @@ public class VideoCastManager extends BaseCastManager
             clearMediaSession();
         }
         mState = MediaStatus.PLAYER_STATE_IDLE;
+        mMediaStatus = null;
         mMediaQueue = null;
     }
 
@@ -2726,6 +2743,25 @@ public class VideoCastManager extends BaseCastManager
      */
     public void setLiveStreamDuration(long duration) {
         mLiveStreamDuration = duration;
+    }
+
+    /**
+     * Sets the active tracks and their styles.
+     */
+    public void setActiveTracks(List<MediaTrack> tracks) {
+        long[] tracksArray;
+        if (tracks.isEmpty()) {
+            tracksArray = new long[]{};
+        } else {
+            tracksArray = new long[tracks.size()];
+            for (int i = 0; i < tracks.size(); i++) {
+                tracksArray[i] = tracks.get(i).getId();
+            }
+        }
+        setActiveTrackIds(tracksArray);
+        if (tracks.size() > 0) {
+            setTextTrackStyle(getTracksPreferenceManager().getTextTrackStyle());
+        }
     }
 
     /**
@@ -2914,7 +2950,8 @@ public class VideoCastManager extends BaseCastManager
     /**
      * Notifies all the
      * {@link com.google.android.libraries.cast.companionlibrary.cast.tracks.OnTracksSelectedListener} // NOLINT
-     * that the set of active tracks has changed.
+     * that the set of active tracks has changed. If there are no listeners registered, then the
+     * cast manager sets that itself.
      *
      * @param tracks the set of active tracks. Must be {@code non-null} but can be an empty list.
      */
@@ -2922,8 +2959,12 @@ public class VideoCastManager extends BaseCastManager
         if (tracks == null) {
             throw new IllegalArgumentException("tracks must not be null");
         }
-        for (OnTracksSelectedListener listener : mTracksSelectedListeners) {
-            listener.onTracksSelected(tracks);
+        if (mTracksSelectedListeners.isEmpty()) {
+            setActiveTracks(tracks);
+        } else {
+            for (OnTracksSelectedListener listener : mTracksSelectedListeners) {
+                listener.onTracksSelected(tracks);
+            }
         }
     }
 
@@ -2980,6 +3021,10 @@ public class VideoCastManager extends BaseCastManager
             for (final IMiniController controller : mMiniControllers) {
                 controller.setProgress(currentPosition, duration);
             }
+        }
+
+        for(ProgressWatcher watcher : mProgressWatchers) {
+            watcher.setProgress(currentPosition, duration);
         }
     }
 

@@ -35,7 +35,8 @@ import android.provider.Settings;
 public class CaptionsPreferenceActivity extends PreferenceActivity {
 
     private static final String TAG = LogUtils.makeLogTag(CaptionsPreferenceActivity.class);
-
+    // For getPreferenceScreen() and addPreferenceFromResource(); due to the API levels supported
+    // in this library, we cannot move to fragment-based preferences.
     @SuppressWarnings("deprecation")
     @Override
     protected void onCreate(Bundle savedInstanceState) {

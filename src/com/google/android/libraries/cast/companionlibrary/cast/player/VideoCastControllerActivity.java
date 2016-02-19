@@ -401,6 +401,19 @@ public class VideoCastControllerActivity extends AppCompatActivity implements
                         mCastManager.getDeviceName()));
                 break;
             case MediaStatus.PLAYER_STATE_IDLE:
+                if (mStreamType == MediaInfo.STREAM_TYPE_LIVE) {
+                    mControllers.setVisibility(View.VISIBLE);
+                    mLoading.setVisibility(View.INVISIBLE);
+                    mPlaybackControls.setVisibility(View.VISIBLE);
+                    mPlayPause.setImageDrawable(mPlayDrawable);
+                    mLine2.setText(getString(R.string.ccl_casting_to_device,
+                            mCastManager.getDeviceName()));
+                } else {
+                    mPlaybackControls.setVisibility(View.INVISIBLE);
+                    mLoading.setVisibility(View.VISIBLE);
+                    mLine2.setText(getString(R.string.ccl_loading));
+                }
+                break;
             case MediaStatus.PLAYER_STATE_BUFFERING:
                 mPlaybackControls.setVisibility(View.INVISIBLE);
                 mLoading.setVisibility(View.VISIBLE);
@@ -466,7 +479,7 @@ public class VideoCastControllerActivity extends AppCompatActivity implements
     }
 
     @Override // from VideoCastController
-    public void setNextPreviousVisibilityPolicy(@CastConfiguration.PREV_NEXT_POLICY int policy) {
+    public void setNextPreviousVisibilityPolicy(@CastConfiguration.PrevNextPolicy int policy) {
         mNextPreviousVisibilityPolicy = policy;
     }
 
@@ -486,21 +499,21 @@ public class VideoCastControllerActivity extends AppCompatActivity implements
         int newUiOptions = getWindow().getDecorView().getSystemUiVisibility();
 
         // Navigation bar hiding:  Backwards compatible to ICS.
-        if (Build.VERSION.SDK_INT >= 14) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
             newUiOptions ^= View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
         }
 
         // Status bar hiding: Backwards compatible to Jellybean
-        if (Build.VERSION.SDK_INT >= 16) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             newUiOptions ^= View.SYSTEM_UI_FLAG_FULLSCREEN;
         }
 
-        if (Build.VERSION.SDK_INT >= 18) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
             newUiOptions ^= View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
         }
 
         getWindow().getDecorView().setSystemUiVisibility(newUiOptions);
-        if (Build.VERSION.SDK_INT >= 18) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
             setImmersive(true);
         }
     }

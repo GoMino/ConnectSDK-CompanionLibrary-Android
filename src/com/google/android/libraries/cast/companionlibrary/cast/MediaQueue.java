@@ -24,7 +24,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * A simple class to model a queue for bookkeeping purposes.
  */
-@SuppressWarnings("unused")
 public class MediaQueue {
 
     private List<MediaQueueItem> mQueueItems = new CopyOnWriteArrayList<>();

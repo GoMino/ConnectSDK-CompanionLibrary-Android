@@ -38,7 +38,6 @@ import java.util.Locale;
  * {@link VideoCastManager#initialize(Context, CastConfiguration)} or
  * {@link DataCastManager#initialize(Context, CastConfiguration)}.
  */
-@SuppressWarnings("unused")
 public class CastConfiguration {
 
     public static final int NOTIFICATION_ACTION_PLAY_PAUSE = 1;
@@ -48,11 +47,14 @@ public class CastConfiguration {
     public static final int NOTIFICATION_ACTION_REWIND = 5;
     public static final int NOTIFICATION_ACTION_FORWARD = 6;
 
+    /**
+     * Available built-in actions for adding to cast notifications
+     */
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({NOTIFICATION_ACTION_PLAY_PAUSE, NOTIFICATION_ACTION_SKIP_NEXT,
             NOTIFICATION_ACTION_SKIP_PREVIOUS, NOTIFICATION_ACTION_DISCONNECT,
             NOTIFICATION_ACTION_REWIND, NOTIFICATION_ACTION_FORWARD})
-    public @interface NOTIFICATION_ACTION {}
+    @interface NotificationAction {}
 
     public static final int FEATURE_DEBUGGING = 1;
     public static final int FEATURE_LOCKSCREEN = 1 << 1;
@@ -65,10 +67,24 @@ public class CastConfiguration {
     public static final int NEXT_PREV_VISIBILITY_POLICY_DISABLED = 2;
     public static final int NEXT_PREV_VISIBILITY_POLICY_ALWAYS = 3;
 
+    /**
+     * Constants representing various policies that can be enforced for the visibility of the
+     * "Skip Next" or "Skip Previous" buttons used in navigating to the next or previous queue item
+     * in the {@link
+     * com.google.android.libraries.cast.companionlibrary.cast.player.VideoCastControllerActivity}
+     * <ul>
+     *     <li>{@code NEXT_PREV_VISIBILITY_POLICY_HIDDEN}: buttons should be hidden when there is
+     *     no more queue item in the  corresponding direction.
+     *     <li>{@code NEXT_PREV_VISIBILITY_POLICY_DISABLED}: buttons should be visible but disabled
+     *     when there is no more queue item in the corresponding direction.
+     *     <li>{@code NEXT_PREV_VISIBILITY_POLICY_ALWAYS}: buttons should remain visible and
+     *     enabled all the time.
+     * </ul>
+     */
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({NEXT_PREV_VISIBILITY_POLICY_HIDDEN, NEXT_PREV_VISIBILITY_POLICY_DISABLED,
             NEXT_PREV_VISIBILITY_POLICY_ALWAYS})
-    public @interface PREV_NEXT_POLICY {}
+    public @interface PrevNextPolicy {}
 
     public static final int CCL_DEFAULT_FORWARD_STEP_S = 30;
 
@@ -87,6 +103,7 @@ public class CastConfiguration {
     private boolean mCastControllerImmersive;
     private int mForwardStep;
     private MediaRouteDialogFactory mMediaRouteDialogFactory;
+    private final boolean mDisableLaunchOnConnect;
 
     private CastConfiguration(Builder builder) {
         if (builder.mDebugEnabled) {
@@ -123,6 +140,7 @@ public class CastConfiguration {
         mForwardStep = builder.mForwardStep;
         mCustomNotificationService = builder.mCustomNotificationService;
         mMediaRouteDialogFactory = builder.mMediaRouteDialogFactory;
+        mDisableLaunchOnConnect = builder.mDisableLaunchOnConnect;
     }
 
     public List<Integer> getNotificationActions() {
@@ -137,7 +155,7 @@ public class CastConfiguration {
         return mCapabilities;
     }
 
-    @PREV_NEXT_POLICY
+    @PrevNextPolicy
     public int getNextPrevVisibilityPolicy() {
         return mNextPrevVisibilityPolicy;
     }
@@ -162,6 +180,10 @@ public class CastConfiguration {
         return mCastControllerImmersive;
     }
 
+    public boolean isDisableLaunchOnConnect() {
+        return mDisableLaunchOnConnect;
+    }
+
     public int getForwardStep() {
         return mForwardStep;
     }
@@ -174,6 +196,9 @@ public class CastConfiguration {
         return mMediaRouteDialogFactory;
     }
 
+    /**
+     * Builder for instantiating the {@link CastConfiguration}.
+     */
     public static class Builder {
 
         private List<Integer> mNotificationActions;
@@ -195,6 +220,7 @@ public class CastConfiguration {
         private int mForwardStep = CCL_DEFAULT_FORWARD_STEP_S;
         private Class<? extends Service> mCustomNotificationService;
         private MediaRouteDialogFactory mMediaRouteDialogFactory;
+        private boolean mDisableLaunchOnConnect;
 
         public Builder(String applicationId) {
             mApplicationId = Utils.assertNotEmpty(applicationId, "applicationId");
@@ -242,6 +268,15 @@ public class CastConfiguration {
          */
         public Builder enableLockScreen() {
             mLockScreenEnabled = true;
+            return this;
+        }
+
+        /**
+         * Prevents the automatic launch of the app when a connection to the cast device has been
+         * established.
+         */
+        public Builder disableLaunchOnConnect() {
+            mDisableLaunchOnConnect = true;
             return this;
         }
 
@@ -299,7 +334,7 @@ public class CastConfiguration {
          * @param showInCompact If {@code true}, this action will be shown in the compact view as
          * well. Note that there can't be more than three actions in the compact view.
          */
-        public Builder addNotificationAction(@NOTIFICATION_ACTION int actionType,
+        public Builder addNotificationAction(@NotificationAction int actionType,
                 boolean showInCompact) {
             if (!mNotificationActions.contains(actionType)) {
                 if (showInCompact) {
@@ -341,7 +376,7 @@ public class CastConfiguration {
          * </ul>
          * The default behavior is {@link CastConfiguration#NEXT_PREV_VISIBILITY_POLICY_DISABLED}
          */
-        public Builder setNextPrevVisibilityPolicy(@PREV_NEXT_POLICY int policy) {
+        public Builder setNextPrevVisibilityPolicy(@PrevNextPolicy int policy) {
             mNextPrevVisibilityPolicy = policy;
             return this;
         }

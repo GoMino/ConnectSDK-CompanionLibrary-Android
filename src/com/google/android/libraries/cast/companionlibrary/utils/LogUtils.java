@@ -24,7 +24,6 @@ import android.util.Log;
  * Provides a simple wrapper to control logging in development vs production environment. This
  * library should only use the wrapper methods that this class provides.
  */
-@SuppressWarnings("unused")
 public class LogUtils {
 
     private static final String LOG_PREFIX = "ccl_";

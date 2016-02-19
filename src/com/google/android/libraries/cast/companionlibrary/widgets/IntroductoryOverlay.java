@@ -76,7 +76,6 @@ import android.widget.TextView;
  * {@link com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumer#onCastAvailabilityChanged(boolean)}.
  * Management of how often this overlay should be shown is left to the client application.
  */
-@SuppressWarnings("unused")
 public class IntroductoryOverlay extends RelativeLayout {
 
     private static final long FADE_OUT_LENGTH_MS = 400;
@@ -128,10 +127,10 @@ public class IntroductoryOverlay extends RelativeLayout {
                     .getDimension(R.styleable.CCLIntroOverlay_ccl_IntroFocusRadius, 0);
         }
         View view = builder.mView;
-        Rect r = new Rect();
-        view.getGlobalVisibleRect(r);
-        mCenterX = r.centerX();
-        mCenterY = r.centerY();
+        Rect rect = new Rect();
+        view.getGlobalVisibleRect(rect);
+        mCenterX = rect.centerX();
+        mCenterY = rect.centerY();
         setFitsSystemWindows(true);
         setupHolePaint();
         setText(builder.mTitleText, builder.mSubtitleText);
@@ -163,7 +162,9 @@ public class IntroductoryOverlay extends RelativeLayout {
      * for all practical purposes, this component cannot be re-used.
      */
     public void remove() {
-        ((ViewGroup) ((Activity) mContext).getWindow().getDecorView()).removeView(this);
+        if (mContext != null) {
+            ((ViewGroup) ((Activity) mContext).getWindow().getDecorView()).removeView(this);
+        }
         if (mBitmap != null && !mBitmap.isRecycled()) {
             mBitmap.recycle();
         }
@@ -185,7 +186,7 @@ public class IntroductoryOverlay extends RelativeLayout {
         mButton.getBackground().setColorFilter(buttonColor, PorterDuff.Mode.MULTIPLY);
         mButton.setOnClickListener(new OnClickListener() {
             @Override
-            public void onClick(View v) {
+            public void onClick(View view) {
                 fadeOut(FADE_OUT_LENGTH_MS);
             }
         });

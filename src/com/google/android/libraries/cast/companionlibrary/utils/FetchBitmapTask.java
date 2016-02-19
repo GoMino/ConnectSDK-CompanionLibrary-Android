@@ -158,18 +158,9 @@ public abstract class FetchBitmapTask extends AsyncTask<Uri, Void, Bitmap> {
             return bitmap;
         }
 
-        float scaleFactor;
-        if ((dw > 0) || (dh > 0)) {
-            // Icon is too big; scale down.
-            float scaleWidth = (float) mPreferredWidth / width;
-            float scaleHeight = (float) mPreferredHeight / height;
-            scaleFactor = Math.min(scaleHeight, scaleWidth);
-        } else {
-            // Icon is too small; scale up.
-            float scaleWidth = width / (float) mPreferredWidth;
-            float scaleHeight = height / (float) mPreferredHeight;
-            scaleFactor = Math.min(scaleHeight, scaleWidth);
-        }
+        float scaleWidth = (float) mPreferredWidth / width;
+        float scaleHeight = (float) mPreferredHeight / height;
+        float scaleFactor = Math.min(scaleHeight, scaleWidth);
 
         int finalWidth = (int) ((width * scaleFactor) + 0.5f);
         int finalHeight = (int) ((height * scaleFactor) + 0.5f);

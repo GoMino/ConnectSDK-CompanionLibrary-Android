@@ -95,7 +95,7 @@ public interface VideoCastController {
 
     /**
      * Updates the visual status of the Closed Caption icon. Possible states are provided by
-     * <code>CC_ENABLED, CC_DISABLED, CC_HIDDEN</code>
+     * {@code CC_ENABLED, CC_DISABLED, CC_HIDDEN}
      */
     void setClosedCaptionState(int status);
 
@@ -115,12 +115,10 @@ public interface VideoCastController {
      * are:
      * <ul>
      *   <li>{@link CastConfiguration#NEXT_PREV_VISIBILITY_POLICY_ALWAYS}: always show the button
-     *   </li>
      *   <li>{@link CastConfiguration#NEXT_PREV_VISIBILITY_POLICY_DISABLED}: disable the button
-     *   </li>
-     *   <li>{@link CastConfiguration#NEXT_PREV_VISIBILITY_POLICY_HIDDEN}: hide the button</li>
+     *   <li>{@link CastConfiguration#NEXT_PREV_VISIBILITY_POLICY_HIDDEN}: hide the button
      * </ul>
      * The default behavior is {@link CastConfiguration#NEXT_PREV_VISIBILITY_POLICY_DISABLED}
      */
-    void setNextPreviousVisibilityPolicy(@CastConfiguration.PREV_NEXT_POLICY int policy);
+    void setNextPreviousVisibilityPolicy(@CastConfiguration.PrevNextPolicy int policy);
 }

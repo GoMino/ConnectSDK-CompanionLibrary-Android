@@ -59,6 +59,9 @@ public class TracksChooserDialog extends DialogFragment {
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         LayoutInflater inflater = getActivity().getLayoutInflater();
+        // since dialog doesn't expose its root view at this point (doesn't exist yet), we cannot
+        // attach to the unknown eventual parent, so we need to pass null for the rootView parameter
+        // of the inflate() method
         @SuppressLint("InflateParams")
         View view = inflater.inflate(R.layout.custom_tracks_dialog_layout, null);
         setUpView(view);
