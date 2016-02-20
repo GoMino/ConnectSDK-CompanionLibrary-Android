@@ -15,7 +15,7 @@ dependencies:
 ```shell
  dependencies {
     ...
-    compile 'com.google.android.libraries.cast.companionlibrary:ccl:2.7.4'
+    compile 'com.google.android.libraries.cast.companionlibrary:ccl:2.8.0'
  }
 ```
 
