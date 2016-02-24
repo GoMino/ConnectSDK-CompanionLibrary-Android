@@ -60,6 +60,10 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
 
 ## Change List
 
+2.8.1
+
+ * Fixed issue #274
+
 2.8.0
 
  * CCL is now available from jCenter

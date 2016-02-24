@@ -146,7 +146,6 @@ public abstract class BaseCastManager
     private Handler mUiVisibilityHandler;
     private RouteInfo mRouteInfo;
     protected int mApplicationErrorCode = NO_APPLICATION_ERROR;
-    protected LaunchOptions mLaunchOptions;
 
     protected BaseCastManager() {
     }
@@ -189,9 +188,6 @@ public abstract class BaseCastManager
 
     protected BaseCastManager(Context context, CastConfiguration castConfiguration) {
         mCastConfiguration = castConfiguration;
-        if (mCastConfiguration.getLaunchOptions() != null) {
-            mLaunchOptions = mCastConfiguration.getLaunchOptions();
-        }
         mCapabilities = castConfiguration.getCapabilities();
         sCclVersion = context.getString(R.string.ccl_version);
         mApplicationId = castConfiguration.getApplicationId();
@@ -200,7 +196,6 @@ public abstract class BaseCastManager
         mContext = context.getApplicationContext();
         mPreferenceAccessor = new PreferenceAccessor(mContext);
         mUiVisibilityHandler = new Handler(new UpdateUiVisibilityHandlerCallback());
-        mLaunchOptions = new LaunchOptions.Builder().setRelaunchIfRunning(false).build();
         mPreferenceAccessor.saveStringToPreference(PREFS_KEY_APPLICATION_ID, mApplicationId);
 
         mMediaRouter = MediaRouter.getInstance(mContext);

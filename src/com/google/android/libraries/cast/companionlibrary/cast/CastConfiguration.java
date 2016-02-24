@@ -135,6 +135,8 @@ public class CastConfiguration {
         if (builder.mLocale != null) {
             mLaunchOptions = new LaunchOptions.Builder().setLocale(builder.mLocale)
                     .setRelaunchIfRunning(builder.mRelaunchIfRunning).build();
+        } else {
+            mLaunchOptions = new LaunchOptions.Builder().setRelaunchIfRunning(false).build();
         }
         mCastControllerImmersive = builder.mCastControllerImmersive;
         mForwardStep = builder.mForwardStep;
@@ -210,7 +212,6 @@ public class CastConfiguration {
         private boolean mCaptionPreferenceEnabled;
         private boolean mAutoReconnectEnabled;
         private int mNextPrevVisibilityPolicy = NEXT_PREV_VISIBILITY_POLICY_DISABLED;
-        private int mCapabilities;
         private String mApplicationId;
         private Class<?> mTargetActivity;
         private List<String> mNamespaces;
