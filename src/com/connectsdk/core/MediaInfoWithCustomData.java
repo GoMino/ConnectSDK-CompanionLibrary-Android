@@ -9,8 +9,15 @@ import java.util.List;
  */
 public class MediaInfoWithCustomData extends MediaInfo {
 
+    public static final int STREAM_TYPE_NONE = 0;
+    public static final int STREAM_TYPE_BUFFERED = 1;
+    public static final int STREAM_TYPE_LIVE = 2;
+    public static final int STREAM_TYPE_INVALID = -1;
+    public static final long UNKNOWN_DURATION = -1L;
+
     private JSONObject mCustomData;
     private JSONObject mCustomDataForLoad;
+    private int mStreamType = STREAM_TYPE_BUFFERED;
 
     public MediaInfoWithCustomData(String url, String mimeType, String title, String description) {
         super(url, mimeType, title, description);
@@ -36,4 +43,11 @@ public class MediaInfoWithCustomData extends MediaInfo {
         this.mCustomDataForLoad = customDataForLoad;
     }
 
+    public int getStreamType() {
+        return mStreamType;
+    }
+
+    public void setStreamType(int streamType) {
+        this.mStreamType = streamType;
+    }
 }

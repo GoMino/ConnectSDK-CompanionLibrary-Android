@@ -182,7 +182,7 @@ public final class Utils {
         //wrapper.putString(MediaMetadata.KEY_STUDIO, md.getString(MediaMetadata.KEY_STUDIO));
         wrapper.putString(KEY_CONTENT_TYPE, info.getMimeType());
         //wrapper.putInt(KEY_STREAM_TYPE, info.getStreamType());
-        wrapper.putInt(KEY_STREAM_TYPE, 1);
+        //wrapper.putInt(KEY_STREAM_TYPE, 1);
         //wrapper.putLong(KEY_STREAM_DURATION, info.getStreamDuration());
         if (!info.getImages().isEmpty()) {
             ArrayList<String> urls = new ArrayList<>();
@@ -194,6 +194,7 @@ public final class Utils {
 
         if(info instanceof MediaInfoWithCustomData){
             try {
+                wrapper.putInt(KEY_STREAM_TYPE, ((MediaInfoWithCustomData) info).getStreamType());
                 MediaInfoWithCustomData infoWithCustomData = (MediaInfoWithCustomData) info;
                 if(infoWithCustomData.getCustomData()!=null)
                     wrapper.putString(KEY_CUSTOMDATA, infoWithCustomData.getCustomData().toString());
@@ -320,6 +321,7 @@ public final class Utils {
         MediaInfo info;
         if(wrapper.containsKey(KEY_CUSTOMDATA)){
             info = new MediaInfoWithCustomData(contentId, mimetype, title, subtitle, imageInfos);
+            ((MediaInfoWithCustomData)info).setStreamType(wrapper.getInt(KEY_STREAM_TYPE));
             try {
                 if(wrapper.get(KEY_CUSTOMDATA)!=null)
                     ((MediaInfoWithCustomData)info).setCustomData(new JSONObject(wrapper.getString(KEY_CUSTOMDATA)));

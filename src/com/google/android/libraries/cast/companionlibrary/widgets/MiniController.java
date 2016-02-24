@@ -20,6 +20,7 @@ package com.google.android.libraries.cast.companionlibrary.widgets;
 //import com.google.android.gms.cast.MediaMetadata;
 //import com.google.android.gms.cast.MediaQueueItem;
 //import com.google.android.gms.cast.MediaStatus;
+import com.connectsdk.core.MediaInfoWithCustomData;
 import com.connectsdk.service.capability.MediaControl;
 import com.google.android.libraries.cast.companionlibrary.R;
 import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
@@ -73,7 +74,7 @@ public class MiniController extends RelativeLayout implements IMiniController {
     private Uri mIconUri;
     private Drawable mPauseDrawable;
     private Drawable mPlayDrawable;
-    //private int mStreamType = MediaInfo.STREAM_TYPE_BUFFERED;
+    private int mStreamType = MediaInfoWithCustomData.STREAM_TYPE_BUFFERED;
     private Drawable mStopDrawable;
     private FetchBitmapTask mFetchBitmapTask;
     private ProgressBar mProgressBar;
@@ -122,15 +123,15 @@ public class MiniController extends RelativeLayout implements IMiniController {
         }
     }
 
-//    @Override
-//    public void setStreamType(int streamType) {
-//        mStreamType = streamType;
-//    }
+    @Override
+    public void setStreamType(int streamType) {
+        mStreamType = streamType;
+    }
 
     @Override
     public void setProgress(final int progress, final int duration) {
         // for live streams, we do not attempt to update the progress bar
-        if (/*mStreamType == MediaInfo.STREAM_TYPE_LIVE ||*/ mProgressBar == null) {
+        if (mStreamType == MediaInfoWithCustomData.STREAM_TYPE_LIVE || mProgressBar == null) {
             return;
         }
         mHandler.post(new Runnable() {
@@ -147,9 +148,9 @@ public class MiniController extends RelativeLayout implements IMiniController {
         if (mProgressBar == null) {
             return;
         }
-//        mProgressBar.setVisibility(
-//                visible && (mStreamType != MediaInfo.STREAM_TYPE_LIVE) ? View.VISIBLE
-//                        : View.INVISIBLE);
+        mProgressBar.setVisibility(
+                visible && (mStreamType != MediaInfoWithCustomData.STREAM_TYPE_LIVE) ? View.VISIBLE
+                        : View.INVISIBLE);
 
         mProgressBar.setVisibility(View.VISIBLE);
     }

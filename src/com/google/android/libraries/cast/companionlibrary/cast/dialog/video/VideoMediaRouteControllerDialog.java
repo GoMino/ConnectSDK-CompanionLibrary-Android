@@ -51,8 +51,7 @@ import android.widget.TextView;
  */
 public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog {
 
-    private static final String TAG =
-            LogUtils.makeLogTag(VideoMediaRouteControllerDialog.class);
+    private static final String TAG = LogUtils.makeLogTag(VideoMediaRouteControllerDialog.class);
 
     private ImageView mIcon;
     private ImageView mPausePlay;
@@ -61,7 +60,7 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
     private TextView mEmptyText;
     private ProgressBar mLoading;
     private Uri mIconUri;
-    private VideoCastManager mCastManager;
+    protected VideoCastManager mCastManager;
     protected int mState;
     private VideoCastConsumerImpl mCastConsumerImpl;
     private Drawable mPauseDrawable;
@@ -148,7 +147,7 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
         }
     }
 
-    private void updateMetadata() {
+    protected void updateMetadata() {
         MediaInfo info;
         try {
             info = mCastManager.getRemoteMediaInformation();
@@ -196,7 +195,7 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
         mFetchBitmap.execute(mIconUri);
     }
 
-    private void updatePlayPauseState(int state) {
+    protected void updatePlayPauseState(int state) {
         if (mPausePlay != null) {
             switch (state) {
                 case MediaControl.PLAYER_STATE_PLAYING:
@@ -254,11 +253,11 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
 //        }
     }
 
-    private void setLoadingVisibility(boolean show) {
+    protected void setLoadingVisibility(boolean show) {
         mLoading.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
-    private void adjustControlsVisibility(boolean showPlayPause) {
+    protected void adjustControlsVisibility(boolean showPlayPause) {
         int visible = showPlayPause ? View.VISIBLE : View.INVISIBLE;
         mPausePlay.setVisibility(visible);
         setLoadingVisibility(!showPlayPause);
@@ -281,7 +280,7 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
         return controls;
     }
 
-    private void setUpCallbacks() {
+    protected void setUpCallbacks() {
 
         mPausePlay.setOnClickListener(new View.OnClickListener() {
 
@@ -334,7 +333,7 @@ public class VideoMediaRouteControllerDialog extends MediaRouteControllerDialog 
         }
     }
 
-    private void loadViews(View controls) {
+    protected void loadViews(View controls) {
         mIcon = (ImageView) controls.findViewById(R.id.iconView);
         mIconContainer = controls.findViewById(R.id.iconContainer);
         mTextContainer = controls.findViewById(R.id.textContainer);

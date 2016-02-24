@@ -258,7 +258,7 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
             //ConnectableDevice device = DiscoveryManager.getInstance().getConnectableDeviceStore().getDevice(deviceId);
 
             if (mMediaRouteProvider instanceof ConnectSDKMediaRouteProvider) {
-                device = ((ConnectSDKMediaRouteProvider) mMediaRouteProvider).getDeviceForRouteId(routeInfo.getId());
+                device = ((ConnectSDKMediaRouteProvider) mMediaRouteProvider).getDeviceForRouteInfo(routeInfo);
             }
         }
 
@@ -583,8 +583,8 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
             for (BaseCastConsumer consumer : mBaseCastConsumers) {
                 consumer.onDeviceUnselected(mSelectedCastDevice);
             }
-            disconnectDevice(mDestroyOnDisconnect, true, true);
         }
+        disconnectDevice(mDestroyOnDisconnect, true, true);
     }
 
     /**

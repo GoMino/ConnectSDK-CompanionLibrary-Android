@@ -15,6 +15,7 @@ import android.support.v7.media.MediaRouteDescriptor;
 import android.support.v7.media.MediaRouteDiscoveryRequest;
 import android.support.v7.media.MediaRouteProvider;
 import android.support.v7.media.MediaRouteProviderDescriptor;
+import android.support.v7.media.MediaRouter.RouteInfo;
 import android.util.Log;
 
 import com.connectsdk.device.ConnectableDevice;
@@ -48,8 +49,7 @@ public class ConnectSDKMediaRouteProvider extends MediaRouteProvider{
      * A custom media control intent category for special requests that are
      * supported by this provider's routes.
      */
-    public static final String CATEGORY_SAMPLE_ROUTE =
-            "com.connectsdk.android.mediarouteprovider.CATEGORY_SAMPLE_ROUTE";
+    public static final String CATEGORY_SAMPLE_ROUTE = "com.connectsdk.android.mediarouteprovider.CATEGORY_SAMPLE_ROUTE";
 
     /**
      * A custom media control intent action for special requests that are
@@ -61,8 +61,7 @@ public class ConnectSDKMediaRouteProvider extends MediaRouteProvider{
      *
      * @see #DATA_PLAYBACK_COUNT
      */
-    public static final String ACTION_GET_STATISTICS =
-            "com.connectsdk.android.mediarouteprovider.ACTION_GET_STATISTICS";
+    public static final String ACTION_GET_STATISTICS = "com.connectsdk.android.mediarouteprovider.ACTION_GET_STATISTICS";
 
     /**
      * {@link #ACTION_GET_STATISTICS} result data: Number of times the
@@ -71,9 +70,9 @@ public class ConnectSDKMediaRouteProvider extends MediaRouteProvider{
     public static final String DATA_PLAYBACK_COUNT = "com.connectsdk.android.mediarouteprovider.EXTRA_PLAYBACK_COUNT";
     public static final String EXTRA_CONNECTABLE_DEVICE = "com.connectsdk.android.mediarouteprovider.EXTRA_CONNECTABLE_DEVICE";
 
-    private static final ArrayList<IntentFilter> CONTROL_FILTERS_BASIC;
-    private static final ArrayList<IntentFilter> CONTROL_FILTERS_QUEUING;
-    private static final ArrayList<IntentFilter> CONTROL_FILTERS_SESSION;
+    protected static final ArrayList<IntentFilter> CONTROL_FILTERS_BASIC;
+    protected static final ArrayList<IntentFilter> CONTROL_FILTERS_QUEUING;
+    protected static final ArrayList<IntentFilter> CONTROL_FILTERS_SESSION;
 
     static {
         IntentFilter f1 = new IntentFilter();
@@ -121,13 +120,11 @@ public class ConnectSDKMediaRouteProvider extends MediaRouteProvider{
         CONTROL_FILTERS_BASIC.add(f2);
         CONTROL_FILTERS_BASIC.add(f3);
 
-        CONTROL_FILTERS_QUEUING =
-                new ArrayList<IntentFilter>(CONTROL_FILTERS_BASIC);
+        CONTROL_FILTERS_QUEUING = new ArrayList<IntentFilter>(CONTROL_FILTERS_BASIC);
         CONTROL_FILTERS_QUEUING.add(f4);
         CONTROL_FILTERS_QUEUING.add(f5);
 
-        CONTROL_FILTERS_SESSION =
-                new ArrayList<IntentFilter>(CONTROL_FILTERS_QUEUING);
+        CONTROL_FILTERS_SESSION = new ArrayList<IntentFilter>(CONTROL_FILTERS_QUEUING);
         CONTROL_FILTERS_SESSION.add(f6);
     }
 
@@ -140,9 +137,9 @@ public class ConnectSDKMediaRouteProvider extends MediaRouteProvider{
     }
 
     protected static final int VOLUME_MAX = 10;
-    private Map<String, ConnectableDevice> mRouteIdToDeviceMap;
+    protected Map<String, ConnectableDevice> mRouteIdToDeviceMap;
     protected int mVolume = 5;
-    private int mEnqueueCount;
+    protected int mEnqueueCount;
 
     public ConnectSDKMediaRouteProvider(Context context) {
         super(context);
@@ -196,13 +193,7 @@ public class ConnectSDKMediaRouteProvider extends MediaRouteProvider{
         super.onDiscoveryRequestChanged(request);
         //Log.d(TAG, "onDiscoveryRequestChanged");
         Log.d(TAG, "onDiscoveryRequestChanged allDevices(" + DiscoveryManager.getInstance().getAllDevices().size()+") VS compatibleDevices(" + DiscoveryManager.getInstance().getCompatibleDevices().size()+")");
-        MediaRouteProviderDescriptor.Builder providerDescriptorBuilder = new MediaRouteProviderDescriptor.Builder();
-        for(ConnectableDevice device: DiscoveryManager.getInstance().getAllDevices().values()) {
-            MediaRouteDescriptor routeDescriptor = getMediaRouteDescriptorForDevice(device);
-            mRouteIdToDeviceMap.put(routeDescriptor.getId(), device);
-            providerDescriptorBuilder.addRoute(routeDescriptor);
-        }
-        setDescriptor(providerDescriptorBuilder.build());
+        publishRoutes();
     }
 
     @Nullable
@@ -213,21 +204,24 @@ public class ConnectSDKMediaRouteProvider extends MediaRouteProvider{
 
     public MediaRouteDescriptor getMediaRouteDescriptorForDevice(ConnectableDevice device) {
         Bundle bundle = new Bundle();
+
         //bundle.putString(EXTRA_CONNECTABLE_DEVICE, device.toJSONObject().toString());
         //bundle.putString(EXTRA_CONNECTABLE_DEVICE, new Gson().toJson(device));
-        bundle.putString(ConnectableDevice.KEY_ID, device.getId());
+
+        String descriptorId = device.getId();
+        bundle.putString(ConnectableDevice.KEY_ID, descriptorId);
 //        try {
 //            bundle.putByteArray(EXTRA_CONNECTABLE_DEVICE, SerializationUtils.object2Bytes(device));
 //        } catch (IOException e) {
 //            e.printStackTrace();
 //        }
 
-        MediaRouteDescriptor routeDescriptor = new MediaRouteDescriptor.Builder(device.getId(), device.getFriendlyName())
+        MediaRouteDescriptor routeDescriptor = new MediaRouteDescriptor.Builder(descriptorId, device.getFriendlyName())
                 .setDescription(device.getConnectedServiceNames())
                 .addControlFilters(CONTROL_FILTERS_SESSION)
                 .setPlaybackStream(AudioManager.STREAM_MUSIC)
-                .setPlaybackType(MediaRouter.RouteInfo.PLAYBACK_TYPE_REMOTE)
-                .setVolumeHandling(MediaRouter.RouteInfo.PLAYBACK_VOLUME_VARIABLE)
+                .setPlaybackType(RouteInfo.PLAYBACK_TYPE_REMOTE)
+                .setVolumeHandling(RouteInfo.PLAYBACK_VOLUME_VARIABLE)
                 //.setVolumeHandling((int)VideoCastManager.getInstance().getVolumeStep())
                 .setVolumeMax(VOLUME_MAX)
                 .setVolume(mVolume)
@@ -237,22 +231,32 @@ public class ConnectSDKMediaRouteProvider extends MediaRouteProvider{
         return routeDescriptor;
     }
 
-    public ConnectableDevice getDeviceForRouteId(String routeId)
+    public ConnectableDevice getDeviceForRouteInfo(RouteInfo route)
     {
-        String[] uniqueId = routeId.split(":");
-		String routeDescriptorId = uniqueId[uniqueId.length-1];
-        return mRouteIdToDeviceMap.get(routeDescriptorId);
+        //String[] uniqueId = routeId.split(":");
+		//String routeDescriptorId = uniqueId[uniqueId.length-1];
+        //return mRouteIdToDeviceMap.get(routeDescriptorId);
+        String deviceId = route.getExtras().getString(ConnectableDevice.KEY_ID);
+        return mRouteIdToDeviceMap.get(deviceId);
+    }
+
+    public void publishRoutes() {
+        MediaRouteProviderDescriptor.Builder providerDescriptorBuilder = new MediaRouteProviderDescriptor.Builder();
+        for(ConnectableDevice device: DiscoveryManager.getInstance().getAllDevices().values()) {
+            MediaRouteDescriptor routeDescriptor = getMediaRouteDescriptorForDevice(device);
+            mRouteIdToDeviceMap.put(routeDescriptor.getId(), device);
+            providerDescriptorBuilder.addRoute(routeDescriptor);
+        }
+        setDescriptor(providerDescriptorBuilder.build());
     }
 
 
     private final class ConnectSDKRouteController extends RouteController {
         private final String mRouteId;
-        private final ConnectableDevice mDevice;
         private PendingIntent mSessionReceiver;
 
         public ConnectSDKRouteController(String routeId) {
             mRouteId = routeId;
-            mDevice = getDeviceForRouteId(routeId);
             Log.d(TAG, mRouteId + ": Controller created");
         }
 
@@ -339,6 +343,7 @@ public class ConnectSDKMediaRouteProvider extends MediaRouteProvider{
                 try {
                     float volumeToAdjust = (float) mVolume/10;
                     VideoCastManager.getInstance().setVolume(volumeToAdjust);
+                    publishRoutes();
                 } catch (CastException | TransientNetworkDisconnectionException | NoConnectionException e) {
                     LOGE(TAG, "Failed to change volume", e);
                 }

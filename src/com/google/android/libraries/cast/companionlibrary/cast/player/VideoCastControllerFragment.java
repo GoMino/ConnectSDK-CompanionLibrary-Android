@@ -26,6 +26,7 @@ import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.
 //import com.google.android.gms.cast.MediaTrack;
 //import com.google.android.gms.cast.RemoteMediaPlayer;
 import com.connectsdk.core.MediaInfo;
+import com.connectsdk.core.MediaInfoWithCustomData;
 import com.connectsdk.service.capability.MediaControl;
 import com.connectsdk.service.command.ServiceCommandError;
 import com.connectsdk.service.sessions.WebAppSession;
@@ -375,8 +376,11 @@ public class VideoCastControllerFragment extends Fragment implements
         updateClosedCaptionState();
 
         try {
-            //mCastController.setStreamType(mSelectedMedia.getStreamType());
-            mCastController.setStreamType(1);
+            if(mSelectedMedia instanceof MediaInfoWithCustomData) {
+                mCastController.setStreamType(((MediaInfoWithCustomData) mSelectedMedia).getStreamType());
+            }else {
+                mCastController.setStreamType(1);
+            }
             if (shouldStartPlayback) {
                 // need to start remote playback
                 mPlaybackState = MediaControl.PLAYER_STATE_BUFFERING;
@@ -468,8 +472,12 @@ public class VideoCastControllerFragment extends Fragment implements
         }
         //MediaMetadata mm = mSelectedMedia.getMetadata();
         mCastController.setTitle(mSelectedMedia.getTitle() != null ? mSelectedMedia.getTitle() : "");
-        //boolean isLive = mSelectedMedia.getStreamType() == MediaInfo.STREAM_TYPE_LIVE;
-        //mCastController.adjustControllersForLiveStream(isLive);
+
+        boolean isLive = false;
+        if(mSelectedMedia instanceof MediaInfoWithCustomData) {
+            isLive = ((MediaInfoWithCustomData)mSelectedMedia).getStreamType() == MediaInfoWithCustomData.STREAM_TYPE_LIVE;
+        }
+        mCastController.adjustControllersForLiveStream(isLive);
     }
 
     private void updatePlayerStatus() {
@@ -478,8 +486,11 @@ public class VideoCastControllerFragment extends Fragment implements
         if (mSelectedMedia == null) {
             return;
         }
-        //mCastController.setStreamType(mSelectedMedia.getStreamType());
-        mCastController.setStreamType(1);
+        if(mSelectedMedia instanceof MediaInfoWithCustomData) {
+            mCastController.setStreamType(((MediaInfoWithCustomData)mSelectedMedia).getStreamType());
+        }else {
+            mCastController.setStreamType(1);
+        }
         if (mediaStatus == MediaControl.PLAYER_STATE_BUFFERING) {
             mCastController.setSubTitle(getString(R.string.ccl_loading));
         } else {
@@ -554,7 +565,7 @@ public class VideoCastControllerFragment extends Fragment implements
         try {
             if (mCastManager.isRemoteMediaPaused() || mCastManager.isRemoteMediaPlaying()) {
                 if (mCastManager.getRemoteMediaInformation() != null
-                        && mSelectedMedia.getUrl().equals(mCastManager.getRemoteMediaInformation().getUrl())) {
+                       && mSelectedMedia!=null && mSelectedMedia.getUrl().equals(mCastManager.getRemoteMediaInformation().getUrl())) {
                     mIsFresh = false;
                 }
             }

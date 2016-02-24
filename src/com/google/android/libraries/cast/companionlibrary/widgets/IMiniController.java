@@ -74,11 +74,11 @@ public interface IMiniController {
      */
     public void setOnMiniControllerChangedListener(OnMiniControllerChangedListener listener);
 
-//    /**
-//     * Sets the type of stream. <code>streamType</code> can be {@link MediaInfo#STREAM_TYPE_LIVE}
-//     * or {@link MediaInfo#STREAM_TYPE_BUFFERED}
-//     */
-//    public void setStreamType(int streamType);
+    /**
+     * Sets the type of stream. <code>streamType</code> can be {@link com.connectsdk.core.MediaInfoWithCustomData#STREAM_TYPE_LIVE}
+     * or {@link com.connectsdk.core.MediaInfoWithCustomData#STREAM_TYPE_BUFFERED}
+     */
+    public void setStreamType(int streamType);
 
     /**
      * Sets the progress of stream.
