@@ -196,7 +196,7 @@ public class ReconnectionService extends Service {
 
     private void handleTermination() {
         if (!mCastManager.isConnected()) {
-            mCastManager.removeRemoteControlClient();
+            mCastManager.clearMediaSession();
             mCastManager.clearPersistedConnectionInfo(BaseCastManager.CLEAR_ALL);
             stopSelf();
         } else {

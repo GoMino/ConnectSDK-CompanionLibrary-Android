@@ -1,6 +1,6 @@
 # ConnectSDK-CompanionLibrary-Android
 
-ConnectSDK-CompanionLibrary-Android forked from CastCompanionLibrary-android is a library project to enable developers integrate LG's ConnectSDK casting capabilities into their applications faster and easier.
+ConnectSDK-CompanionLibrary-Android forked from CastCompanionLibrary-android, is a library project to enable developers to integrate LG's ConnectSDK casting capabilities into their applications faster and easier.
 
 ## Fork
 This project is basically a huge refactoring of the original CastCompanionLibrary-android project.
@@ -8,7 +8,7 @@ The idea is to remove any hard dependencies over google-cast framework to replac
 This would easy the android integration and development of casting capabilities to any compatible ConnectSDK devices.
 
 ## Dependencies
-* google-play-services_lib library from the Android SDK (at least version 7.5+)
+* google-play-services_lib library from the Android SDK (at least version 7.8+)
 * android-support-v7-appcompat (version 22 or above)
 * android-support-v7-mediarouter (version 22 or above)
 * connect-sdk-android-lite (version 1.4 or above)
@@ -33,7 +33,7 @@ Google Cast Developers Community on Google+ [http://goo.gl/TPLDxj](http://goo.gl
 
 ## Change List
 
-1.0.0
+1.0.5
 
  * based on version 2.3 of CastCompanionLibrary-android.
  * the refactoring to make this project works with ConnectSDK introduces a restructured and updated code base that has backward-incompatible changes with the original project

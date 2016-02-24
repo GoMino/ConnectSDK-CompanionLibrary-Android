@@ -116,7 +116,10 @@ public class VideoCastControllerFragment extends Fragment implements
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        setImmersive();
+        if (mCastManager.getPreferenceAccessor()
+                .getBooleanFromPreference(VideoCastManager.PREFS_KEY_IMMERSIVE_MODE, true)) {
+            setImmersive();
+        }
         mCastConsumer = new MyCastConsumer();
         Bundle bundle = getArguments();
         if (bundle == null) {
@@ -135,6 +138,10 @@ public class VideoCastControllerFragment extends Fragment implements
         }
         mCastManager.getPreferenceAccessor().saveBooleanToPreference(
                 VideoCastManager.PREFS_KEY_START_ACTIVITY, false);
+        int nextPreviousVisibilityPolicy = mCastManager.getPreferenceAccessor()
+                .getIntFromPreference(VideoCastManager.PREFS_KEY_NEXT_PREV_POLICY,
+                        VideoCastController.NEXT_PREV_VISIBILITY_POLICY_DISABLED);
+        mCastController.setNextPreviousVisibilityPolicy(nextPreviousVisibilityPolicy);
         if (extras.getBoolean(VideoCastManager.EXTRA_HAS_AUTH)) {
             if (mIsFresh) {
                 mOverallState = OverallState.AUTHORIZING;
@@ -146,10 +153,6 @@ public class VideoCastControllerFragment extends Fragment implements
             mOverallState = OverallState.PLAYBACK;
             boolean shouldStartPlayback = extras.getBoolean(VideoCastManager.EXTRA_SHOULD_START);
             String customDataStr = extras.getString(VideoCastManager.EXTRA_CUSTOM_DATA);
-            int nextPreviousVisibilityPolicy = extras
-                    .getInt(VideoCastManager.EXTRA_NEXT_PREVIOUS_VISIBILITY_POLICY,
-                            VideoCastController.NEXT_PREV_VISIBILITY_POLICY_DISABLED);
-            mCastController.setNextPreviousVisibilityPolicy(nextPreviousVisibilityPolicy);
             JSONObject customData = null;
             if (!TextUtils.isEmpty(customDataStr)) {
                 try {

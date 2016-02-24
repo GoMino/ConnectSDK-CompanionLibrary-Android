@@ -67,8 +67,6 @@ import com.google.android.libraries.cast.companionlibrary.cast.player.VideoCastC
 import com.google.android.libraries.cast.companionlibrary.cast.tracks.OnTracksSelectedListener;
 import com.google.android.libraries.cast.companionlibrary.cast.tracks.TracksPreferenceManager;
 import com.google.android.libraries.cast.companionlibrary.notification.VideoCastNotificationService;
-import com.google.android.libraries.cast.companionlibrary.remotecontrol.RemoteControlClientCompat;
-import com.google.android.libraries.cast.companionlibrary.remotecontrol.RemoteControlHelper;
 import com.google.android.libraries.cast.companionlibrary.remotecontrol.VideoIntentReceiver;
 import com.google.android.libraries.cast.companionlibrary.utils.FetchBitmapTask;
 import com.google.android.libraries.cast.companionlibrary.utils.LogUtils;
@@ -79,7 +77,6 @@ import com.google.android.libraries.cast.companionlibrary.widgets.MiniController
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
-import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -87,12 +84,13 @@ import android.content.res.Resources.NotFoundException;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.AudioManager;
-import android.media.MediaMetadataRetriever;
-import android.media.RemoteControlClient;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceScreen;
+import android.support.v4.media.MediaMetadataCompat;
+import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v7.app.MediaRouteDialogFactory;
 import android.support.v7.media.MediaRouter.RouteInfo;
 import android.text.TextUtils;
@@ -168,6 +166,8 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
     private double mVolumeStep = DEFAULT_VOLUME_STEP;
     public static final long DEFAULT_LIVE_STREAM_DURATION_MS = TimeUnit.HOURS.toMillis(2); // 2hrs
     public static final String PREFS_KEY_START_ACTIVITY = "ccl-start-cast-activity";
+    public static final String PREFS_KEY_NEXT_PREV_POLICY = "ccl-next-prev-policy";
+    public static final String PREFS_KEY_IMMERSIVE_MODE = "ccl-cast-contoller-immersive";
     private TracksPreferenceManager mTrackManager;
     private ComponentName mMediaEventReceiver;
     private MediaQueue mMediaQueue;
@@ -193,9 +193,8 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
     private Class<?> mTargetActivity;
     private final Set<IMiniController> mMiniControllers = Collections.synchronizedSet(new HashSet<IMiniController>());
     private AudioManager mAudioManager;
-    private ComponentName mMediaButtonReceiverComponent;
     private MediaPlayer mRemoteMediaPlayer;
-    private RemoteControlClientCompat mRemoteControlClientCompat;
+    private MediaSessionCompat mMediaSessionCompat;
     private VolumeType mVolumeType = VolumeType.DEVICE;
     private int mState = MediaControl.PLAYER_STATE_IDLE;
     private int mIdleReason;
@@ -254,7 +253,6 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
         }
 
         mAudioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
-        mMediaButtonReceiverComponent = new ComponentName(mContext, VideoIntentReceiver.class);
     }
 
     public static synchronized VideoCastManager initialize(Context context, String applicationId, Class<?> targetActivity, String dataNamespace) {
@@ -309,19 +307,19 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
             public void onSuccess(Long duration) {
                 try {
                     if ( duration> 0 || isRemoteStreamLive()) {
-                        MediaInfo mediaInfo = getRemoteMediaInformation();
+            MediaInfo mediaInfo = getRemoteMediaInformation();
                         if (mediaInfo != null) {
                             //MediaMetadata mm = mediaInfo.getMetadata();
                             if(mediaInfo instanceof MediaInfoWithCustomData){
                                 controller.setStreamType(((MediaInfoWithCustomData)mediaInfo).getStreamType());
                             }
-                            controller.setPlaybackStatus(mState, mIdleReason);
+            controller.setPlaybackStatus(mState, mIdleReason);
                             controller.setSubtitle(mContext.getResources().getString(R.string.ccl_casting_to_device, mDeviceName));
                             controller.setTitle(mediaInfo.getTitle());
-                            controller.setIcon(Utils.getImageUri(mediaInfo, 0));
+            controller.setIcon(Utils.getImageUri(mediaInfo, 0));
                             LOGE(TAG, "updateMiniControllers() title:" + mediaInfo.getTitle() + " imageUrl:" + Utils.getImageUri(mediaInfo, 0));
-                        }
-                    }
+        }
+    }
                 } catch (TransientNetworkDisconnectionException e) {
                     e.printStackTrace();
                 } catch (NoConnectionException e) {
@@ -370,8 +368,8 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
             //if ((mState == MediaControl.PLAYER_STATE_PAUSED && !isLive) || (mState == MediaControl.PLAYER_STATE_IDLE && isLive)) {
                 play();
             //}
+            }
         }
-    }
 
     /*
      * (non-Javadoc)
@@ -449,7 +447,6 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
         intent.putExtra(EXTRA_MEDIA, mediaWrapper);
         intent.putExtra(EXTRA_START_POINT, position);
         intent.putExtra(EXTRA_SHOULD_START, shouldStart);
-        intent.putExtra(EXTRA_NEXT_PREVIOUS_VISIBILITY_POLICY, mNextPreviousVisibilityPolicy);
         if (customData != null) {
             intent.putExtra(EXTRA_CUSTOM_DATA, customData.toString());
         }
@@ -546,7 +543,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
         MediaInfo info = getRemoteMediaInformation();
         if(info instanceof MediaInfoWithCustomData) {
             return (info != null) && (((MediaInfoWithCustomData)info).getStreamType() == MediaInfoWithCustomData.STREAM_TYPE_LIVE);
-        }
+    }
         return false;
     }
 
@@ -678,7 +675,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 //            return mRemoteMediaPlayer.getMediaStatus().getStreamVolume();
 //        }
         getDeviceVolume(listener);
-    }
+        }
 
     /**
      * Sets the volume. It internally determines if this should be done for <code>stream</code> or
@@ -716,7 +713,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 //        } else {
             setDeviceVolume(volume);
 //        }
-    }
+        }
 
     /**
      * Increments (or decrements) the volume by the given amount. It internally determines if this
@@ -734,20 +731,20 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
             @Override
             public void onSuccess(Float volume) {
                 double vol = volume + delta;
-                if (vol > 1) {
-                    vol = 1;
-                } else if (vol < 0) {
-                    vol = 0;
-                }
+        if (vol > 1) {
+            vol = 1;
+        } else if (vol < 0) {
+            vol = 0;
+        }
                 try {
-                    setVolume(vol);
+        setVolume(vol);
                 } catch (CastException e) {
                     e.printStackTrace();
                 } catch (TransientNetworkDisconnectionException e) {
                     e.printStackTrace();
                 } catch (NoConnectionException e) {
                     e.printStackTrace();
-                }
+    }
             }
 
             @Override
@@ -764,7 +761,6 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
      */
     public void updateVolume(int delta) {
         RouteInfo info = mMediaRouter.getSelectedRoute();
-        //RouteInfo info = getRouteInfo();
         info.requestUpdateVolume(delta);
     }
 
@@ -783,7 +779,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 //        } else {
             isDeviceMute(listener);
 //        }
-    }
+        }
 
     /**
      * Mutes or un-mutes the volume. It internally determines if this should be done for
@@ -802,7 +798,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 //        } else {
             setDeviceMute(mute);
 //        }
-    }
+        }
 
     /**
      * Returns the duration of the media that is loaded, in milliseconds.
@@ -846,7 +842,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
                             public void onSuccess(Long position) {
                                 final long mediaPosition = position;
                                 listener.onSuccess(mediaDuration - mediaPosition);
-                            }
+    }
 
                             @Override
                             public void onError(ServiceCommandError serviceCommandError) {
@@ -887,7 +883,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
                 public void onSuccess(Long duration) {
                     result[0] = duration;
                     positionLatch.countDown();
-                }
+    }
 
                 @Override
                 public void onError(ServiceCommandError serviceCommandError) {
@@ -940,9 +936,9 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 
     private void onApplicationDisconnected(int errorCode) {
         LOGD(TAG, "onApplicationDisconnected() reached with error code: " + errorCode);
-        updateRemoteControl(false);
-        if (mRemoteControlClientCompat != null && isFeatureEnabled(FEATURE_LOCKSCREEN)) {
-            mRemoteControlClientCompat.removeFromMediaRouter(mMediaRouter);
+        updateMediaSession(false);
+        if (mMediaSessionCompat != null && isFeatureEnabled(FEATURE_LOCKSCREEN)) {
+            mMediaRouter.setMediaSessionCompat(null);
         }
         for (VideoCastConsumer consumer : mVideoConsumers) {
             consumer.onApplicationDisconnected(errorCode);
@@ -987,9 +983,9 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
                         isMute(new VolumeControl.MuteListener() {
                             @Override
                             public void onSuccess(Boolean isMute) {
-                                for (VideoCastConsumer consumer : mVideoConsumers) {
-                                    consumer.onVolumeChanged(volume, isMute);
-                                }
+            for (VideoCastConsumer consumer : mVideoConsumers) {
+                consumer.onVolumeChanged(volume, isMute);
+            }
                             }
 
                             @Override
@@ -997,15 +993,15 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 
                             }
                         });
-                    } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
+        } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
                         e.printStackTrace();
-                    }
+        }
                 }
 
                 @Override
                 public void onError(ServiceCommandError serviceCommandError) {
                     LOGE(TAG, "Failed to get volume", serviceCommandError);
-                }
+    }
             });
 
         } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
@@ -1199,21 +1195,21 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
         }
 
         mRemoteMediaPlayer.playMedia(media, false, new MediaPlayer.LaunchListener() {
-            @Override
+                    @Override
             public void onSuccess(MediaPlayer.MediaLaunchObject mediaLaunchObject) {
                 LOGD(TAG, "cast success");
-                for (VideoCastConsumer consumer : mVideoConsumers) {
+                        for (VideoCastConsumer consumer : mVideoConsumers) {
                     //consumer.onMediaLoadResult(CastStatusCodes.SUCCESS);
                     //consumer.onMediaLoadResult(mediaLaunchObject);
                     consumer.onMediaLoadResult(mWebAppSession);
-                }
-            }
+                        }
+                    }
 
             @Override
             public void onError(ServiceCommandError serviceCommandError) {
                 LOGE(TAG, "cast failure code " + serviceCommandError.getCode());
             }
-        });
+                });
     }
     /**
      * Loads and optionally starts playback of a new queue of media items.
@@ -1775,16 +1771,16 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 
         mMediaStatus.play(new ResponseListener<Object>() {
 
-            @Override
+                    @Override
             public void onSuccess(Object o) {
 
-            }
+                        }
 
             @Override
             public void onError(ServiceCommandError serviceCommandError) {
                 onFailed(R.string.ccl_failed_to_play, serviceCommandError.getCode());
-            }
-        });
+                    }
+                });
     }
 
     /**
@@ -1830,19 +1826,19 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 
         mMediaStatus.stop(new ResponseListener<Object>() {
 
-            @Override
+                    @Override
             public void onSuccess(Object o) {
                 LOGD(TAG, "stop success");
                 for (VideoCastConsumer consumer : mVideoConsumers) {
                     //consumer.onMediaStopped(CastStatusCodes.SUCCESS);
                     consumer.onMediaStopped(mWebAppSession);
-                }
-            }
+                        }
+                    }
 
             @Override
             public void onError(ServiceCommandError serviceCommandError) {
                 onFailed(R.string.ccl_failed_to_stop, serviceCommandError.getCode());
-            }
+                }
         });
     }
 
@@ -1900,16 +1896,16 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 
         mMediaStatus.pause(new ResponseListener<Object>() {
 
-            @Override
+                    @Override
             public void onSuccess(Object o) {
                 LOGD(TAG, "pause success");
-            }
+                        }
 
             @Override
             public void onError(ServiceCommandError serviceCommandError) {
                 onFailed(R.string.ccl_failed_to_pause, serviceCommandError.getCode());
-            }
-        });
+                    }
+                });
     }
 
     /**
@@ -1947,11 +1943,11 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 
             }
 
-            @Override
+                    @Override
             public void onError(ServiceCommandError serviceCommandError) {
                 onFailed(R.string.ccl_failed_seek, serviceCommandError.getCode());
-            }
-        });
+                        }
+                });
     }
 
     /**
@@ -1984,7 +1980,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 //                RemoteMediaPlayer.RESUME_STATE_PLAY).setResultCallback(resultCallback);
 
         mMediaStatus.seek(position, new ResponseListener<Object>() {
-            @Override
+                    @Override
             public void onSuccess(Object o) {
                 try {
                     play();
@@ -1994,13 +1990,13 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
                     e.printStackTrace();
                 } catch (NoConnectionException e) {
                     e.printStackTrace();
-                }
-            }
+                        }
+                    }
 
             @Override
             public void onError(ServiceCommandError serviceCommandError) {
                 onFailed(R.string.ccl_failed_seek, serviceCommandError.getCode());
-            }
+    }
         });
     }
 
@@ -2099,17 +2095,17 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
             mRemoteMediaPlayer = mSelectedCastDevice.getCapability(MediaPlayer.class);
 
             mRemoteMediaPlayer.subscribeMediaInfo(new MediaPlayer.MediaInfoListener() {
-                @Override
+                        @Override
                 public void onSuccess(MediaInfo mediaInfo) {
-                    LOGD(TAG, "RemoteMediaPlayer::onMetadataUpdated() is reached");
+                            LOGD(TAG, "RemoteMediaPlayer::onMetadataUpdated() is reached");
                     mCurrentMediaInfo = mediaInfo;
-                    VideoCastManager.this.onRemoteMediaPlayerMetadataUpdated();
-                }
+                            VideoCastManager.this.onRemoteMediaPlayerMetadataUpdated();
+                        }
 
                 @Override
                 public void onError(ServiceCommandError serviceCommandError) {
 
-                }
+                    }
             });
 
 //            if(mMediaStatus.getMediaControl() instanceof DeviceService){
@@ -2119,7 +2115,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 //            }
 
             mMediaStatus.subscribePlayState(new MediaControl.PlayStateListener() {
-                @Override
+                        @Override
                 public void onSuccess(MediaControl.PlayStateStatus playStateStatus) {
                     LOGD(TAG, "RemoteMediaPlayer::onStatusUpdated() is reached");
                     mCurrentPlayStateStatus = playStateStatus;
@@ -2131,13 +2127,13 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 //                            break;
 //                    }
                     VideoCastManager.this.onRemoteMediaPlayerStatusUpdated();
-                }
+                            }
 
                 @Override
                 public void onError(ServiceCommandError serviceCommandError) {
 
-                }
-            });
+                        }
+                    });
 
         }
 //        try {
@@ -2147,7 +2143,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 //        } catch (IOException | IllegalStateException e) {
 //            LOGE(TAG, "attachMediaChannel()", e);
 //        }
-    }
+        }
 
     private void reattachMediaChannel() {
 //        if (mRemoteMediaPlayer != null && mApiClient != null) {
@@ -2159,7 +2155,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 //                LOGE(TAG, "reattachMediaChannel()", e);
 //            }
 //        }
-    }
+            }
 
     private void detachMediaChannel() {
         LOGD(TAG, "trying to detach media channel");
@@ -2353,7 +2349,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
                         break;
                     case Buffering:
                         mState = MediaControl.PLAYER_STATE_BUFFERING;
-                }
+        }
 
                 //mIdleReason = mMediaStatus.getIdleReason();
 
@@ -2368,8 +2364,8 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
                                         for (VideoCastConsumer consumer : mVideoConsumers) {
                                             consumer.onRemoteMediaPlayerStatusUpdated();
                                             consumer.onVolumeChanged(volume, isMute);
-                                        }
-                                    }
+            }
+        }
 
                                     @Override
                                     public void onError(ServiceCommandError serviceCommandError) {
@@ -2387,15 +2383,15 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
                         }
                     });
 
-                    boolean makeUiHidden = false;
+            boolean makeUiHidden = false;
                     if (mState == MediaControl.PLAYER_STATE_PLAYING) {
-                        LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = playing");
-                        updateRemoteControl(true);
+                LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = playing");
+                        updateMediaSession(true);
                         getMediaTimeRemaining(new ResponseListener<Long>() {
                             @Override
                             public void onSuccess(Long mediaDurationLeft) {
-                                startReconnectionService(mediaDurationLeft);
-                                startNotificationService();
+                startReconnectionService(mediaDurationLeft);
+                startNotificationService();
                             }
 
                             @Override
@@ -2406,23 +2402,22 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 
 
                     } else if (mState == MediaControl.PLAYER_STATE_PAUSED) {
-                        LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = paused");
-                        updateRemoteControl(false);
-                        //updateRemoteControl(true);
-                        startNotificationService();
+                LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = paused");
+                updateMediaSession(false);
+                startNotificationService();
                     } else if (mState == MediaControl.PLAYER_STATE_IDLE) {
-                        LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = idle");
-                        updateRemoteControl(false);
+                LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = idle");
+                        updateMediaSession(false);
 //                switch (mIdleReason) {
 //                    case MediaStatus.IDLE_REASON_FINISHED:
-                        removeRemoteControlClient();
+                        clearMediaSession();
                         makeUiHidden = true;
 //                        break;
 //                    case MediaStatus.IDLE_REASON_ERROR:
 //                        // something bad happened on the cast device
 //                        LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): IDLE reason = ERROR");
 //                        makeUiHidden = true;
-//                        removeRemoteControlClient();
+//                        clearMediaSession();
 //                        onFailed(R.string.ccl_failed_receiver_player_error, NO_STATUS_CODE);
 //                        break;
 //                    case MediaStatus.IDLE_REASON_CANCELED:
@@ -2432,40 +2427,42 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 //                    case MediaStatus.IDLE_REASON_INTERRUPTED:
 //                        if (mMediaStatus.getLoadingItemId() == MediaQueueItem.INVALID_ITEM_ID) {
 //                            // we have reached the end of queue
-//                            removeRemoteControlClient();
+//                            clearMediaSession();
 //                            makeUiHidden = true;
 //                        }
 //                        break;
 //                    default:
-//                        LOGE(TAG, "onRemoteMediaPlayerStatusUpdated(): Unexpected Idle Reason " + mIdleReason);
+//                        LOGE(TAG, "onRemoteMediaPlayerStatusUpdated(): Unexpected Idle Reason "
+//                                + mIdleReason);
 //                }
-                        if (makeUiHidden) {
-                            stopReconnectionService();
-                        }
+                if (makeUiHidden) {
+                    stopReconnectionService();
+                }
                     } else if (mState == MediaControl.PLAYER_STATE_BUFFERING) {
-                        LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = buffering");
-                    } else {
-                        LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = unknown");
-                        makeUiHidden = true;
-                    }
-                    if (makeUiHidden) {
-                        stopNotificationService();
-                    }
-                    updateMiniControllersVisibility(!makeUiHidden);
-                    updateMiniControllers();
+                LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = buffering");
+            } else {
+                LOGD(TAG, "onRemoteMediaPlayerStatusUpdated(): Player status = unknown");
+                makeUiHidden = true;
+            }
+            if (makeUiHidden) {
+                stopNotificationService();
+            }
+            updateMiniControllersVisibility(!makeUiHidden);
+            updateMiniControllers();
 //                    for (VideoCastConsumer consumer : mVideoConsumers) {
 //                        consumer.onRemoteMediaPlayerStatusUpdated();
 //                        consumer.onVolumeChanged(volume, isMute);
 //                    }
-                } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
-                    LOGE(TAG, "Failed to get volume state due to network issues", e);
-                }
-            }
+        } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
+            LOGE(TAG, "Failed to get volume state due to network issues", e);
+        }
+
+    }
 
             @Override
             public void onError(ServiceCommandError serviceCommandError) {
 
-            }
+        }
         });
 
     }
@@ -2513,7 +2510,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
      */
     public void onRemoteMediaPlayerMetadataUpdated() {
         LOGD(TAG, "onRemoteMediaPlayerMetadataUpdated() reached");
-        updateLockScreenMetadata();
+        updateMediaSessionMetadata();
         for (VideoCastConsumer consumer : mVideoConsumers) {
             consumer.onRemoteMediaPlayerMetadataUpdated();
         }
@@ -2524,45 +2521,61 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
         }
     }
 
+    /**
+     * Returns the Media Session Token. If there is no media session, it returns {@code null}
+     */
+    public MediaSessionCompat.Token getMediaSessionCompatToken() {
+        return mMediaSessionCompat == null ? null : mMediaSessionCompat.getSessionToken();
+    }
+
     /*
-     * Sets up the {@link RemoteControlClient} for this application. It also handles the audio
+     * Sets up the {@link MediaSessionCompat} for this application. It also handles the audio
      * focus.
      */
     @SuppressLint("InlinedApi")
-    private void setUpRemoteControl(final MediaInfo info) {
+    private void setUpMediaSession(final MediaInfo info) {
         if (!isFeatureEnabled(BaseCastManager.FEATURE_LOCKSCREEN)) {
             return;
         }
-        LOGD(TAG, "setUpRemoteControl() was called");
+        if (mMediaSessionCompat == null) {
+            mMediaEventReceiver = new ComponentName(mContext, VideoIntentReceiver.class.getName());
+            mMediaSessionCompat = new MediaSessionCompat(mContext, "TAG", mMediaEventReceiver, null);
+            mMediaSessionCompat.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS
+                    | MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
+            mMediaSessionCompat.setActive(true);
+            mMediaSessionCompat.setCallback(new MediaSessionCompat.Callback() {
+                @Override
+                public boolean onMediaButtonEvent(Intent mediaButtonIntent) {
+                    KeyEvent keyEvent = mediaButtonIntent
+                            .getParcelableExtra(Intent.EXTRA_KEY_EVENT);
+                    if (keyEvent != null && (keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PAUSE
+                            || keyEvent.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PLAY)) {
+                        try {
+                            togglePlayback();
+                        } catch (CastException | TransientNetworkDisconnectionException |
+                                NoConnectionException e) {
+                            LOGE(TAG, "onMediaButtonEvent(): Failed to toggle playback", e);
+                        }
+                    }
+                    return true;
+                }
+            });
+        }
+
         mAudioManager.requestAudioFocus(null, AudioManager.STREAM_MUSIC,
                 AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
 
-        mMediaEventReceiver = new ComponentName(mContext, VideoIntentReceiver.class.getName());
-        mAudioManager.registerMediaButtonEventReceiver(mMediaEventReceiver);
+        mMediaSessionCompat.setPlaybackState(new PlaybackStateCompat.Builder()
+                .setState(PlaybackStateCompat.STATE_PLAYING, 0, 1.0f)
+                .setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE).build());
 
-        if (mRemoteControlClientCompat == null) {
-            Intent intent = new Intent(Intent.ACTION_MEDIA_BUTTON);
-            intent.setComponent(mMediaButtonReceiverComponent);
-            mRemoteControlClientCompat = new RemoteControlClientCompat(
-                    PendingIntent.getBroadcast(mContext, 0, intent, 0));
-            RemoteControlHelper.registerRemoteControlClient(mAudioManager,
-                    mRemoteControlClientCompat);
-        }
-        mRemoteControlClientCompat.addToMediaRouter(mMediaRouter);
-        mRemoteControlClientCompat.setTransportControlFlags(
-                RemoteControlClient.FLAG_KEY_MEDIA_PLAY_PAUSE);
-        if (info == null) {
-            mRemoteControlClientCompat.setPlaybackState(RemoteControlClient.PLAYSTATE_PAUSED);
-            return;
-        } else {
-            mRemoteControlClientCompat.setPlaybackState(RemoteControlClient.PLAYSTATE_PLAYING);
-        }
-
-        // Update the remote control's image
+        // Update the media session's image
         updateLockScreenImage(info);
 
-        // update the remote control's metadata
-        updateLockScreenMetadata();
+        // update the media session's metadata
+        updateMediaSessionMetadata();
+
+        mMediaRouter.setMediaSessionCompat(mMediaSessionCompat);
     }
 
     /*
@@ -2581,7 +2594,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
      * full-screen image so we need to separately handle these two cases.
      */
     private void setBitmapForLockScreen(MediaInfo video) {
-        if (video == null || mRemoteControlClientCompat == null) {
+        if (video == null || mMediaSessionCompat == null) {
             return;
         }
         Uri imgUrl = null;
@@ -2604,28 +2617,34 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
             bm = BitmapFactory.decodeResource(mContext.getResources(), R.drawable.album_art_placeholder);
         }
         if (bm != null) {
-            mRemoteControlClientCompat.editMetadata(false).putBitmap(
-                    RemoteControlClientCompat.MetadataEditorCompat.
-                            METADATA_KEY_ARTWORK, bm).apply();
+            MediaMetadataCompat currentMetadata = mMediaSessionCompat.getController().getMetadata();
+            MediaMetadataCompat.Builder newBuilder = currentMetadata == null
+                    ? new MediaMetadataCompat.Builder()
+                    : new MediaMetadataCompat.Builder(currentMetadata);
+            mMediaSessionCompat.setMetadata(newBuilder
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bm)
+                    .build());
         } else {
-
             new FetchBitmapTask() {
                 @Override
                 protected void onPostExecute(Bitmap bitmap) {
-                    if (mRemoteControlClientCompat != null) {
-                        mRemoteControlClientCompat.editMetadata(false).putBitmap(
-                                RemoteControlClientCompat.MetadataEditorCompat.
-                                        METADATA_KEY_ARTWORK, bitmap).apply();
-                    }
+                    MediaMetadataCompat currentMetadata = mMediaSessionCompat.getController()
+                            .getMetadata();
+                    MediaMetadataCompat.Builder newBuilder = currentMetadata == null
+                            ? new MediaMetadataCompat.Builder()
+                            : new MediaMetadataCompat.Builder(currentMetadata);
+                    mMediaSessionCompat.setMetadata(newBuilder
+                            .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
+                            .build());
                 }
             }.execute(imgUrl);
         }
     }
     /*
-     * Updates the playback status of the RemoteControlClient
+     * Updates the playback status of the Media Session
      */
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-    private void updateRemoteControl(boolean playing) {
+    private void updateMediaSession(boolean playing) {
         if (!isFeatureEnabled(FEATURE_LOCKSCREEN)) {
             return;
         }
@@ -2633,18 +2652,20 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
             return;
         }
         try {
-            if ((mRemoteControlClientCompat == null) && playing) {
-                setUpRemoteControl(getRemoteMediaInformation());
+            if ((mMediaSessionCompat == null) && playing) {
+                setUpMediaSession(getRemoteMediaInformation());
             }
-            if (mRemoteControlClientCompat != null) {
-                int playState = isRemoteStreamLive() ? RemoteControlClient.PLAYSTATE_BUFFERING
-                        : RemoteControlClient.PLAYSTATE_PLAYING;
-                mRemoteControlClientCompat
-                        .setPlaybackState(playing ? playState
-                                : RemoteControlClient.PLAYSTATE_PAUSED);
+            if (mMediaSessionCompat != null) {
+                int playState = isRemoteStreamLive() ? PlaybackStateCompat.STATE_BUFFERING
+                        : PlaybackStateCompat.STATE_PLAYING;
+                int state = playing ? playState : PlaybackStateCompat.STATE_PAUSED;
+
+                mMediaSessionCompat.setPlaybackState(new PlaybackStateCompat.Builder()
+                        .setState(state, 0, 1.0f)
+                        .setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE).build());
             }
         } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
-            LOGE(TAG, "Failed to set up RCC due to network issues", e);
+            LOGE(TAG, "Failed to set up MediaSessionCompat due to network issues", e);
         }
     }
 
@@ -2652,45 +2673,49 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
      * On ICS and JB, lock screen metadata is one liner: Title - Album Artist - Album. On KitKat, it
      * has two lines: Title , Album Artist - Album
      */
-    private void updateLockScreenMetadata() {
-        if ((mRemoteControlClientCompat == null) || !isFeatureEnabled(FEATURE_LOCKSCREEN)) {
+    private void updateMediaSessionMetadata() {
+        if ((mMediaSessionCompat == null) || !isFeatureEnabled(FEATURE_LOCKSCREEN)) {
             return;
         }
 
         try {
-            // Update the remote controls
             MediaInfo info = getRemoteMediaInformation();
             if (info == null) {
                 return;
             }
             //final MediaMetadata mm = info.getMetadata();
-
-            mRemoteControlClientCompat.editMetadata(false)
-                    .putString(MediaMetadataRetriever.METADATA_KEY_TITLE, info.getTitle())
-                    .putString(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST, mContext.getResources().getString(R.string.ccl_casting_to_device, getDeviceName()))
-                    .putLong(MediaMetadataRetriever.METADATA_KEY_DURATION, info.getDuration())
-                    .apply();
+            MediaMetadataCompat currentMetadata = mMediaSessionCompat.getController().getMetadata();
+            MediaMetadataCompat.Builder newBuilder = currentMetadata == null
+                    ? new MediaMetadataCompat.Builder()
+                    : new MediaMetadataCompat.Builder(currentMetadata);
+            mMediaSessionCompat.setMetadata(
+                    newBuilder
+                            .putString(MediaMetadataCompat.METADATA_KEY_TITLE,
+                                    info.getTitle())
+                            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ARTIST,
+                                    mContext.getResources().getString(
+                                            R.string.ccl_casting_to_device, getDeviceName()))
+                            .putLong(MediaMetadataCompat.METADATA_KEY_DURATION,
+                                    info.getDuration())
+                            .build());
         } catch (NotFoundException e) {
-            LOGE(TAG, "Failed to update RCC due to resource not found", e);
+            LOGE(TAG, "Failed to update Media Session due to resource not found", e);
         } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
-            LOGE(TAG, "Failed to update RCC due to network issues", e);
+            LOGE(TAG, "Failed to update Media Session due to network issues", e);
         }
     }
 
     /*
-     * Removes the remote control client
+     * Clears Media Session
      */
-    public void removeRemoteControlClient() {
-        LOGD(TAG, "removeRemoteControlClient()");
+    public void clearMediaSession() {
+        LOGD(TAG, "clearMediaSession()");
         if (isFeatureEnabled(FEATURE_LOCKSCREEN)) {
             mAudioManager.abandonAudioFocus(null);
-            if (mMediaEventReceiver != null) {
-                mAudioManager.unregisterMediaButtonEventReceiver(mMediaEventReceiver);
-            }
-            if (mRemoteControlClientCompat != null) {
-                RemoteControlHelper.unregisterRemoteControlClient(mAudioManager,
-                        mRemoteControlClientCompat);
-                mRemoteControlClientCompat = null;
+            if (mMediaSessionCompat != null) {
+                mMediaSessionCompat.setActive(false);
+                mMediaSessionCompat.release();
+                mMediaSessionCompat = null;
             }
         }
     }
@@ -2793,7 +2818,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
     @Override
     public void onConnectionFailed(ConnectableDevice connectableDevice, ServiceCommandError serviceCommandError) {
         super.onConnectionFailed(connectableDevice, serviceCommandError);
-        updateRemoteControl(false);
+        updateMediaSession(false);
         stopNotificationService();
     }
 
@@ -2803,7 +2828,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
         super.onDisconnected(stopAppOnExit, clearPersistedConnectionData, setDefaultRoute);
         updateMiniControllersVisibility(false);
         if (clearPersistedConnectionData && !mConnectionSuspended) {
-            removeRemoteControlClient();
+            clearMediaSession();
         }
         mState = MediaControl.PLAYER_STATE_IDLE;
         mMediaQueue = null;
@@ -2840,7 +2865,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 //        }
 //    }
 
-    @Override
+        @Override
     public void onFailed(int resourceId, int statusCode) {
         LOGD(TAG, "onFailed: " + mContext.getString(resourceId) + ", code: " + statusCode);
         super.onFailed(resourceId, statusCode);
@@ -2895,11 +2920,11 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
                 if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
                     int delta = (int)volumeDelta;
                     updateVolume(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN ? -delta : delta);
-                    return true;
-                }
-            }
+                        return true;
+                    }
+                    }
 
-        }
+            }
         return false;
     }
 
@@ -2975,7 +3000,7 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
 //                        }
 //                    }
 //                });
-    }
+        }
 
     /**
      * Sets or updates the style of the Text Track.
@@ -3203,19 +3228,19 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
                                     public void onSuccess(Long position) {
                                         final int currentPos = position.intValue();
                                         updateProgress(currentPos, mediaDuration);
-                                    }
+                }
 
                                     @Override
                                     public void onError(ServiceCommandError serviceCommandError) {
                                         LOGE(TAG, "Failed to update the progress tracker due to network issues", serviceCommandError);
                                     }
                                 });
-                            } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
-                                LOGE(TAG, "Failed to update the progress tracker due to network issues", e);
-                            }
+            } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
+                LOGE(TAG, "Failed to update the progress tracker due to network issues", e);
+            }
 
-                        }
-                    }
+        }
+    }
 
                     @Override
                     public void onError(ServiceCommandError serviceCommandError) {
@@ -3255,12 +3280,22 @@ public class VideoCastManager extends BaseCastManager implements OnMiniControlle
             case VideoCastController.NEXT_PREV_VISIBILITY_POLICY_ALWAYS:
             case VideoCastController.NEXT_PREV_VISIBILITY_POLICY_HIDDEN:
                 mNextPreviousVisibilityPolicy = policy;
+                mPreferenceAccessor.saveIntToPreference(PREFS_KEY_NEXT_PREV_POLICY, policy);
                 return;
             default:
                 LOGD(TAG, "Invalid value for the NextPreviousVisibilityPolicy was requested");
         }
         throw new IllegalArgumentException(
                 "Invalid value for the NextPreviousVisibilityPolicy was requested");
+    }
+
+    /**
+     * Turns on/off the immersive mode for the full screen cast controller
+     * {@link VideoCastControllerActivity}. Calls to this will take effect the next time that
+     * activity is launched so it is recommended to be called early in the application lifecycle.
+     */
+    public void setCastControllerImmersive(boolean mode) {
+        mPreferenceAccessor.saveBooleanToPreference(PREFS_KEY_IMMERSIVE_MODE, mode);
     }
 
 }
