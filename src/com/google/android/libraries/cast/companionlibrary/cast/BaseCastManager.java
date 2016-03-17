@@ -18,13 +18,13 @@ package com.google.android.libraries.cast.companionlibrary.cast;
 
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGD;
 import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGE;
+import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.LOGV;
 
 //import com.google.android.gms.cast.ApplicationMetadata;
 //import com.google.android.gms.cast.Cast;
 //import com.google.android.gms.cast.Cast.ApplicationConnectionResult;
 //import com.google.android.gms.cast.CastDevice;
 import com.connectsdk.discovery.DiscoveryManagerListener;
-import com.connectsdk.discovery.DiscoveryProvider;
 import com.connectsdk.route.provider.ConnectSDKMediaRouteProvider;
 //import com.google.android.gms.cast.CastMediaControlIntent;
 //import com.google.android.gms.common.ConnectionResult;
@@ -61,10 +61,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.media.RemoteControlClient;
-import android.net.nsd.NsdManager;
 import android.os.AsyncTask;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
@@ -83,7 +81,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.CountDownLatch;
 
 /**
  * An abstract class that manages connectivity to a cast device. Subclasses are expected to extend
@@ -392,15 +389,21 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
         mSelectedCastDevice.connect();
     }
 
-    private String getApplicationId(){
+    protected String getApplicationId(){
         String appId = mApplicationId;
-        if(mSelectedCastDevice!=null){
-            DeviceService service = mSelectedCastDevice.getServiceByName(mSelectedCastDevice.getConnectedServiceNames());
-            if(service instanceof CompanionService) {
-                appId = ((CompanionService)service).getApplicationId();
-            }
+        DeviceService service = getConnectedDeviceService();
+        if(service!=null && service instanceof CompanionService) {
+            appId = ((CompanionService)service).getApplicationId();
         }
         return appId;
+    }
+
+    protected DeviceService getConnectedDeviceService(){
+        DeviceService service = null;
+        if(mSelectedCastDevice!=null){
+            service = mSelectedCastDevice.getServiceByName(mSelectedCastDevice.getConnectedServiceNames());
+        }
+        return service;
     }
 
     /**
@@ -1103,10 +1106,6 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
             //Cast.CastApi.requestStatus(mApiClient);
             launchApp();
 
-//            for (BaseCastConsumer consumer : mBaseCastConsumers) {
-//                consumer.onDeviceSelected(connectableDevice);
-//            }
-
             for (BaseCastConsumer consumer : mBaseCastConsumers) {
                 consumer.onConnected();
             }
@@ -1200,6 +1199,65 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
             checkConnectivity();
         }
 
+//        DeviceService service = getConnectedDeviceService();
+//        if(service!=null){
+//            LOGV(TAG, "connected service name:"+ service.getServiceName());
+//
+//            service.setListener(new DeviceService.DeviceServiceListener() {
+//                @Override
+//                public void onConnectionRequired(DeviceService service) {
+//
+//                }
+//
+//                @Override
+//                public void onConnectionSuccess(DeviceService service) {
+//                    LOGV(TAG, "onConnectionSuccess to service:" + service.getServiceName());
+//                }
+//
+//                @Override
+//                public void onCapabilitiesUpdated(DeviceService service, List<String> added, List<String> removed) {
+//
+//                }
+//
+//                @Override
+//                public void onDisconnect(DeviceService service, Error error) {
+//                    LOGE(TAG, "onDisconnect from service:" + service.getServiceName() + " error:" + error);
+//                    if (error instanceof ServiceCommandError) {
+//                        ServiceCommandError serviceCommandError = (ServiceCommandError) error;
+//                        boolean mWaitingForReconnect = (boolean) serviceCommandError.getPayload();
+//                        int cause = serviceCommandError.getCode();
+//                        if (mWaitingForReconnect) {
+//                            mConnectionSuspended = true;
+//                            LOGD(TAG, "onConnectionSuspended() was called with cause: " + cause);
+//                            for (BaseCastConsumer consumer : mBaseCastConsumers) {
+//                                consumer.onConnectionSuspended(cause);
+//                            }
+//                        }
+//                    }
+//                }
+//
+//                @Override
+//                public void onConnectionFailure(DeviceService service, Error error) {
+//
+//                }
+//
+//                @Override
+//                public void onPairingRequired(DeviceService service, DeviceService.PairingType pairingType, Object pairingData) {
+//
+//                }
+//
+//                @Override
+//                public void onPairingSuccess(DeviceService service) {
+//
+//                }
+//
+//                @Override
+//                public void onPairingFailed(DeviceService service, Error error) {
+//
+//                }
+//            });
+//        }
+
         if (mReconnectionStatus == RECONNECTION_STATUS_IN_PROGRESS) {
             LOGD(TAG, "Attempting to join a previously interrupted session...");
             String sessionId = mPreferenceAccessor.getStringFromPreference(PREFS_KEY_SESSION_ID);
@@ -1231,6 +1289,7 @@ public abstract class BaseCastManager implements /*ConnectionCallbacks, OnConnec
                         LOGD(TAG, "joinWebApp() -> success");
                         //onApplicationConnected(result.getApplicationMetadata(), result.getApplicationStatus(), result.getSessionId(), result.getWasLaunched());
                         onApplicationConnected(webAppSession, WebAppSession.WebAppStatus.Open);
+
                     }
 
                     @Override

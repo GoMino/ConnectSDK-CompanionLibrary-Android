@@ -245,6 +245,7 @@ public class VideoCastControllerFragment extends Fragment implements
         public void onRemoteMediaPlayerMetadataUpdated() {
             try {
                 mSelectedMedia = mCastManager.getRemoteMediaInformation();
+                LOGD(TAG, "onRemoteMediaPlayerMetadataUpdated mediaInfo:"+mSelectedMedia);
                 updateClosedCaptionState();
                 updateMetadata();
             } catch (TransientNetworkDisconnectionException | NoConnectionException e) {
@@ -373,8 +374,9 @@ public class VideoCastControllerFragment extends Fragment implements
      * @param customData An optional custom data to be sent along the load api; it can be
      * {@code null}
      */
-    private void onReady(MediaInfo mediaInfo, boolean shouldStartPlayback, int startPoint,
-            JSONObject customData) {
+    private void onReady(MediaInfo mediaInfo, boolean shouldStartPlayback, int startPoint, JSONObject customData) {
+        LOGD(TAG, "onReady mediaInfo:"+mediaInfo);
+
         mSelectedMedia = mediaInfo;
         updateClosedCaptionState();
 
@@ -585,8 +587,7 @@ public class VideoCastControllerFragment extends Fragment implements
             mCastManager.addVideoCastConsumer(mCastConsumer);
             if (!mIsFresh) {
                 updatePlayerStatus();
-                // updating metadata in case another client has changed it and we are resuming the
-                // activity
+                // updating metadata in case another client has changed it and we are resuming the activity
                 mSelectedMedia = mCastManager.getRemoteMediaInformation();
                 updateClosedCaptionState();
                 updateMetadata();
@@ -790,6 +791,9 @@ public class VideoCastControllerFragment extends Fragment implements
     @Override
     public void onAuthResult(MediaAuthStatus status, final MediaInfo info, final String message,
             final int startPoint, final JSONObject customData) {
+
+        LOGD(TAG, "onAuthResult mediaInfo:"+info);
+
         if (status == MediaAuthStatus.AUTHORIZED && mAuthSuccess) {
             // successful authorization
             mMediaAuthService = null;
