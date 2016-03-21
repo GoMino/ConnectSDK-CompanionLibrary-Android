@@ -22,6 +22,7 @@ import static com.google.android.libraries.cast.companionlibrary.utils.LogUtils.
 //import com.google.android.gms.cast.MediaInfo;
 //import com.google.android.gms.cast.MediaMetadata;
 //import com.google.android.gms.cast.MediaStatus;
+import com.connectsdk.core.MediaInfoWithCustomData;
 import com.connectsdk.service.capability.MediaControl;
 import com.google.android.libraries.cast.companionlibrary.R;
 import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
@@ -37,10 +38,11 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -64,14 +66,12 @@ import android.widget.TextView;
  * play/pause (or play/stop when a live stream is used) and seekbar (for non-live streams).
  * <p>
  * Clients who need to perform a pre-authorization process for playback can register a
- * {@link com.google.android.libraries.cast.companionlibrary.cast.player.MediaAuthListener} by
- * calling
- * {@link VideoCastManager#startVideoCastControllerActivity(android.content.Context, com.google.android.libraries.cast.companionlibrary.cast.player.MediaAuthService)}
- * In that case, this activity manages starting the
- * {@link com.google.android.libraries.cast.companionlibrary.cast.player.MediaAuthService} and will
- * register a listener to handle the result.
+ * {@link MediaAuthListener} by calling
+ * {@link VideoCastManager#startVideoCastControllerActivity(android.content.Context, MediaAuthService)}
+ * In that case, this activity manages starting the {@link MediaAuthService} and will register a
+ * listener to handle the result.
  */
-public class VideoCastControllerActivity extends ActionBarActivity implements
+public class VideoCastControllerActivity extends AppCompatActivity implements
         VideoCastController {
 
     private static final String TAG = LogUtils
@@ -98,7 +98,6 @@ public class VideoCastControllerActivity extends ActionBarActivity implements
     private ImageButton mSkipNext;
     private ImageButton mSkipPrevious;
     private View mPlaybackControls;
-    private MiniController mMini;
     private Toolbar mToolbar;
     private int mNextPreviousVisibilityPolicy
             = VideoCastController.NEXT_PREV_VISIBILITY_POLICY_DISABLED;
@@ -117,38 +116,22 @@ public class VideoCastControllerActivity extends ActionBarActivity implements
             return;
         }
 
-        Bundle mediaWrapper = extras.getBundle(VideoCastManager.EXTRA_MEDIA);
-        String title = mediaWrapper.getString(Utils.KEY_TITLE);
-        setUpActionBar(title);
+        setUpActionBar();
 
         FragmentManager fm = getSupportFragmentManager();
-        VideoCastControllerFragment videoCastControlleFragment
-                = (VideoCastControllerFragment) fm.findFragmentByTag(
-                TASK_TAG);
+        VideoCastControllerFragment videoCastControllerFragment
+                = (VideoCastControllerFragment) fm.findFragmentByTag(TASK_TAG);
 
         // if fragment is null, it means this is the first time, so create it
-        if (videoCastControlleFragment == null) {
-            videoCastControlleFragment = VideoCastControllerFragment
+        if (videoCastControllerFragment == null) {
+            videoCastControllerFragment = VideoCastControllerFragment
                     .newInstance(extras);
-            fm.beginTransaction().add(videoCastControlleFragment, TASK_TAG).commit();
-            mListener = videoCastControlleFragment;
-            setOnVideoCastControllerChangedListener(mListener);
+            fm.beginTransaction().add(videoCastControllerFragment, TASK_TAG).commit();
+            setOnVideoCastControllerChangedListener(videoCastControllerFragment);
         } else {
-            mListener = videoCastControlleFragment;
+            setOnVideoCastControllerChangedListener(videoCastControllerFragment);
             mListener.onConfigurationChanged();
         }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        mCastManager.addMiniController(mMini);
-    }
-
-    @Override
-    protected void onPause() {
-        mCastManager.removeMiniController(mMini);
-        super.onPause();
     }
 
     @Override
@@ -168,7 +151,7 @@ public class VideoCastControllerActivity extends ActionBarActivity implements
     }
 
     @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
+    public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
         return mCastManager.onDispatchVolumeKeyEvent(event, mVolumeIncrement) || super
                 .dispatchKeyEvent(event);
     }
@@ -190,8 +173,7 @@ public class VideoCastControllerActivity extends ActionBarActivity implements
         mSkipNext = (ImageButton) findViewById(R.id.next);
         mSkipPrevious = (ImageButton) findViewById(R.id.previous);
         mPlaybackControls = findViewById(R.id.playback_controls);
-        mMini = (MiniController) findViewById(R.id.miniController1);
-        mMini.setCurrentVisibility(false);
+        ((MiniController) findViewById(R.id.miniController1)).setCurrentVisibility(false);
         setClosedCaptionState(CC_DISABLED);
         mPlayPause.setOnClickListener(new OnClickListener() {
 
@@ -303,7 +285,7 @@ public class VideoCastControllerActivity extends ActionBarActivity implements
         dialogFragment.show(transaction, DIALOG_TAG);
     }
 
-    private void setUpActionBar(String title) {
+    private void setUpActionBar() {
         mToolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(mToolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -344,7 +326,7 @@ public class VideoCastControllerActivity extends ActionBarActivity implements
 
     @Override
     public void onQueueItemsUpdated(int queueLength, int position) {
-        boolean prevAvailable = position > 0 ;
+        boolean prevAvailable = position > 0;
         boolean nextAvailable = position < queueLength - 1;
         switch(mNextPreviousVisibilityPolicy) {
             case VideoCastController.NEXT_PREV_VISIBILITY_POLICY_HIDDEN:
@@ -395,7 +377,7 @@ public class VideoCastControllerActivity extends ActionBarActivity implements
             case MediaControl.PLAYER_STATE_PLAYING:
                 mLoading.setVisibility(View.INVISIBLE);
                 mPlaybackControls.setVisibility(View.VISIBLE);
-//                if (mStreamType == MediaInfo.STREAM_TYPE_LIVE) {
+//                if (mStreamType == MediaInfoWithCustomData.STREAM_TYPE_LIVE) {
 //                    mPlayPause.setImageDrawable(mStopDrawable);
 //                } else {
                     mPlayPause.setImageDrawable(mPauseDrawable);
@@ -462,7 +444,7 @@ public class VideoCastControllerActivity extends ActionBarActivity implements
     @Override
     public void setOnVideoCastControllerChangedListener(OnVideoCastControllerListener listener) {
         if (listener != null) {
-            //mListener = listener;
+            mListener = listener;
         }
     }
 
@@ -474,9 +456,9 @@ public class VideoCastControllerActivity extends ActionBarActivity implements
     @Override
     public void updateControllersStatus(boolean enabled) {
         mControllers.setVisibility(enabled ? View.VISIBLE : View.INVISIBLE);
-//        if (enabled) {
-//            adjustControllersForLiveStream(mStreamType == MediaInfo.STREAM_TYPE_LIVE);
-//        }
+        if (enabled) {
+            adjustControllersForLiveStream(mStreamType == MediaInfoWithCustomData.STREAM_TYPE_LIVE);
+        }
     }
 
     @Override

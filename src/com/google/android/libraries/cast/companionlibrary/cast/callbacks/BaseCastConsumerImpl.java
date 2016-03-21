@@ -20,6 +20,7 @@ package com.google.android.libraries.cast.companionlibrary.cast.callbacks;
 //import com.google.android.gms.common.ConnectionResult;
 import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.service.command.ServiceCommandError;
+import com.google.android.libraries.cast.companionlibrary.cast.BaseCastManager;
 
 
 import android.support.v7.media.MediaRouter.RouteInfo;
@@ -31,10 +32,17 @@ public class BaseCastConsumerImpl implements BaseCastConsumer {
 
     @Override
     public void onConnected() {
+        // no-op
     }
 
     @Override
     public void onDisconnected() {
+        // no-op
+    }
+
+	@Override
+    public void onDisconnectionReason(@BaseCastManager.DISCONNECT_REASON int reason) {
+        // no-op
     }
 
     @Override
@@ -43,26 +51,32 @@ public class BaseCastConsumerImpl implements BaseCastConsumer {
 
     @Override
     public void onCastDeviceDetected(RouteInfo info) {
+        // no-op
     }
 
     @Override
     public void onCastAvailabilityChanged(boolean castPresent) {
+        // no-op
     }
 
     @Override
     public void onConnectionSuspended(int cause) {
+        // no-op
     }
 
     @Override
     public void onConnectivityRecovered() {
+        // no-op
     }
 
     @Override
     public void onUiVisibilityChanged(boolean visible) {
+        // no-op
     }
 
     @Override
     public void onReconnectionStatusChanged(int status) {
+        // no-op
     }
 
     @Override
@@ -75,6 +89,7 @@ public class BaseCastConsumerImpl implements BaseCastConsumer {
 
     @Override
     public void onFailed(int resourceId, int statusCode) {
+        // no-op
     }
 
 }

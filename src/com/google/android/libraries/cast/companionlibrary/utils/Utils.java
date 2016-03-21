@@ -75,8 +75,6 @@ public final class Utils {
     private static final String KEY_TRACKS_DATA = "track-data";
     public static final boolean IS_KITKAT_OR_ABOVE =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
-    public static final boolean IS_LOLLIPOP_OR_ABOVE =
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
     public static final boolean IS_ICS_OR_ABOVE =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH;
 
@@ -202,8 +200,8 @@ public final class Utils {
                     wrapper.putString(KEY_CUSTOMDATA_FORLOAD, infoWithCustomData.getCustomDataForLoad().toString());
             } catch (Exception e) {
                 e.printStackTrace();
-            }
-        }
+                    }
+                    }
 //        JSONObject customData = info.getCustomData();
 //        if (customData != null) {
 //            wrapper.putString(KEY_CUSTOM_DATA, customData.toString());

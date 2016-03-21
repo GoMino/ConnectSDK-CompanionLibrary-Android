@@ -19,6 +19,7 @@ package com.google.android.libraries.cast.companionlibrary.cast.callbacks;
 //import com.google.android.gms.cast.CastDevice;
 //import com.google.android.gms.common.ConnectionResult;
 import com.connectsdk.service.command.ServiceCommandError;
+import com.google.android.libraries.cast.companionlibrary.cast.BaseCastManager;
 import com.google.android.libraries.cast.companionlibrary.cast.exceptions.OnFailedListener;
 
 import android.support.v7.media.MediaRouter.RouteInfo;
@@ -52,6 +53,20 @@ public interface BaseCastConsumer extends OnFailedListener {
     void onDisconnected();
 
     /**
+     * Called when a device is disconnected or fails to reconnect and provides a reason for the
+     * disconnect or failure.
+     *
+     * @param reason The failure/disconnect reason; can be one of the following:
+     * <ul>
+     *     <li>{@link BaseCastManager#DISCONNECT_REASON_APP_NOT_RUNNING}</li>
+     *     <li>{@link BaseCastManager#DISCONNECT_REASON_EXPLICIT}</li>
+     *     <li>{@link BaseCastManager#DISCONNECT_REASON_CONNECTIVITY}</li>
+     *     <li>{@link BaseCastManager#DISCONNECT_REASON_OTHER}</li>
+     * </ul>@BaseCastManager.DISCONNECT_REASON
+     */
+    void onDisconnectionReason(@BaseCastManager.DISCONNECT_REASON int reason);
+
+    /**
      * Called when an error happens while connecting to a device.
      */
     void onConnectionFailed(ServiceCommandError result);
@@ -66,8 +81,8 @@ public interface BaseCastConsumer extends OnFailedListener {
      * number or vice versa. Can be used, for example, to control the visibility of {@link
      * android.support.v7.app.MediaRouteButton}
      *
-     * @param castPresent set to <code>true</code> if at least one device becomes available,
-     * <code>false</code> otherwise
+     * @param castPresent set to {@code true} if at least one device becomes available,
+     * {@code false} otherwise
      */
     void onCastAvailabilityChanged(boolean castPresent);
 
