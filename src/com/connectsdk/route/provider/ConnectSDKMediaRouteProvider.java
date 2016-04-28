@@ -22,8 +22,10 @@ import com.connectsdk.device.ConnectableDevice;
 import com.connectsdk.device.ConnectableDeviceListener;
 import com.connectsdk.discovery.DiscoveryManager;
 import com.connectsdk.discovery.DiscoveryManagerListener;
+import com.connectsdk.service.capability.VolumeControl;
 import com.connectsdk.service.capability.listeners.ResponseListener;
 import com.connectsdk.service.command.ServiceCommandError;
+import com.connectsdk.service.command.ServiceSubscription;
 import com.connectsdk.service.sessions.WebAppSession;
 import com.google.android.libraries.cast.companionlibrary.cast.BaseCastManager;
 import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
@@ -192,7 +194,7 @@ public class ConnectSDKMediaRouteProvider extends MediaRouteProvider{
     public void onDiscoveryRequestChanged(MediaRouteDiscoveryRequest request) {
         super.onDiscoveryRequestChanged(request);
         //Log.d(TAG, "onDiscoveryRequestChanged");
-        Log.d(TAG, "onDiscoveryRequestChanged allDevices(" + DiscoveryManager.getInstance().getAllDevices().size()+") VS compatibleDevices(" + DiscoveryManager.getInstance().getCompatibleDevices().size()+")");
+        Log.d(TAG, "onDiscoveryRequestChanged allDevices(" + DiscoveryManager.getInstance().getAllDevices().size() + ") VS compatibleDevices(" + DiscoveryManager.getInstance().getCompatibleDevices().size() + ")");
         publishRoutes();
     }
 
@@ -237,7 +239,12 @@ public class ConnectSDKMediaRouteProvider extends MediaRouteProvider{
 		//String routeDescriptorId = uniqueId[uniqueId.length-1];
         //return mRouteIdToDeviceMap.get(routeDescriptorId);
         String deviceId = route.getExtras().getString(ConnectableDevice.KEY_ID);
-        return mRouteIdToDeviceMap.get(deviceId);
+        return getDeviceForRouteId(deviceId);
+    }
+
+    public ConnectableDevice getDeviceForRouteId(String routeId)
+    {
+        return mRouteIdToDeviceMap.get(routeId);
     }
 
     public void publishRoutes() {
@@ -254,6 +261,7 @@ public class ConnectSDKMediaRouteProvider extends MediaRouteProvider{
     private final class ConnectSDKRouteController extends RouteController {
         private final String mRouteId;
         private PendingIntent mSessionReceiver;
+        private ServiceSubscription mVolumeSubscription;
 
         public ConnectSDKRouteController(String routeId) {
             mRouteId = routeId;
@@ -269,11 +277,32 @@ public class ConnectSDKMediaRouteProvider extends MediaRouteProvider{
         @Override
         public void onSelect() {
             Log.d(TAG, mRouteId + ": Selected");
+            ConnectableDevice device = getDeviceForRouteId(mRouteId);
+            if(device!=null) {
+                VolumeControl volumControl = device.getCapability(VolumeControl.class);
+                if (volumControl != null) {
+                    mVolumeSubscription = volumControl.subscribeVolume(new VolumeControl.VolumeListener() {
+                        @Override
+                        public void onSuccess(Float volume) {
+                            mVolume = Math.round(volume * 10);
+                            publishRoutes();
+                        }
+
+                        @Override
+                        public void onError(ServiceCommandError error) {
+                            Log.d(TAG, "onVolumeChanged error:"+error);
+                        }
+                    });
+                }
+            }
         }
 
         @Override
         public void onUnselect() {
             Log.d(TAG, mRouteId + ": Unselected");
+            if(mVolumeSubscription!=null) {
+                mVolumeSubscription.unsubscribe();
+            }
         }
 
         @Override
